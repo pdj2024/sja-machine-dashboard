@@ -1,7 +1,8 @@
 ﻿@rendermode InteractiveServer
-@*@page "/tb-customers"
 
+@*@page "/tb-customers"
 <PageTitle>TbCustomers</PageTitle>*@
+
 <RadzenStack Style="flex-grow: 1; margin-top: 0.5em; width: 100%; overflow: auto; gap: 0; padding: 1.25rem ">
 	<RadzenRow AlignItems="AlignItems.Center" Style="margin-bottom: 1.2em;  ">
 		<RadzenColumn Size="12" SizeMD="6">
@@ -56,11 +57,21 @@
 							<span>Refresh</span>
 						}
 					</button>
+					<button type="button" class="btn btn-sm bg-success text-white" @onclick="ExportCsv_Click">
+						@if (isRefreshExport)
+						{
+							<span>Memperbarui Data...</span>
+						}
+						else
+						{
+							<span>Export to CSV</span>
+						}
+					</button>
 				</div>
 				<div class="d-flex align-items-center gap-3 mb-3">
-					<DxDateEdit @bind-Date="StartDate" DisplayFormat="g" EditFormat="g" />
+					<RadzenDatePicker @bind-Value="StartDate" ShowTime="true" ShowSeconds="true" Name="StartDate" AllowClear="true" ShowButton="false" class="w-100" />
 					<span>to</span>
-					<DxDateEdit @bind-Date="EndDate" DisplayFormat="g" EditFormat="g" />
+					<RadzenDatePicker @bind-Value="EndDate" ShowTime="true" ShowSeconds="true" Name="StartDate" AllowClear="true" ShowButton="false" class="w-100" />
 				</div>
 			</div>
 			<DxGrid @ref="Grid"
@@ -70,7 +81,7 @@
 					VirtualScrollingEnabled="true"
 					TextWrapEnabled="false"
 					HighlightRowOnHover="true"
-					style="height: fit-content !important;">
+					style="height: 300px !important;">
 				<Columns>
 					<DxGridDataColumn FieldName="Measurement" Caption="Measurement" MinWidth="200" TextAlignment="GridTextAlignment.Left" CaptionAlignment="GridTextAlignment.Center" />
 					<DxGridDataColumn FieldName="Value" Caption="Value" MinWidth="200" TextAlignment="GridTextAlignment.Center" CaptionAlignment="GridTextAlignment.Center" />
@@ -82,32 +93,24 @@
 	</RadzenRow>
 
 	<RadzenRow>
-		@* ChartJS *@
-		<RadzenColumn SizeMD=12 class="mt-4">
-			<div class="row mx-0">
-				<div class="col-12 mb-4">
-					<div class="card bg-transparent border-0 shadow-none">
-						<div class="card-body bg-transparent">
-							<h6 class="mb-0">Diagram</h6>
-							<p class="text-sm">Contoh diagram 8 line chart</p>
-							<div class="pe-2">
-								<div class="chart position-relative">
-									<canvas id="chart-diagram" class="chart-canvas" height="500"></canvas>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</RadzenColumn>
-		
 		@* Radzen Chart *@
 		<RadzenColumn SizeMD=12 class="mt-4">
-			
+
+			@* Checkbox *@
+			<div class="d-flex flex-wrap gap-2 mb-3">
+				@foreach (var name in dataSets.Keys)
+				{
+					<RadzenButton Size="Radzen.ButtonSize.Small"
+								  Click="() => ToggleDataset(name)"
+								  Text="@name"
+								  ButtonStyle="@(visibleDatasets.Contains(name) ? ButtonStyle.Primary : ButtonStyle.Light)"
+								  Icon="@(visibleDatasets.Contains(name) ? "check" : "close")" />
+				}
+			</div>
 			<RadzenChart Style="margin-bottom: 5rem; height: 400px;">
 				<RadzenChartTooltipOptions Shared="true" />
 
-				@foreach (var dataset in dataSets)
+				@foreach (var dataset in dataSets.Where(d => visibleDatasets.Contains(d.Key)))
 				{
 					<RadzenLineSeries Smooth="true"
 									  Data="@dataset.Value"
@@ -126,6 +129,57 @@
 				</RadzenValueAxis>
 			</RadzenChart>
 
+
+			@* Dropdown *@
+			<div class="flex items-center gap-3 mb-3">
+				<label><b>Pilih Data yang Ditampilkan:</b></label>
+				<RadzenDropDown TValue="List<string>"
+								Data="@availableDataSets"
+								@bind-Value="@selectedDataSets"
+								Multiple="true"
+								Placeholder="Pilih dataset..."
+								Style="width: 250px" />
+			</div>
+			<RadzenChart Style="margin-bottom: 5rem; height: 400px;">
+				<RadzenChartTooltipOptions Shared="true" />
+
+				@foreach (var dataset in dataSetsDropdown.Where(ds => selectedDataSets.Contains(ds.Key)))
+				{
+					<RadzenLineSeries Smooth="true"
+									  Data="@dataset.Value"
+									  CategoryProperty="Date"
+									  Title="@dataset.Key"
+									  ValueProperty="Revenue">
+						<RadzenMarkers Visible="true" MarkerType="MarkerType.Circle" />
+						<RadzenSeriesDataLabels Visible="false" />
+					</RadzenLineSeries>
+				}
+
+				<RadzenCategoryAxis Padding="20" />
+				<RadzenValueAxis Formatter="@FormatAsUSD">
+					<RadzenGridLines Visible="true" />
+					<RadzenAxisTitle Text="Revenue in USD" />
+				</RadzenValueAxis>
+			</RadzenChart>
+		</RadzenColumn>
+
+		@* ChartJS *@
+		<RadzenColumn SizeMD=12 class="mt-4">
+			<div class="row mx-0">
+				<div class="col-12 mb-4">
+					<div class="card bg-transparent border-0 shadow-none">
+						<div class="card-body bg-transparent">
+							<h6 class="mb-0">Diagram</h6>
+							<p class="text-sm">Contoh diagram 8 line chart</p>
+							<div class="pe-2">
+								<div class="chart position-relative">
+									<canvas id="chart-diagram" class="chart-canvas" height="500"></canvas>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
 		</RadzenColumn>
 	</RadzenRow>
 </RadzenStack>

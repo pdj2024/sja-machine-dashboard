@@ -87,8 +87,14 @@ namespace PacificWeb.Components.Pages
         protected override void OnInitialized()
         {
             GenerateDummyData();
-            GenerateDummyDataChartRadzen();
             LoadDummyDataHistory();
+
+            GenerateDummyDataChartRadzen();
+            visibleDatasets = dataSets.Keys.ToHashSet();
+
+            GenerateDummyDataChartRadzenDropdown();
+            availableDataSets = dataSets.Keys.ToList();
+            selectedDataSets = availableDataSets.Take(3).ToList();
 
             // Set timer untuk update setiap 1 menit (60.000 ms)
             updateTimer = new System.Timers.Timer(5000);
@@ -137,10 +143,12 @@ namespace PacificWeb.Components.Pages
 
 
         // ~~~~~Table History~~~~~
+        private bool ExportSelectedRowsOnly { get; set; }
         private List<HistoryRecord> HistoryData = new();
         private DateTime StartDate = DateTime.Now.AddHours(-6);
         private DateTime EndDate = DateTime.Now;
         private bool isRefresh = false;
+        private bool isRefreshExport = false;
         public class HistoryRecord
         {
             public string Measurement { get; set; }
@@ -167,8 +175,19 @@ namespace PacificWeb.Components.Pages
         }
         private void RefreshData()
         {
+            isRefresh = true;
             LoadDummyDataHistory();
+            isRefresh = false;
             StateHasChanged();
+        }
+        private async Task ExportCsv_Click()
+        {
+            isRefreshExport = true;
+            await Grid.ExportToCsvAsync("ExportResult", new GridCsvExportOptions()
+            {
+                ExportSelectedRowsOnly = ExportSelectedRowsOnly
+            });
+            isRefreshExport = false;
         }
 
 
@@ -220,11 +239,14 @@ namespace PacificWeb.Components.Pages
             public string Date { get; set; }
             public double Revenue { get; set; }
         }
+        private Dictionary<string, List<DataItem>> dataSets = new();
+        private HashSet<string> visibleDatasets = new();
+
         string FormatAsUSD(object value)
         {
             return $"${value}";
         }
-        private Dictionary<string, List<DataItem>> dataSets = new();
+
         private void GenerateDummyDataChartRadzen()
         {
             var rnd = new Random();
@@ -242,7 +264,41 @@ namespace PacificWeb.Components.Pages
                         Revenue = Math.Round(rnd.NextDouble() * 10000, 2)
                     });
                 }
-                dataSets.Add(name, list);
+                dataSets[name] = list;
+            }
+        }
+
+        private void ToggleDataset(string name)
+        {
+            if (visibleDatasets.Contains(name))
+                visibleDatasets.Remove(name);
+            else
+                visibleDatasets.Add(name);
+
+            StateHasChanged();
+        }
+
+        private Dictionary<string, List<DataItem>> dataSetsDropdown = new();
+        private List<string> availableDataSets = new();
+        private List<string> selectedDataSets = new();
+        private void GenerateDummyDataChartRadzenDropdown()
+        {
+            var rnd = new Random();
+            string[] names = { "2023", "2024", "Product A", "Product B", "Product C", "Product D", "Region X", "Region Y" };
+            var dates = Enumerable.Range(1, 8).Select(i => $"Day {i}").ToList();
+
+            foreach (var name in names)
+            {
+                var list = new List<DataItem>();
+                foreach (var date in dates)
+                {
+                    list.Add(new DataItem
+                    {
+                        Date = date,
+                        Revenue = Math.Round(rnd.NextDouble() * 10000, 2)
+                    });
+                }
+                dataSetsDropdown.Add(name, list);
             }
         }
     }
