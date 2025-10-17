@@ -24,7 +24,7 @@
 					Terakhir update: <b>@lastUpdated.ToString("HH:mm:ss")</b>
 				</p>
 			</div>
-			<DxGrid @ref="Grid"
+			@* <DxGrid @ref="Grid"
 					Data="@measurementList"
 					KeyFieldName="Measurement"
 					AllowSort="true"
@@ -37,7 +37,20 @@
 					<DxGridDataColumn FieldName="Value" Caption="Value" MinWidth="200" TextAlignment="GridTextAlignment.Center" CaptionAlignment="GridTextAlignment.Center" />
 					<DxGridDataColumn FieldName="Units" Caption="Units" MinWidth="100" TextAlignment="GridTextAlignment.Center" CaptionAlignment="GridTextAlignment.Center" />
 				</Columns>
-			</DxGrid>
+			</DxGrid> *@
+
+			<RadzenDataGrid @ref="Grid"
+                Data="@measurementList"
+                TItem="MeasurementData"
+                AllowSorting="true"
+                AllowPaging="false"
+                AllowVirtualization="true">
+				<Columns>
+					<RadzenDataGridColumn TItem="MeasurementData" Property="Measurement" Title="Measurement" Width="200px" TextAlign="TextAlign.Left" />
+					<RadzenDataGridColumn TItem="MeasurementData" Property="Value" Title="Value" Width="200px" TextAlign="TextAlign.Center" />
+					<RadzenDataGridColumn TItem="MeasurementData" Property="Units" Title="Units" Width="100px" TextAlign="TextAlign.Center" />
+				</Columns>
+			</RadzenDataGrid>
 		</RadzenColumn>
 	</RadzenRow>
 
@@ -54,10 +67,10 @@
 						}
 						else
 						{
-							<span>Refresh</span>
+							<span>Filter</span>
 						}
 					</button>
-					<button type="button" class="btn btn-sm bg-success text-white" @onclick="ExportCsv_Click">
+					<button type="button" class="btn btn-sm bg-success text-white" onclick="@(() => ExportTable("csv"))">
 						@if (isRefreshExport)
 						{
 							<span>Memperbarui Data...</span>
@@ -74,7 +87,7 @@
 					<RadzenDatePicker @bind-Value="EndDate" ShowTime="true" ShowSeconds="true" Name="StartDate" AllowClear="true" ShowButton="false" class="w-100" />
 				</div>
 			</div>
-			<DxGrid @ref="Grid"
+			@* <DxGrid @ref="Grid"
 					Data="@HistoryData"
 					KeyFieldName="Measurement"
 					AllowSort="true"
@@ -88,7 +101,22 @@
 					<DxGridDataColumn FieldName="Units" Caption="Units" MinWidth="100" TextAlignment="GridTextAlignment.Center" CaptionAlignment="GridTextAlignment.Center" />
 					<DxGridDataColumn FieldName="Timestamp" Caption="Timestamp" MinWidth="100" TextAlignment="GridTextAlignment.Left" CaptionAlignment="GridTextAlignment.Center" />
 				</Columns>
-			</DxGrid>
+			</DxGrid> *@
+
+			<RadzenDataGrid @ref="GridRecord"
+                Data="@HistoryData"
+                TItem="HistoryRecord"
+                AllowSorting="true"
+                AllowPaging="true"
+                PagerPosition="PagerPosition.Bottom"
+				PagerHorizontalAlign="HorizontalAlign.Left">
+				<Columns>
+					<RadzenDataGridColumn TItem="HistoryRecord" Property="Measurement" Title="Measurement" Width="200px" TextAlign="TextAlign.Left" />
+					<RadzenDataGridColumn TItem="HistoryRecord" Property="Value" Title="Value" Width="200px" TextAlign="TextAlign.Center" />
+					<RadzenDataGridColumn TItem="HistoryRecord" Property="Units" Title="Units" Width="100px" TextAlign="TextAlign.Center" />
+					<RadzenDataGridColumn TItem="HistoryRecord" Property="Timestamp" Title="Timestamp" Width="100px" TextAlign="TextAlign.Center" />
+				</Columns>
+			</RadzenDataGrid>
 		</RadzenColumn>
 	</RadzenRow>
 
@@ -226,4 +254,18 @@
         link.download = `chart-image.${format}`;
         link.click();
     }
+
+	async function downloadFileFromStream(fileName, contentStreamReference) {
+		const arrayBuffer = await contentStreamReference.arrayBuffer();
+		const blob = new Blob([arrayBuffer]);
+		const url = URL.createObjectURL(blob);
+
+		const anchorElement = document.createElement('a');
+		anchorElement.href = url;
+		anchorElement.download = fileName ?? 'download';
+		anchorElement.click();
+		anchorElement.remove();
+
+		URL.revokeObjectURL(url);
+	}
 </script>

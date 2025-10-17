@@ -4,6 +4,8 @@ using System.Data;
 using System.Drawing;
 using System.Globalization;
 using System.Reflection;
+using System.Text;
+using BlazorBootstrap;
 using DevExpress.Blazor;
 using DevExpress.Blazor.Internal.Grid;
 using Microsoft.AspNetCore.Components;
@@ -105,7 +107,7 @@ namespace PacificWeb.Components.Pages
 
 
         // ~~~~~Table Real-time~~~~~
-        IGrid Grid { get; set; }
+        RadzenDataGrid<MeasurementData> Grid;
         private List<MeasurementData> measurementList = new();
         private System.Timers.Timer updateTimer;
         private DateTime lastUpdated = DateTime.Now;
@@ -143,6 +145,7 @@ namespace PacificWeb.Components.Pages
 
 
         // ~~~~~Table History~~~~~
+        RadzenDataGrid<HistoryRecord> GridRecord;
         private bool ExportSelectedRowsOnly { get; set; }
         private List<HistoryRecord> HistoryData = new();
         private DateTime StartDate = DateTime.Now.AddHours(-6);
@@ -180,13 +183,35 @@ namespace PacificWeb.Components.Pages
             isRefresh = false;
             StateHasChanged();
         }
-        private async Task ExportCsv_Click()
+        //private async Task ExportCsv_Click()
+        //{
+        //    isRefreshExport = true;
+        //    await Grid.ExportToCsvAsync("ExportResult", new GridCsvExportOptions()
+        //    {
+        //        ExportSelectedRowsOnly = ExportSelectedRowsOnly
+        //    });
+        //    isRefreshExport = false;
+        //}
+        public async Task ExportTable(string type)
         {
             isRefreshExport = true;
-            await Grid.ExportToCsvAsync("ExportResult", new GridCsvExportOptions()
+            if (type.ToLower() == "csv")
             {
-                ExportSelectedRowsOnly = ExportSelectedRowsOnly
-            });
+                var csv = new StringBuilder();
+                csv.AppendLine("Measurement,Value,Units,Timestamp");
+
+                foreach (var item in HistoryData)
+                {
+                    csv.AppendLine($"{item.Measurement},{item.Value},{item.Units},{item.Timestamp:yyyy-MM-dd HH:mm:ss}");
+                }
+
+                var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+                var fileName = $"HistoryData_{DateTime.Now:yyyyMMddHHmmss}.csv";
+
+                using var stream = new MemoryStream(bytes);
+                using var streamRef = new Microsoft.JSInterop.DotNetStreamReference(stream);
+                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+            }
             isRefreshExport = false;
         }
 

@@ -970,6 +970,29 @@ ul[role=tablist] {
     color: black !important;
 }
 
+/* Radzen Sidebar Menu */
+.rz-panel-menu {
+    background-color: transparent !important;
+    color: #1e3a6a !important;
+    font-weight: 400 !important;
+}
+
+.rz-panel-menu .rz-navigation-item-wrapper {
+    line-height: 0.5rem !important;
+}
+
+.rz-panel-menu .rz-navigation-item {
+    border-block-end: 0px solid black !important;
+}
+
+/* Radzen Table */
+.rz-grid-table thead tr th {
+    background-color: #1e3a6a !important;
+}
+.rz-column-title {
+    color: white !important;
+}
+
 /* Effect Typing */
 /*.typewriter h3 {
     overflow: hidden;

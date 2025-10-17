@@ -64,6 +64,19 @@ window.renderMultiLineChart = (labels, datasets) => {
     });
 };
 
+// Table to CSV
+window.downloadFileFromStream = async (fileName, contentStreamReference) => {
+    const arrayBuffer = await contentStreamReference.arrayBuffer();
+    const blob = new Blob([arrayBuffer]);
+    const url = URL.createObjectURL(blob);
+    const anchorElement = document.createElement('a');
+    anchorElement.href = url;
+    anchorElement.download = fileName ?? 'download';
+    anchorElement.click();
+    anchorElement.remove();
+    URL.revokeObjectURL(url);
+};
+
 
 // Chart to PDF
 //window.exportChart = (id) => {
