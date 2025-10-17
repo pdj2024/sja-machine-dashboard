@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+
+
+	<ItemGroup>
+		<SupportedPlatform Include="browser" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.20" />
+
+		<PackageReference Include="Blazor.Bootstrap" Version="3.4.0" />
+		<PackageReference Include="ClosedXML" Version="0.105.0" />
+		<PackageReference Include="Dapper" Version="2.1.35" />
+		<PackageReference Include="DevExpress.Blazor" Version="25.1.5" />
+
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.5" />
+		<PackageReference Include="Microsoft.Data.SqlClient.SNI.runtime" Version="5.2.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.5" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.5" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.5">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Npgsql" Version="8.0.4" />
+		<PackageReference Include="Radzen.Blazor" Version="8.0.4" />
+		<PackageReference Include="SqlTableDependency" Version="8.5.8" />
+		<PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
+	</ItemGroup>
+
+</Project>

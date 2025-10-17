@@ -1,0 +1,181 @@
+﻿@using Microsoft.JSInterop
+@using Radzen
+@using Radzen.Blazor
+@using ClosedXML.Excel
+@using System.Text
+
+@inject IJSRuntime JSRuntime
+
+<RadzenRow>
+	<RadzenColumn SizeMD="12" class="mt-4">
+		<div class="d-flex flex-column gap-2">
+			<div class="d-flex align-items-center justify-content-start jus gap-2">
+				<h4>Table History</h4>
+				<button type="button" class="btn btn-sm bg-success text-white" @onclick="RefreshData">
+					@if (isRefresh)
+					{
+						<span>Memperbarui Data...</span>
+					}
+					else
+					{
+						<span>Filter</span>
+					}
+				</button>
+				<button type="button" class="btn btn-sm bg-success text-white" onclick="@(() => ExportTable("csv"))">
+					@if (isRefreshExport)
+					{
+						<span>Memperbarui Data...</span>
+					}
+					else
+					{
+						<span>Export to CSV</span>
+					}
+				</button>
+				<button type="button" class="btn btn-sm bg-success text-white" onclick="@(() => ExportTable("excel"))">
+					@if (isRefreshExport)
+					{
+						<span>Memperbarui Data...</span>
+					}
+					else
+					{
+						<span>Export to Excel</span>
+					}
+				</button>
+			</div>
+			<div class="d-flex align-items-center gap-3 mb-3">
+				<RadzenDatePicker @bind-Value="StartDate" ShowTime="true" ShowSeconds="true" Name="StartDate" AllowClear="true" ShowButton="false" class="w-100" />
+				<span>to</span>
+				<RadzenDatePicker @bind-Value="EndDate" ShowTime="true" ShowSeconds="true" Name="StartDate" AllowClear="true" ShowButton="false" class="w-100" />
+			</div>
+		</div>
+
+		<RadzenDataGrid @ref="GridRecord"
+						Data="@HistoryData"
+						TItem="HistoryRecord"
+						AllowSorting="true"
+						AllowPaging="true"
+						PagerPosition="PagerPosition.Bottom"
+						PagerHorizontalAlign="HorizontalAlign.Left">
+			<Columns>
+				<RadzenDataGridColumn TItem="HistoryRecord" Property="Measurement" Title="Measurement" Width="200px" TextAlign="TextAlign.Left" />
+				<RadzenDataGridColumn TItem="HistoryRecord" Property="Value" Title="Value" Width="200px" TextAlign="TextAlign.Center" />
+				<RadzenDataGridColumn TItem="HistoryRecord" Property="Units" Title="Units" Width="100px" TextAlign="TextAlign.Center" />
+				<RadzenDataGridColumn TItem="HistoryRecord" Property="Timestamp" Title="Timestamp" Width="100px" TextAlign="TextAlign.Center" />
+			</Columns>
+		</RadzenDataGrid>
+	</RadzenColumn>
+</RadzenRow>
+
+@code {
+	protected override void OnInitialized()
+	{
+		LoadDummyDataHistory();
+	}
+
+    RadzenDataGrid<HistoryRecord> GridRecord;
+    private bool ExportSelectedRowsOnly { get; set; }
+    private List<HistoryRecord> HistoryData = new();
+    private DateTime StartDate = DateTime.Now.AddHours(-6);
+    private DateTime EndDate = DateTime.Now;
+    private bool isRefresh = false;
+    private bool isRefreshExport = false;
+    
+    public class HistoryRecord
+    {
+        public string Measurement { get; set; }
+        public double Value { get; set; }
+        public string Units { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+    
+    private void LoadDummyDataHistory()
+    {
+        var rnd = new Random();
+        string[] measurements = { "Temperature", "Pressure", "Flowrate", "Energy Consumption" };
+        string[] units = { "°C", "PA", "L/s", "kWh" };
+
+        HistoryData = Enumerable.Range(1, 50).Select(i => new HistoryRecord
+        {
+            Measurement = measurements[rnd.Next(measurements.Length)],
+            Value = Math.Round(rnd.NextDouble() * 100, 2),
+            Units = units[rnd.Next(units.Length)],
+            Timestamp = DateTime.Now.AddMinutes(-rnd.Next(360))
+        })
+        .Where(h => h.Timestamp >= StartDate && h.Timestamp <= EndDate)
+        .OrderByDescending(h => h.Timestamp)
+        .ToList();
+    }
+    
+    private void RefreshData()
+    {
+        isRefresh = true;
+        LoadDummyDataHistory();
+        isRefresh = false;
+        StateHasChanged();
+    }
+    
+    public async Task ExportTable(string type)
+    {
+        isRefreshExport = true;
+        StateHasChanged();
+
+        if (type.ToLower() == "csv")
+        {
+            var csv = new StringBuilder();
+            csv.AppendLine("Measurement,Value,Units,Timestamp");
+
+            foreach (var item in HistoryData)
+            {
+                csv.AppendLine($"{item.Measurement},{item.Value},{item.Units},{item.Timestamp:yyyy-MM-dd HH:mm:ss}");
+            }
+
+            var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+            var fileName = $"HistoryData_{DateTime.Now:yyyyMMddHHmmss}.csv";
+
+            using var stream = new MemoryStream(bytes);
+            using var streamRef = new Microsoft.JSInterop.DotNetStreamReference(stream);
+            await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+        }
+        else if (type.ToLower() == "excel")
+        {
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("History Data");
+
+            // Header
+            worksheet.Cell(1, 1).Value = "Measurement";
+            worksheet.Cell(1, 2).Value = "Value";
+            worksheet.Cell(1, 3).Value = "Units";
+            worksheet.Cell(1, 4).Value = "Timestamp";
+
+            // Data rows
+            int row = 2;
+            foreach (var item in HistoryData)
+            {
+                worksheet.Cell(row, 1).Value = item.Measurement;
+                worksheet.Cell(row, 2).Value = item.Value;
+                worksheet.Cell(row, 3).Value = item.Units;
+                worksheet.Cell(row, 4).Value = item.Timestamp;
+                worksheet.Cell(row, 4).Style.DateFormat.Format = "yyyy-MM-dd HH:mm:ss";
+                row++;
+            }
+
+            // Auto-fit kolom
+            worksheet.Columns().AdjustToContents();
+
+            // Simpan workbook ke MemoryStream
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            stream.Position = 0;
+
+            // Nama file
+            var fileName = $"HistoryData_{DateTime.Now:yyyyMMddHHmmss}.xlsx";
+
+            // Download via JS
+            using var streamRef = new DotNetStreamReference(stream);
+            await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+        }
+
+        isRefreshExport = false;
+        StateHasChanged();
+    }
+}

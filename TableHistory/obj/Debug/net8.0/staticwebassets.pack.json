@@ -1,0 +1,37 @@
+{
+  "Files": [
+    {
+      "Id": "D:\\Visual Studio\\Blazor\\report-machine-dashboard\\TableHistory\\obj\\Debug\\net8.0\\scopedcss\\projectbundle\\TableHistory.bundle.scp.css",
+      "PackagePath": "staticwebassets\\TableHistory.f3h9mw09p7.bundle.scp.css"
+    },
+    {
+      "Id": "D:\\Visual Studio\\Blazor\\report-machine-dashboard\\TableHistory\\wwwroot\\background.png",
+      "PackagePath": "staticwebassets\\background.png"
+    },
+    {
+      "Id": "D:\\Visual Studio\\Blazor\\report-machine-dashboard\\TableHistory\\wwwroot\\exampleJsInterop.js",
+      "PackagePath": "staticwebassets\\exampleJsInterop.js"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.TableHistory.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.TableHistory.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.TableHistory.props",
+      "PackagePath": "build\\TableHistory.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.TableHistory.props",
+      "PackagePath": "buildMultiTargeting\\TableHistory.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.TableHistory.props",
+      "PackagePath": "buildTransitive\\TableHistory.props"
+    }
+  ],
+  "ElementsToRemove": []
+}
