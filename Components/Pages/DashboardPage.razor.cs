@@ -301,5 +301,16 @@ namespace PacificWeb.Components.Pages
                 dataSetsDropdown.Add(name, list);
             }
         }
+
+
+        // ~~~~~Button Export~~~~~
+        private async Task Export(string idChart)
+        {
+            await JSRuntime.InvokeVoidAsync("exportChart", idChart);
+        }
+        private async Task ExportImage(string idChart, string format)
+        {
+            await JSRuntime.InvokeVoidAsync("exportChartImage", idChart, format);
+        }
     }
 }

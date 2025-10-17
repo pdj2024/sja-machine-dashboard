@@ -1,13 +1,13 @@
-using Radzen;
 using PacificWeb.Components;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using Services;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Services;
 using Models;
-using Microsoft.AspNetCore.Components.Authorization;
+using Radzen;
 
 
 
@@ -47,6 +47,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddCascadingAuthenticationState();
 
 builder.Services.AddDevExpressBlazor();
+builder.Services.AddMvc();
 //builder.Services.AddDevExpressServerSideBlazorReportViewer();
 // If you use Bootstrap 5, specify the Bootstrap version explicitly
 builder.Services.Configure<DevExpress.Blazor.Configuration.GlobalOptions>(options => {
@@ -102,6 +103,8 @@ builder.Services.AddScoped<Services.TabService>(); // Scoped: unique instance pe
 builder.Services.AddControllers();
 builder.Services.AddRadzenComponents();
 builder.Services.AddHttpClient();
+
+
 var app = builder.Build();
 app.UseResponseCompression();
 

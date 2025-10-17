@@ -1,4 +1,5 @@
-﻿window.renderMultiLineChart = (labels, datasets) => {
+﻿// ChartJS
+window.renderMultiLineChart = (labels, datasets) => {
     const ctx = document.getElementById("chart-diagram").getContext("2d");
 
     if (window.multiLineChart) {
@@ -62,3 +63,19 @@
         plugins: [customPlugin]
     });
 };
+
+
+// Chart to PDF
+//window.exportChart = (id) => {
+//    const element = document.getElementById(id);
+
+//    html2canvas(element, { allowTaint: true, useCORS: true }).then(canvas => {
+//        const A4_WIDTH = 595.28;
+//        const width = A4_WIDTH;
+//        const height = (width / canvas.width) * canvas.height;
+//        const image = canvas.toDataURL('image/png');
+//        const doc = new jspdf.jsPDF('p', 'pt', 'a4');
+//        doc.addImage(image, 'PNG', 0, 0, width, height);
+//        doc.save('chart-export.pdf');
+//    });
+//};

@@ -958,6 +958,18 @@ ul[role=tablist] {
     background-color: transparent !important;
 }
 
+.rz-series-data-label {
+    fill: black !important;
+}
+
+.rz-tick-text {
+    fill: black !important;
+}
+
+.rz-legend-item-text {
+    color: black !important;
+}
+
 /* Effect Typing */
 /*.typewriter h3 {
     overflow: hidden;
