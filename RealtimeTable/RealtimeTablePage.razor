@@ -5,9 +5,25 @@
 <RadzenRow>
 	<RadzenColumn SizeMD="12">
 		<div class="d-flex flex-column gap-2">
-			<h4>Live Measurement Table</h4>
 			<p class="text-muted mt-2">
-				Terakhir update: <b>@lastUpdated.ToString("HH:mm:ss")</b>
+				@{
+					var culture = new System.Globalization.CultureInfo("id-ID");
+					string hari = culture.DateTimeFormat.GetDayName(lastUpdated.DayOfWeek);
+					string tanggal = lastUpdated.ToString("dd MMMM yyyy HH.mm.ss", culture);
+				}
+				Terakhir update: <b>@hari, @tanggal</b>
+			</p>
+			<p class="text-muted mt-2">
+				@* Fetch Data setiap: <b>5 detik</b> *@
+				Fetch Data setiap:
+				<select class="form-select d-inline-block w-auto ms-2" @onchange="OnIntervalChange">
+					@foreach (var option in IntervalOptions)
+					{
+						<option value="@option.Value" selected="@(updateInterval == option.Value)">
+							@option.Label
+						</option>
+					}
+				</select>
 			</p>
 		</div>
 
@@ -27,26 +43,58 @@
 </RadzenRow>
 
 @code {
+	public class MeasurementData
+	{
+		public string Measurement { get; set; }
+		public double Value { get; set; }
+		public string Units { get; set; }
+	}
+
 	private RadzenDataGrid<MeasurementData> Grid;
 	private List<MeasurementData> measurementList = new();
 	private System.Timers.Timer updateTimer;
 	private DateTime lastUpdated = DateTime.Now;
 	private Random rand = new();
 
+	private double updateInterval = 5000;
+
+	private List<(string Label, double Value)> IntervalOptions = new()
+	{
+		("5 detik", 5000),
+		("1 menit", 60000),
+		("5 menit", 300000),
+		("1 jam", 3600000)
+	};
+
 	protected override void OnInitialized()
 	{
 		GenerateDummyData();
-		updateTimer = new System.Timers.Timer(5000);
+
+		// updateTimer = new System.Timers.Timer(5000);
+		// updateTimer.Elapsed += async (s, e) => await UpdateDataAsync();
+		// updateTimer.AutoReset = true;
+		// updateTimer.Enabled = true;
+
+		SetupTimer(updateInterval);
+	}
+
+	private void SetupTimer(double interval)
+	{
+		updateTimer?.Dispose();
+		updateTimer = new System.Timers.Timer(interval);
 		updateTimer.Elapsed += async (s, e) => await UpdateDataAsync();
 		updateTimer.AutoReset = true;
 		updateTimer.Enabled = true;
 	}
 
-	public class MeasurementData
+	private void OnIntervalChange(ChangeEventArgs e)
 	{
-		public string Measurement { get; set; }
-		public double Value { get; set; }
-		public string Units { get; set; }
+		if (double.TryParse(e.Value?.ToString(), out double newInterval))
+		{
+			updateInterval = newInterval;
+			SetupTimer(updateInterval);
+			StateHasChanged();
+		}
 	}
 
 	private async Task UpdateDataAsync()

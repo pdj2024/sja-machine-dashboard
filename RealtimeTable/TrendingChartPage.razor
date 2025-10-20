@@ -11,30 +11,65 @@
 
 		@* Export Button *@
 		<div class="d-flex flex-wrap gap-2 mb-3">
-			<RadzenButton Click="@(() => Export("chartArea"))" IsBusy="@isExportPdf" Text="Export Chart PDF" />
-			<RadzenButton Click="@(() => ExportImage("chartArea", "png"))" IsBusy="@isExportPdf" Text="Export Chart Image" />
+			<button type="button" class="btn btn-sm bg-success text-white" onclick="@(() => Export("chartArea"))">
+				@if (isExportPdf)
+				{
+					<span>Export Data...</span>
+				}
+				else
+				{
+					<span>Export to PDF</span>
+				}
+			</button>
+			<button type="button" class="btn btn-sm bg-success text-white" onclick="@(() => ExportImage("chartArea", "png"))">
+				@if (isExportImage)
+				{
+					<span>Export Data...</span>
+				}
+				else
+				{
+					<span>Export to Image</span>
+				}
+			</button>
 		</div>
 
-		@* Dropdown pilih mode filter: Column / Table *@
-		<div class="mb-3 d-flex align-items-center gap-3">
-			<label class="fw-semibold mb-0">
-				<i class="material-symbols-rounded me-1">filter_list</i>
-				Mode Filter:
-			</label>
+		@* Filter DateTime *@
+		<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
+			<div class="d-flex gap-2">
+				<RadzenFormField AllowFloatingLabel="false" Text="Tanggal Awal">
+					<RadzenDatePicker @bind-Value="StartDate" ShowTime="true" ShowSeconds="true" Name="StartDate" AllowClear="true" ShowButton="false" Style="width:200px" />
+				</RadzenFormField>
 
-			<RadzenDropDown @bind-Value="SelectedFilterMode"
-							Data="@FilterModes"
-							Style="width:200px"
-							Placeholder="Pilih mode filter..." />
+				<RadzenFormField AllowFloatingLabel="false" Text="Tanggal Akhir">
+					<RadzenDatePicker @bind-Value="EndDate" ShowTime="true" ShowSeconds="true" Name="StartDate" AllowClear="true" ShowButton="false" Style="width:200px" />
+				</RadzenFormField>
+			</div>
+
+			<div class="d-flex gap-2 flex-wrap">
+				<RadzenButton Click="@RefreshData" Text="Filter" IsBusy="isRefresh" class="w-auto" />
+			</div>
+		</RadzenStack>
+
+		@* Dropdown pilih mode filter: Column / Table *@
+		<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
+			<RadzenFormField AllowFloatingLabel="false" Text="Mode Filter">
+				<RadzenDropDown @bind-Value="SelectedFilterMode"
+								Data="@FilterModes"
+								Style="width:200px"
+								Placeholder="Pilih mode filter..." />
+			</RadzenFormField>
 
 			@if (SelectedFilterMode == "Table")
 			{
-				<RadzenDropDown @bind-Value="SelectedTable"
-								Data="Tables.Select(t => t.Name).ToList()"
-								Style="width:240px"
-								Placeholder="Pilih tabel..." />
+				<RadzenFormField AllowFloatingLabel="false" Text="Pilih Tabel">
+					<RadzenDropDown @bind-Value="SelectedTable"
+									Data="Tables.Select(t => t.Name).ToList()"
+									Style="width:200px" />
+				</RadzenFormField>
 			}
-		</div>
+
+			<RadzenButton Click="@UpdateChart" Text="Update Chart" Icon="refresh" Class="w-auto" />
+		</RadzenStack>
 
 		@if (SelectedFilterMode == "Column")
 		{
@@ -53,8 +88,7 @@
 							 style="cursor: pointer; background: #f8f9fa;"
 							 @onclick="@(() => ToggleCollapse(table.Name))">
 							<div>
-								<i class="material-symbols-rounded me-1">table_chart</i>
-								<span class="fw-semibold">@table.Name</span>
+								<span class="fw-semibold">Tabel @table.Name</span>
 							</div>
 							<i class="material-symbols-rounded" style="@((CollapsedTables.Contains(table.Name) ? "transform: rotate(-90deg);" : "transition: transform 0.2s;"))">
 								expand_more
@@ -71,19 +105,16 @@
 										<RadzenCheckBox TValue="bool"
 														Value="@(SelectedColumns.Contains(column.FullName))"
 														Change="(args) => ToggleColumnSelection(column.FullName, args)" />
-										<span class="ms-2">@column.DisplayName</span>
+										<span class="ms-2">
+											@column.DisplayName
+											<span style="color: #1e3a6a;">(@column.Description)</span>
+										</span>
 									</div>
 								}
 							</div>
 						}
 					</div>
 				}
-
-				<RadzenButton Text="Update Chart"
-							  Click="UpdateChart"
-							  Icon="refresh"
-							  Class="update-button mt-2"
-							  Style="width:160px;" />
 			</div>
 
 		}
@@ -98,14 +129,12 @@
 					{
 						<div class="border rounded p-3 mb-3 bg-light">
 							<h6 class="fw-semibold mb-3">
-								<i class="material-symbols-rounded me-1">table_chart</i>
-								All columns from table <b>@sel.Name</b>
+								List Kolom dari tabel <b>@sel.Name</b>
 							</h6>
 
 							@foreach (var column in sel.Columns)
 							{
-								<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#f1f5f9;">
-									<i class="material-symbols-rounded align-middle" style="font-size:14px;">view_column</i>
+								<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
 									<span class="ms-1">@column.DisplayName</span>
 								</div>
 							}
@@ -116,11 +145,10 @@
 				{
 					<div class="text-muted fst-italic">Pilih tabel dari dropdown untuk melihat kolomnya.</div>
 				}
-
-				<RadzenButton Click="@UpdateChart" Text="Update Chart" Icon="refresh" Class="w-auto" />
 			</div>
 		}
 
+		@* Line Chart *@
 		<div id="chartArea" style="margin-bottom: 3rem;">
 			<RadzenChart Style="height:400px;">
 				<RadzenChartTooltipOptions Shared="true" />
@@ -212,6 +240,7 @@
 	{
 		public string FullName { get; set; } = "";
 		public string DisplayName { get; set; } = "";
+		public string Description { get; set; } = "";
 	}
 
 	public class ChartItem
@@ -230,8 +259,13 @@
 	private List<string> FilterModes = new() { "Column", "Table" };
 	private string SelectedFilterMode = "Table";
 
+	private DateTime StartDate = DateTime.Now.AddHours(-6);
+	private DateTime EndDate = DateTime.Now;
+	private bool isRefresh = false;
+
 	// Export
 	private bool isExportPdf = false;
+	private bool isExportImage = false;
 
 	protected override void OnInitialized()
 	{
@@ -240,39 +274,39 @@
 		{
 			new TableModel
 			{
-				Name = "Produk",
+				Name = "Mesin",
 				Columns = new List<ColumnModel>
 				{
-					new ColumnModel { FullName = "Produk.Harga", DisplayName = "Harga" },
-					new ColumnModel { FullName = "Produk.Stok", DisplayName = "Stok" },
-					new ColumnModel { FullName = "Produk.Terjual", DisplayName = "Terjual" }
+					new ColumnModel { FullName = "Mesin.Temperature", DisplayName = "Temperature", Description = "Temperature Mesin" },
+					new ColumnModel { FullName = "Mesin.Energy_Used", DisplayName = "EnergyUsed", Description = "Energi yang digunakan" },
+					new ColumnModel { FullName = "Mesin.Total_Runtime", DisplayName = "TotalRuntime", Description = "Total jam operasi" }
 				}
 			},
 			new TableModel
 			{
-				Name = "Transaksi",
+				Name = "Sensor",
 				Columns = new List<ColumnModel>
 				{
-					new ColumnModel { FullName = "Transaksi.Total", DisplayName = "Total" },
-					new ColumnModel { FullName = "Transaksi.Diskon", DisplayName = "Diskon" },
-					new ColumnModel { FullName = "Transaksi.Pajak", DisplayName = "Pajak" }
+					new ColumnModel { FullName = "Sensor.Temperature", DisplayName = "Temperature", Description = "Temperature sensor" },
+					new ColumnModel { FullName = "Sensor.Pressure", DisplayName = "Pressure", Description = "Pressure sensor" },
+					new ColumnModel { FullName = "Sensor.Speed", DisplayName = "Speed", Description = "Speed Mesin" }
 				}
 			},
 			new TableModel
 			{
-				Name = "Pelanggan",
+				Name = "Measurement",
 				Columns = new List<ColumnModel>
 				{
-					new ColumnModel { FullName = "Pelanggan.Umur", DisplayName = "Umur" },
-					new ColumnModel { FullName = "Pelanggan.Poin", DisplayName = "Poin" }
+					new ColumnModel { FullName = "Measurement.Flowrate", DisplayName = "Flowrate", Description = "Flowrate data" },
+					new ColumnModel { FullName = "Measurement.Pressure", DisplayName = "Pressure", Description = "Pressure data" }
 				}
 			}
 		};
 
 		// Defaults
 		SelectedFilterMode = "Table";
-		SelectedTable = "Produk";
-		SelectedColumns.Add("Produk.Harga");
+		SelectedTable = "Mesin";
+		SelectedColumns.Add("Mesin.Temperature");
 
 		UpdateChart();
 	}
@@ -296,14 +330,6 @@
 		{
 			SelectedColumns.Remove(columnFullName);
 		}
-	}
-
-	// Toggle column selection (Column mode)
-	private void ToggleColumnSelection(string columnFullName, object args)
-	{
-		var selected = args is bool b && b;
-		if (selected) SelectedColumns.Add(columnFullName);
-		else SelectedColumns.Remove(columnFullName);
 	}
 
 	// Table select event handled by RadzenDropDown binding directly (SelectedTable)
@@ -358,6 +384,14 @@
 		StateHasChanged();
 	}
 
+	private void RefreshData()
+	{
+		isRefresh = true;
+		UpdateChart();
+		isRefresh = false;
+		StateHasChanged();
+	}
+
 	// --- Export function ---
 	private async Task Export(string idChart)
 	{
@@ -370,10 +404,10 @@
 
 	private async Task ExportImage(string idChart, string format)
 	{
-		isExportPdf = true;
+		isExportImage = true;
 		StateHasChanged();
 		await JSRuntime.InvokeVoidAsync("exportChartImage", idChart, format);
-		isExportPdf = false;
+		isExportImage = false;
 		StateHasChanged();
 	}
 }

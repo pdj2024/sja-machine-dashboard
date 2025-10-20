@@ -34,3 +34,4 @@ D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\scopedcss\RealtimeTablePage.razor.rz.scp.css
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\scopedcss\TableHistoryPage.razor.rz.scp.css
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\scopedcss\TrendingChartPage.razor.rz.scp.css
+D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\RealtimeTable.sourcelink.json

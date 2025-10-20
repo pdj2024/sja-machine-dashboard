@@ -10,17 +10,6 @@
 	<RadzenColumn SizeMD="12" class="mt-4">
 		<div class="d-flex flex-column gap-2">
 			<div class="d-flex align-items-center justify-content-start jus gap-2">
-				<h4>Table History</h4>
-				<button type="button" class="btn btn-sm bg-success text-white" @onclick="RefreshData">
-					@if (isRefresh)
-					{
-						<span>Memperbarui Data...</span>
-					}
-					else
-					{
-						<span>Filter</span>
-					}
-				</button>
 				<button type="button" class="btn btn-sm bg-success text-white" onclick="@(() => ExportTable("csv"))">
 					@if (isRefreshExport)
 					{
@@ -42,11 +31,21 @@
 					}
 				</button>
 			</div>
-			<div class="d-flex align-items-center gap-3 mb-3">
-				<RadzenDatePicker @bind-Value="StartDate" ShowTime="true" ShowSeconds="true" Name="StartDate" AllowClear="true" ShowButton="false" class="w-100" />
-				<span>to</span>
-				<RadzenDatePicker @bind-Value="EndDate" ShowTime="true" ShowSeconds="true" Name="StartDate" AllowClear="true" ShowButton="false" class="w-100" />
-			</div>
+			<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
+				<div class="d-flex gap-2">
+					<RadzenFormField AllowFloatingLabel="false" Text="Tanggal Awal">
+						<RadzenDatePicker @bind-Value="StartDate" ShowTime="true" ShowSeconds="true" Name="StartDate" AllowClear="true" ShowButton="false" Style="width: 200px;" />
+					</RadzenFormField>
+
+					<RadzenFormField AllowFloatingLabel="false" Text="Tanggal Akhir">
+						<RadzenDatePicker @bind-Value="EndDate" ShowTime="true" ShowSeconds="true" Name="StartDate" AllowClear="true" ShowButton="false" Style="width: 200px;" />
+					</RadzenFormField>
+				</div>
+
+				<div class="d-flex gap-2 flex-wrap">
+					<RadzenButton Click="@RefreshData" Text="Filter" IsBusy="isRefresh" class="w-auto" />
+				</div>
+			</RadzenStack>
 		</div>
 
 		<RadzenDataGrid @ref="GridRecord"
@@ -58,13 +57,13 @@
 						PagerHorizontalAlign="HorizontalAlign.Left">
 			<Columns>
 				<RadzenDataGridColumn TItem="HistoryRecord" Property="Timestamp" Title="Timestamp" Width="200px" TextAlign="TextAlign.Center" />
-                <RadzenDataGridColumn TItem="HistoryRecord" Property="Machine" Title="Machine" Width="200px" TextAlign="TextAlign.Left" />
-                <RadzenDataGridColumn TItem="HistoryRecord" Property="Sensor" Title="Sensor" Width="200px" TextAlign="TextAlign.Left" />
+				<RadzenDataGridColumn TItem="HistoryRecord" Property="Machine" Title="Machine" Width="200px" TextAlign="TextAlign.Left" />
+				<RadzenDataGridColumn TItem="HistoryRecord" Property="Sensor" Title="Sensor" Width="200px" TextAlign="TextAlign.Left" />
 				<RadzenDataGridColumn TItem="HistoryRecord" Property="Measurement" Title="Measurement" Width="200px" TextAlign="TextAlign.Left" />
 				<RadzenDataGridColumn TItem="HistoryRecord" Property="Value" Title="Value" Width="100px" TextAlign="TextAlign.Center" />
 				<RadzenDataGridColumn TItem="HistoryRecord" Property="Units" Title="Units" Width="100px" TextAlign="TextAlign.Center" />
-                <RadzenDataGridColumn TItem="HistoryRecord" Property="Status" Title="Status" Width="100px" TextAlign="TextAlign.Center" />
-                <RadzenDataGridColumn TItem="HistoryRecord" Property="OperatorName" Title="Operator" Width="200px" TextAlign="TextAlign.Left" />
+				<RadzenDataGridColumn TItem="HistoryRecord" Property="Status" Title="Status" Width="100px" TextAlign="TextAlign.Center" />
+				<RadzenDataGridColumn TItem="HistoryRecord" Property="OperatorName" Title="Operator" Width="200px" TextAlign="TextAlign.Left" />
 			</Columns>
 		</RadzenDataGrid>
 	</RadzenColumn>
@@ -76,122 +75,122 @@
 		LoadDummyDataHistory();
 	}
 
-    RadzenDataGrid<HistoryRecord> GridRecord;
-    private bool ExportSelectedRowsOnly { get; set; }
-    private List<HistoryRecord> HistoryData = new();
-    private DateTime StartDate = DateTime.Now.AddHours(-6);
-    private DateTime EndDate = DateTime.Now;
-    private bool isRefresh = false;
-    private bool isRefreshExport = false;
-    
-    public class HistoryRecord
-    {
-        public DateTime Timestamp { get; set; }
-        public string Machine { get; set; }
-        public string Sensor { get; set; }
-        public string Measurement { get; set; }
-        public double Value { get; set; }
-        public string Units { get; set; }
-        public string Status { get; set; }
-        public string OperatorName { get; set; }
-    }
-    
-    private void LoadDummyDataHistory()
-    {
-        var rnd = new Random();
-        string[] machines = { "Machine A", "Machine B", "Machine C", "Machine D" };
-        string[] sensors = { "Optic", "Heat", "Vibration", "RPM" };
-        string[] measurements = { "Temperature", "Pressure", "Flowrate", "Energy Consumption" };
-        string[] units = { "°C", "PA", "L/s", "kWh" };
-        string[] statuses = { "Normal", "Normal", "Low", "High" };
-        string[] operators = { "Opertor A", "Opertor B", "Opertor C", "Opertor D" };
+	RadzenDataGrid<HistoryRecord> GridRecord;
+	private bool ExportSelectedRowsOnly { get; set; }
+	private List<HistoryRecord> HistoryData = new();
+	private DateTime StartDate = DateTime.Now.AddHours(-6);
+	private DateTime EndDate = DateTime.Now;
+	private bool isRefresh = false;
+	private bool isRefreshExport = false;
 
-        HistoryData = Enumerable.Range(1, 50).Select(i => new HistoryRecord
-        {
-            Timestamp = DateTime.Now.AddMinutes(-rnd.Next(360)),
-            Measurement = measurements[rnd.Next(measurements.Length)],
-            Machine = machines[rnd.Next(machines.Length)],
-            Sensor = sensors[rnd.Next(sensors.Length)],
-            Value = Math.Round(rnd.NextDouble() * 100, 2),
-            Units = units[rnd.Next(units.Length)],
-            Status = statuses[rnd.Next(statuses.Length)],
-            OperatorName = operators[rnd.Next(operators.Length)]
-        })
-        .Where(h => h.Timestamp >= StartDate && h.Timestamp <= EndDate)
-        .OrderByDescending(h => h.Timestamp)
-        .ToList();
-    }
-    
-    private void RefreshData()
-    {
-        isRefresh = true;
-        LoadDummyDataHistory();
-        isRefresh = false;
-        StateHasChanged();
-    }
-    
-    public async Task ExportTable(string type)
-    {
-        isRefreshExport = true;
-        StateHasChanged();
+	public class HistoryRecord
+	{
+		public DateTime Timestamp { get; set; }
+		public string Machine { get; set; }
+		public string Sensor { get; set; }
+		public string Measurement { get; set; }
+		public double Value { get; set; }
+		public string Units { get; set; }
+		public string Status { get; set; }
+		public string OperatorName { get; set; }
+	}
 
-        if (type.ToLower() == "csv")
-        {
-            var csv = new StringBuilder();
-            csv.AppendLine("Measurement,Value,Units,Timestamp");
+	private void LoadDummyDataHistory()
+	{
+		var rnd = new Random();
+		string[] machines = { "Machine A", "Machine B", "Machine C", "Machine D" };
+		string[] sensors = { "Optic", "Heat", "Vibration", "RPM" };
+		string[] measurements = { "Temperature", "Pressure", "Flowrate", "Energy Consumption" };
+		string[] units = { "°C", "PA", "L/s", "kWh" };
+		string[] statuses = { "Normal", "Normal", "Low", "High" };
+		string[] operators = { "Opertor A", "Opertor B", "Opertor C", "Opertor D" };
 
-            foreach (var item in HistoryData)
-            {
-                csv.AppendLine($"{item.Measurement},{item.Value},{item.Units},{item.Timestamp:yyyy-MM-dd HH:mm:ss}");
-            }
+		HistoryData = Enumerable.Range(1, 50).Select(i => new HistoryRecord
+		{
+			Timestamp = DateTime.Now.AddMinutes(-rnd.Next(360)),
+			Measurement = measurements[rnd.Next(measurements.Length)],
+			Machine = machines[rnd.Next(machines.Length)],
+			Sensor = sensors[rnd.Next(sensors.Length)],
+			Value = Math.Round(rnd.NextDouble() * 100, 2),
+			Units = units[rnd.Next(units.Length)],
+			Status = statuses[rnd.Next(statuses.Length)],
+			OperatorName = operators[rnd.Next(operators.Length)]
+		})
+		.Where(h => h.Timestamp >= StartDate && h.Timestamp <= EndDate)
+		.OrderByDescending(h => h.Timestamp)
+		.ToList();
+	}
 
-            var bytes = Encoding.UTF8.GetBytes(csv.ToString());
-            var fileName = $"HistoryData_{DateTime.Now:yyyyMMddHHmmss}.csv";
+	private void RefreshData()
+	{
+		isRefresh = true;
+		LoadDummyDataHistory();
+		isRefresh = false;
+		StateHasChanged();
+	}
 
-            using var stream = new MemoryStream(bytes);
-            using var streamRef = new Microsoft.JSInterop.DotNetStreamReference(stream);
-            await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
-        }
-        else if (type.ToLower() == "excel")
-        {
-            using var workbook = new XLWorkbook();
-            var worksheet = workbook.Worksheets.Add("History Data");
+	public async Task ExportTable(string type)
+	{
+		isRefreshExport = true;
+		StateHasChanged();
 
-            // Header
-            worksheet.Cell(1, 1).Value = "Measurement";
-            worksheet.Cell(1, 2).Value = "Value";
-            worksheet.Cell(1, 3).Value = "Units";
-            worksheet.Cell(1, 4).Value = "Timestamp";
+		if (type.ToLower() == "csv")
+		{
+			var csv = new StringBuilder();
+			csv.AppendLine("Measurement,Value,Units,Timestamp");
 
-            // Data rows
-            int row = 2;
-            foreach (var item in HistoryData)
-            {
-                worksheet.Cell(row, 1).Value = item.Measurement;
-                worksheet.Cell(row, 2).Value = item.Value;
-                worksheet.Cell(row, 3).Value = item.Units;
-                worksheet.Cell(row, 4).Value = item.Timestamp;
-                worksheet.Cell(row, 4).Style.DateFormat.Format = "yyyy-MM-dd HH:mm:ss";
-                row++;
-            }
+			foreach (var item in HistoryData)
+			{
+				csv.AppendLine($"{item.Measurement},{item.Value},{item.Units},{item.Timestamp:yyyy-MM-dd HH:mm:ss}");
+			}
 
-            // Auto-fit kolom
-            worksheet.Columns().AdjustToContents();
+			var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+			var fileName = $"HistoryData_{DateTime.Now:yyyyMMddHHmmss}.csv";
 
-            // Simpan workbook ke MemoryStream
-            using var stream = new MemoryStream();
-            workbook.SaveAs(stream);
-            stream.Position = 0;
+			using var stream = new MemoryStream(bytes);
+			using var streamRef = new Microsoft.JSInterop.DotNetStreamReference(stream);
+			await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+		}
+		else if (type.ToLower() == "excel")
+		{
+			using var workbook = new XLWorkbook();
+			var worksheet = workbook.Worksheets.Add("History Data");
 
-            // Nama file
-            var fileName = $"HistoryData_{DateTime.Now:yyyyMMddHHmmss}.xlsx";
+			// Header
+			worksheet.Cell(1, 1).Value = "Measurement";
+			worksheet.Cell(1, 2).Value = "Value";
+			worksheet.Cell(1, 3).Value = "Units";
+			worksheet.Cell(1, 4).Value = "Timestamp";
 
-            // Download via JS
-            using var streamRef = new DotNetStreamReference(stream);
-            await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
-        }
+			// Data rows
+			int row = 2;
+			foreach (var item in HistoryData)
+			{
+				worksheet.Cell(row, 1).Value = item.Measurement;
+				worksheet.Cell(row, 2).Value = item.Value;
+				worksheet.Cell(row, 3).Value = item.Units;
+				worksheet.Cell(row, 4).Value = item.Timestamp;
+				worksheet.Cell(row, 4).Style.DateFormat.Format = "yyyy-MM-dd HH:mm:ss";
+				row++;
+			}
 
-        isRefreshExport = false;
-        StateHasChanged();
-    }
+			// Auto-fit kolom
+			worksheet.Columns().AdjustToContents();
+
+			// Simpan workbook ke MemoryStream
+			using var stream = new MemoryStream();
+			workbook.SaveAs(stream);
+			stream.Position = 0;
+
+			// Nama file
+			var fileName = $"HistoryData_{DateTime.Now:yyyyMMddHHmmss}.xlsx";
+
+			// Download via JS
+			using var streamRef = new DotNetStreamReference(stream);
+			await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+		}
+
+		isRefreshExport = false;
+		StateHasChanged();
+	}
 }
