@@ -19,15 +19,13 @@
     @* Faicon *@
     <link rel="icon" href="images/PDJ_LogoBlue.ico" type="image/x-icon" />
 
+    @* Material Icon *@
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
+
     @* Bootstrap *@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
     <link href="_content/Blazor.Bootstrap/blazor.bootstrap.css" rel="stylesheet" />
-
-    @* DevExpress *@
-    <link rel="stylesheet" href=@AppendVersion("_content/DevExpress.Blazor.Themes/blazing-berry.bs5.min.css") />
-    <link rel="stylesheet" href="_content/DevExpress.Blazor.Reporting.Viewer/css/dx-blazor-reporting-components.bs5.css">
-    @DxResourceManager.RegisterScripts()
 
     @* Midtrans *@
     <script type="text/javascript"
@@ -130,7 +128,3 @@
 </body>
 
 </html>
-
-@code {
-    private string AppendVersion(string path) => fileVersionProvider.AddFileVersionToPath("/", path);
-}

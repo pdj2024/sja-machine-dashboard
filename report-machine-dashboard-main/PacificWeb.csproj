@@ -10,7 +10,6 @@
 		<PackageReference Include="Blazor.Bootstrap" Version="3.4.0" />
 		<PackageReference Include="ClosedXML" Version="0.105.0" />
 		<PackageReference Include="Dapper" Version="2.1.35" />
-		<PackageReference Include="DevExpress.Blazor" Version="25.1.5" />
 
 		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.5" />
 		<PackageReference Include="Microsoft.Data.SqlClient.SNI.runtime" Version="5.2.0" />
@@ -28,7 +27,5 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\RealtimeTable\RealtimeTable.csproj" />
-	  <ProjectReference Include="..\TableHistory\TableHistory.csproj" />
-	  <ProjectReference Include="..\TrendingChart\TrendingChart.csproj" />
 	</ItemGroup>
 </Project>

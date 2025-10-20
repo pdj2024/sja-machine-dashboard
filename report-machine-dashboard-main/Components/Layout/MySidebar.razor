@@ -1,7 +1,8 @@
-﻿@inject Services.TabService TabService
+﻿@inject TabService TabService
 @rendermode InteractiveServer
 
 @using Services
+@using global::Services
 @inject pdjService pdjService
 
 
@@ -133,6 +134,9 @@ border: 0; margin: 0; margin-bottom: 0em !important">
 
     <RadzenPanelMenu Style="width: 250px;" Click="(item) => OnItemClick(item)">
         <RadzenPanelMenuItem Text="Dashboard" Value="@("dashboard")" />
+        <RadzenPanelMenuItem Text="Real-Time" Value="@("realtime")" />
+        <RadzenPanelMenuItem Text="History" Value="@("history")" />
+        <RadzenPanelMenuItem Text="Chart" Value="@("chart")" />
 	</RadzenPanelMenu>
 
 

@@ -1,6 +1,7 @@
 ﻿@rendermode InteractiveServer
-@inject Services.TabService TabService
+@inject TabService TabService
 @using Services
+@using global::Services
 
 @using PacificWeb.Components.Pages
 
@@ -42,6 +43,16 @@ else
                             case "dashboard":
                                 <DashboardOuter />
                                 break;
+                            case "realtime":
+                                <RealtimeOuter />
+                                break;
+                            case "history":
+                                <HistoryOuter />
+                                break;
+                            case "chart":
+                                <ChartOuter />
+                                break;
+
                             case "barang":
                                 <BarangOuter />
                                 break;

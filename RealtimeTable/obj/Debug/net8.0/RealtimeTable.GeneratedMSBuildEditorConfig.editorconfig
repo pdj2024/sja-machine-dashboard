@@ -24,6 +24,14 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/Visual Studio/Blazor/report-machine-dashboard/RealtimeTable/RealtimePage.razor]
-build_metadata.AdditionalFiles.TargetPath = UmVhbHRpbWVQYWdlLnJhem9y
-build_metadata.AdditionalFiles.CssScope = b-t8x0783jag
+[D:/Visual Studio/Blazor/report-machine-dashboard/RealtimeTable/RealtimeTablePage.razor]
+build_metadata.AdditionalFiles.TargetPath = UmVhbHRpbWVUYWJsZVBhZ2UucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-qhj7fkewaz
+
+[D:/Visual Studio/Blazor/report-machine-dashboard/RealtimeTable/TableHistoryPage.razor]
+build_metadata.AdditionalFiles.TargetPath = VGFibGVIaXN0b3J5UGFnZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-v5b0lt6075
+
+[D:/Visual Studio/Blazor/report-machine-dashboard/RealtimeTable/TrendingChartPage.razor]
+build_metadata.AdditionalFiles.TargetPath = VHJlbmRpbmdDaGFydFBhZ2UucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-1m12j8bmri

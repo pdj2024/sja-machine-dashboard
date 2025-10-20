@@ -1,7 +1,21 @@
 @import '_content/Blazor.Bootstrap/Blazor.Bootstrap.7t9tbfaemk.bundle.scp.css';
 
-/* _content/RealtimeTable/RealtimePage.razor.rz.scp.css */
-.my-component[b-t8x0783jag] {
+/* _content/RealtimeTable/RealtimeTablePage.razor.rz.scp.css */
+.my-component[b-qhj7fkewaz] {
+    border: 2px dashed red;
+    padding: 1em;
+    margin: 1em 0;
+    background-image: url('background.png');
+}
+/* _content/RealtimeTable/TableHistoryPage.razor.rz.scp.css */
+.my-component[b-v5b0lt6075] {
+    border: 2px dashed red;
+    padding: 1em;
+    margin: 1em 0;
+    background-image: url('background.png');
+}
+/* _content/RealtimeTable/TrendingChartPage.razor.rz.scp.css */
+.my-component[b-1m12j8bmri] {
     border: 2px dashed red;
     padding: 1em;
     margin: 1em 0;

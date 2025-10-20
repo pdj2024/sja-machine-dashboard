@@ -1,13 +1,10 @@
 ﻿using System.Configuration;
 using System.Data;
-//using DevExpress.XtraCharts.Native;
 using System.Drawing;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
 using BlazorBootstrap;
-using DevExpress.Blazor;
-using DevExpress.Blazor.Internal.Grid;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
@@ -51,8 +48,6 @@ namespace PacificWeb.Components.Pages
         IList<MasterCustomer> selectedFromGrid;
         IList<MasterCustomer> selectedCustomer;
         // protected RadzenDataGrid<Models.MasterCustomer> grid0;
-
-        IGrid devGrid { get; set; }
 
         protected IEnumerable<MasterCustomer> tbListData;
 

@@ -31,4 +31,6 @@ D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\RealtimeTable.pdb
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\RealtimeTable.genruntimeconfig.cache
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\ref\RealtimeTable.dll
-D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\scopedcss\RealtimePage.razor.rz.scp.css
+D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\scopedcss\RealtimeTablePage.razor.rz.scp.css
+D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\scopedcss\TableHistoryPage.razor.rz.scp.css
+D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\scopedcss\TrendingChartPage.razor.rz.scp.css

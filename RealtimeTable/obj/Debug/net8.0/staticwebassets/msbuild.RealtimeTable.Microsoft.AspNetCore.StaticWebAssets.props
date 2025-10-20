@@ -40,25 +40,25 @@
       <LastWriteTime>Fri, 17 Oct 2025 08:39:07 GMT</LastWriteTime>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\exampleJsInterop.js'))</OriginalItemSpec>
     </StaticWebAsset>
-    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\RealtimeTable.bklmxk1yul.bundle.scp.css'))">
+    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\RealtimeTable.s5wp5sjnu0.bundle.scp.css'))">
       <SourceType>Package</SourceType>
       <SourceId>RealtimeTable</SourceId>
       <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
       <BasePath>_content/RealtimeTable</BasePath>
-      <RelativePath>RealtimeTable.bklmxk1yul.bundle.scp.css</RelativePath>
+      <RelativePath>RealtimeTable.s5wp5sjnu0.bundle.scp.css</RelativePath>
       <AssetKind>All</AssetKind>
       <AssetMode>Reference</AssetMode>
       <AssetRole>Primary</AssetRole>
       <RelatedAsset></RelatedAsset>
       <AssetTraitName>ScopedCss</AssetTraitName>
       <AssetTraitValue>ProjectBundle</AssetTraitValue>
-      <Fingerprint>bklmxk1yul</Fingerprint>
-      <Integrity>qzf4IDH4Pp4mhGryuRHVVGPdvE6iLc25+PdLHyeR3oo=</Integrity>
+      <Fingerprint>s5wp5sjnu0</Fingerprint>
+      <Integrity>EHTAWalkhDVGPasmR6RtRtuIZMSEhqFenmkX5nJwUTE=</Integrity>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      <FileLength>208</FileLength>
-      <LastWriteTime>Fri, 17 Oct 2025 09:31:54 GMT</LastWriteTime>
-      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\RealtimeTable.bklmxk1yul.bundle.scp.css'))</OriginalItemSpec>
+      <FileLength>638</FileLength>
+      <LastWriteTime>Mon, 20 Oct 2025 07:57:43 GMT</LastWriteTime>
+      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\RealtimeTable.s5wp5sjnu0.bundle.scp.css'))</OriginalItemSpec>
     </StaticWebAsset>
   </ItemGroup>
 </Project>

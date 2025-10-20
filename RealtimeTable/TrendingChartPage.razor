@@ -1,0 +1,379 @@
+﻿@using Microsoft.JSInterop
+@using Radzen
+@using Radzen.Blazor
+@using System.Text
+
+@inject IJSRuntime JSRuntime
+
+<RadzenRow>
+	@* Radzen Chart *@
+	<RadzenColumn SizeMD=12 class="mt-4">
+
+		@* Export Button *@
+		<div class="d-flex flex-wrap gap-2 mb-3">
+			<RadzenButton Click="@(() => Export("chartArea"))" IsBusy="@isExportPdf" Text="Export Chart PDF" />
+			<RadzenButton Click="@(() => ExportImage("chartArea", "png"))" IsBusy="@isExportPdf" Text="Export Chart Image" />
+		</div>
+
+		@* Dropdown pilih mode filter: Column / Table *@
+		<div class="mb-3 d-flex align-items-center gap-3">
+			<label class="fw-semibold mb-0">
+				<i class="material-symbols-rounded me-1">filter_list</i>
+				Mode Filter:
+			</label>
+
+			<RadzenDropDown @bind-Value="SelectedFilterMode"
+							Data="@FilterModes"
+							Style="width:200px"
+							Placeholder="Pilih mode filter..." />
+
+			@if (SelectedFilterMode == "Table")
+			{
+				<RadzenDropDown @bind-Value="SelectedTable"
+								Data="Tables.Select(t => t.Name).ToList()"
+								Style="width:240px"
+								Placeholder="Pilih tabel..." />
+			}
+		</div>
+
+		@if (SelectedFilterMode == "Column")
+		{
+			@* ---------- Column mode UI ---------- *@
+			<div class="filter-panel mb-3 p-3 border rounded" style="background: #fff;">
+				<div class="filter-title mb-2 d-flex align-items-center">
+					<i class="material-symbols-rounded me-1">view_list</i>
+					<span class="fw-semibold">Filter by Column</span>
+				</div>
+
+				@foreach (var table in Tables)
+				{
+					<div class="table-section mb-2 border rounded">
+						<!-- Header Table -->
+						<div class="table-header d-flex justify-content-between align-items-center p-2"
+							 style="cursor: pointer; background: #f8f9fa;"
+							 @onclick="@(() => ToggleCollapse(table.Name))">
+							<div>
+								<i class="material-symbols-rounded me-1">table_chart</i>
+								<span class="fw-semibold">@table.Name</span>
+							</div>
+							<i class="material-symbols-rounded" style="@((CollapsedTables.Contains(table.Name) ? "transform: rotate(-90deg);" : "transition: transform 0.2s;"))">
+								expand_more
+							</i>
+						</div>
+
+						<!-- Isi Kolom -->
+						@if (!CollapsedTables.Contains(table.Name))
+						{
+							<div class="p-2 ps-4 bg-light border-top">
+								@foreach (var column in table.Columns)
+								{
+									<div class="column-item mb-1 d-flex align-items-center">
+										<RadzenCheckBox TValue="bool"
+														Value="@(SelectedColumns.Contains(column.FullName))"
+														Change="(args) => ToggleColumnSelection(column.FullName, args)" />
+										<span class="ms-2">@column.DisplayName</span>
+									</div>
+								}
+							</div>
+						}
+					</div>
+				}
+
+				<RadzenButton Text="Update Chart"
+							  Click="UpdateChart"
+							  Icon="refresh"
+							  Class="update-button mt-2"
+							  Style="width:160px;" />
+			</div>
+
+		}
+		else if (SelectedFilterMode == "Table")
+		{
+			@* ---------- Table mode UI ---------- *@
+			<div class="mb-3">
+				@if (!string.IsNullOrEmpty(SelectedTable))
+				{
+					var sel = Tables.FirstOrDefault(t => t.Name == SelectedTable);
+					if (sel != null)
+					{
+						<div class="border rounded p-3 mb-3 bg-light">
+							<h6 class="fw-semibold mb-3">
+								<i class="material-symbols-rounded me-1">table_chart</i>
+								All columns from table <b>@sel.Name</b>
+							</h6>
+
+							@foreach (var column in sel.Columns)
+							{
+								<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#f1f5f9;">
+									<i class="material-symbols-rounded align-middle" style="font-size:14px;">view_column</i>
+									<span class="ms-1">@column.DisplayName</span>
+								</div>
+							}
+						</div>
+					}
+				}
+				else
+				{
+					<div class="text-muted fst-italic">Pilih tabel dari dropdown untuk melihat kolomnya.</div>
+				}
+
+				<RadzenButton Click="@UpdateChart" Text="Update Chart" Icon="refresh" Class="w-auto" />
+			</div>
+		}
+
+		<div id="chartArea" style="margin-bottom: 3rem;">
+			<RadzenChart Style="height:400px;">
+				<RadzenChartTooltipOptions Shared="true" />
+
+				@if (ChartData.Any())
+				{
+					@foreach (var dataset in ChartData)
+					{
+						<RadzenLineSeries Smooth="true"
+										  Data="@dataset.Value"
+										  CategoryProperty="Category"
+										  Title="@dataset.Key"
+										  ValueProperty="Value">
+							<RadzenMarkers Visible="true" MarkerType="MarkerType.Circle" />
+						</RadzenLineSeries>
+					}
+
+					<RadzenCategoryAxis Padding="20" />
+					<RadzenValueAxis>
+						<RadzenGridLines Visible="true" />
+						<RadzenAxisTitle Text="Value" />
+					</RadzenValueAxis>
+				}
+				else
+				{
+					<div class="text-muted fst-italic text-center my-3">
+						Pilih tabel terlebih dahulu untuk menampilkan data chart.
+					</div>
+				}
+			</RadzenChart>
+		</div>
+
+	</RadzenColumn>
+</RadzenRow>
+
+<script>
+	function exportChart(id) {
+		const element = document.getElementById(id);
+
+		html2canvas(element, { allowTaint: true, useCORS: true }).then(canvas => {
+			const A4_WIDTH = 595.28;
+			const width = A4_WIDTH;
+			const height = (width / canvas.width) * canvas.height;
+			const image = canvas.toDataURL('image/png');
+			const doc = new jspdf.jsPDF('p', 'pt', 'a4');
+			doc.addImage(image, 'PNG', 0, 0, width, height);
+			doc.save('chart-pdf.pdf');
+		});
+	}
+
+	async function exportChartImage(id, format = 'png') {
+		const element = document.getElementById(id);
+
+		const canvas = await html2canvas(element, { allowTaint: true, useCORS: true });
+		const mimeType = format === 'jpg' || format === 'jpeg'
+			? 'image/jpeg'
+			: 'image/png';
+
+		const image = canvas.toDataURL(mimeType);
+		const link = document.createElement('a');
+		link.href = image;
+		link.download = `chart-image.${format}`;
+		link.click();
+	}
+
+	async function downloadFileFromStream(fileName, contentStreamReference) {
+		const arrayBuffer = await contentStreamReference.arrayBuffer();
+		const blob = new Blob([arrayBuffer]);
+		const url = URL.createObjectURL(blob);
+
+		const anchorElement = document.createElement('a');
+		anchorElement.href = url;
+		anchorElement.download = fileName ?? 'download';
+		anchorElement.click();
+		anchorElement.remove();
+
+		URL.revokeObjectURL(url);
+	}
+</script>
+
+@code {
+	public class TableModel
+	{
+		public string Name { get; set; } = "";
+		public List<ColumnModel> Columns { get; set; } = new();
+	}
+
+	public class ColumnModel
+	{
+		public string FullName { get; set; } = "";
+		public string DisplayName { get; set; } = "";
+	}
+
+	public class ChartItem
+	{
+		public string Category { get; set; } = "";
+		public double Value { get; set; }
+	}
+
+	private List<TableModel> Tables = new();
+	private HashSet<string> SelectedColumns = new();
+	private string SelectedTable = "";
+	private Dictionary<string, List<ChartItem>> ChartData = new();
+	private HashSet<string> CollapsedTables = new();
+
+	// Filter mode
+	private List<string> FilterModes = new() { "Column", "Table" };
+	private string SelectedFilterMode = "Table";
+
+	// Export
+	private bool isExportPdf = false;
+
+	protected override void OnInitialized()
+	{
+		// Dummy tabel dan kolom (FullName dipakai dalam Column mode)
+		Tables = new List<TableModel>
+		{
+			new TableModel
+			{
+				Name = "Produk",
+				Columns = new List<ColumnModel>
+				{
+					new ColumnModel { FullName = "Produk.Harga", DisplayName = "Harga" },
+					new ColumnModel { FullName = "Produk.Stok", DisplayName = "Stok" },
+					new ColumnModel { FullName = "Produk.Terjual", DisplayName = "Terjual" }
+				}
+			},
+			new TableModel
+			{
+				Name = "Transaksi",
+				Columns = new List<ColumnModel>
+				{
+					new ColumnModel { FullName = "Transaksi.Total", DisplayName = "Total" },
+					new ColumnModel { FullName = "Transaksi.Diskon", DisplayName = "Diskon" },
+					new ColumnModel { FullName = "Transaksi.Pajak", DisplayName = "Pajak" }
+				}
+			},
+			new TableModel
+			{
+				Name = "Pelanggan",
+				Columns = new List<ColumnModel>
+				{
+					new ColumnModel { FullName = "Pelanggan.Umur", DisplayName = "Umur" },
+					new ColumnModel { FullName = "Pelanggan.Poin", DisplayName = "Poin" }
+				}
+			}
+		};
+
+		// Defaults
+		SelectedFilterMode = "Table";
+		SelectedTable = "Produk";
+		SelectedColumns.Add("Produk.Harga");
+
+		UpdateChart();
+	}
+
+	private void ToggleCollapse(string tableName)
+	{
+		if (CollapsedTables.Contains(tableName))
+			CollapsedTables.Remove(tableName);
+		else
+			CollapsedTables.Add(tableName);
+	}
+
+	private void ToggleColumnSelection(string columnFullName, bool isChecked)
+	{
+		if (isChecked)
+		{
+			if (!SelectedColumns.Contains(columnFullName))
+				SelectedColumns.Add(columnFullName);
+		}
+		else
+		{
+			SelectedColumns.Remove(columnFullName);
+		}
+	}
+
+	// Toggle column selection (Column mode)
+	private void ToggleColumnSelection(string columnFullName, object args)
+	{
+		var selected = args is bool b && b;
+		if (selected) SelectedColumns.Add(columnFullName);
+		else SelectedColumns.Remove(columnFullName);
+	}
+
+	// Table select event handled by RadzenDropDown binding directly (SelectedTable)
+	private void OnTableChange(ChangeEventArgs e)
+	{
+		SelectedTable = e.Value?.ToString() ?? "";
+	}
+
+	private void UpdateChart()
+	{
+		ChartData.Clear();
+		var rnd = new Random();
+		var categories = Enumerable.Range(1, 8).Select(i => $"Hari {i}").ToList();
+
+		// Column Mode
+		if (SelectedFilterMode == "Column")
+		{
+			foreach (var full in SelectedColumns)
+			{
+				var colDisplay = full;
+				foreach (var t in Tables)
+				{
+					var f = t.Columns.FirstOrDefault(c => c.FullName == full);
+					if (f != null) { colDisplay = f.DisplayName; break; }
+				}
+
+				var dataList = new List<ChartItem>();
+				foreach (var cat in categories)
+				{
+					dataList.Add(new ChartItem { Category = cat, Value = Math.Round(rnd.NextDouble() * 10000, 2) });
+				}
+				ChartData[colDisplay] = dataList;
+			}
+		}
+		// Table Mode
+		else
+		{
+			if (string.IsNullOrEmpty(SelectedTable)) return;
+			var sel = Tables.FirstOrDefault(t => t.Name == SelectedTable);
+			if (sel == null) return;
+
+			foreach (var col in sel.Columns)
+			{
+				var dataList = new List<ChartItem>();
+				foreach (var cat in categories)
+				{
+					dataList.Add(new ChartItem { Category = cat, Value = Math.Round(rnd.NextDouble() * 10000, 2) });
+				}
+				ChartData[col.DisplayName] = dataList;
+			}
+		}
+		StateHasChanged();
+	}
+
+	// --- Export function ---
+	private async Task Export(string idChart)
+	{
+		isExportPdf = true;
+		StateHasChanged();
+		await JSRuntime.InvokeVoidAsync("exportChart", idChart);
+		isExportPdf = false;
+		StateHasChanged();
+	}
+
+	private async Task ExportImage(string idChart, string format)
+	{
+		isExportPdf = true;
+		StateHasChanged();
+		await JSRuntime.InvokeVoidAsync("exportChartImage", idChart, format);
+		isExportPdf = false;
+		StateHasChanged();
+	}
+}
