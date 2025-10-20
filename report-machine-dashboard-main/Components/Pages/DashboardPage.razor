@@ -1,0 +1,90 @@
+﻿@rendermode InteractiveServer
+
+@*@page "/tb-customers"
+<PageTitle>TbCustomers</PageTitle>*@
+
+<RadzenStack Style="flex-grow: 1; margin-top: 0.5em; width: 100%; overflow: auto; gap: 0; padding: 1.25rem ">
+	<RadzenRow AlignItems="AlignItems.Center" Style="margin-bottom: 1.2em;  ">
+		<RadzenColumn Size="12" SizeMD="6">
+			<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Start" Gap="0rem">
+				<RadzenText Text="Halaman Dashboard" TextStyle="TextStyle.H5" TagName="TagName.H1" style="margin-right: 0.75rem; color: black; margin-top: 0.25em" />
+			</RadzenStack>
+		</RadzenColumn>
+		<RadzenColumn Size="12" SizeMD="6">
+			<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Gap="0.5rem"></RadzenStack>
+		</RadzenColumn>
+	</RadzenRow>
+
+	<RealtimeTablePage />
+
+	<TableHistoryPage />
+
+	<TrendingChartPage />
+
+	<RadzenRow>
+		@* ChartJS *@
+		<RadzenColumn SizeMD=12 class="mt-4">
+			<div class="row mx-0">
+				<div class="col-12 mb-4">
+					<div class="card bg-transparent border-0 shadow-none">
+						<div class="card-body bg-transparent">
+							<h6 class="mb-0">Diagram</h6>
+							<p class="text-sm">Contoh diagram 8 line chart</p>
+							<div class="pe-2">
+								<div class="chart position-relative">
+									<canvas id="chart-diagram" class="chart-canvas" height="500"></canvas>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</RadzenColumn>
+	</RadzenRow>
+</RadzenStack>
+
+
+<script>
+    function exportChart(id) {
+        const element = document.getElementById(id);
+
+        html2canvas(element, { allowTaint: true, useCORS: true }).then(canvas => {
+            const A4_WIDTH = 595.28;
+            const width = A4_WIDTH;
+            const height = (width / canvas.width) * canvas.height;
+            const image = canvas.toDataURL('image/png');
+            const doc = new jspdf.jsPDF('p', 'pt', 'a4');
+            doc.addImage(image, 'PNG', 0, 0, width, height);
+            doc.save('chart-pdf.pdf');
+        });
+    }
+
+	async function exportChartImage(id, format = 'png') {
+        const element = document.getElementById(id);
+
+        const canvas = await html2canvas(element, { allowTaint: true, useCORS: true });
+        const mimeType = format === 'jpg' || format === 'jpeg'
+            ? 'image/jpeg'
+            : 'image/png';
+
+        const image = canvas.toDataURL(mimeType);
+        const link = document.createElement('a');
+        link.href = image;
+        link.download = `chart-image.${format}`;
+        link.click();
+    }
+
+	async function downloadFileFromStream(fileName, contentStreamReference) {
+		const arrayBuffer = await contentStreamReference.arrayBuffer();
+		const blob = new Blob([arrayBuffer]);
+		const url = URL.createObjectURL(blob);
+
+		const anchorElement = document.createElement('a');
+		anchorElement.href = url;
+		anchorElement.download = fileName ?? 'download';
+		anchorElement.click();
+		anchorElement.remove();
+
+		URL.revokeObjectURL(url);
+	}
+</script>

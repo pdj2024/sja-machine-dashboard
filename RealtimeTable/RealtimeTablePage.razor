@@ -1,0 +1,77 @@
+﻿@implements IDisposable
+@using Radzen
+@using Radzen.Blazor
+
+<RadzenRow>
+	<RadzenColumn SizeMD="12">
+		<div class="d-flex flex-column gap-2">
+			<h4>Live Measurement Table</h4>
+			<p class="text-muted mt-2">
+				Terakhir update: <b>@lastUpdated.ToString("HH:mm:ss")</b>
+			</p>
+		</div>
+
+		<RadzenDataGrid @ref="Grid"
+						Data="@measurementList"
+						TItem="MeasurementData"
+						AllowSorting="true"
+						AllowPaging="false"
+						AllowVirtualization="true">
+			<Columns>
+				<RadzenDataGridColumn TItem="MeasurementData" Property="Measurement" Title="Measurement" Width="200px" TextAlign="TextAlign.Left" />
+				<RadzenDataGridColumn TItem="MeasurementData" Property="Value" Title="Value" Width="200px" TextAlign="TextAlign.Center" />
+				<RadzenDataGridColumn TItem="MeasurementData" Property="Units" Title="Units" Width="100px" TextAlign="TextAlign.Center" />
+			</Columns>
+		</RadzenDataGrid>
+	</RadzenColumn>
+</RadzenRow>
+
+@code {
+	private RadzenDataGrid<MeasurementData> Grid;
+	private List<MeasurementData> measurementList = new();
+	private System.Timers.Timer updateTimer;
+	private DateTime lastUpdated = DateTime.Now;
+	private Random rand = new();
+
+	protected override void OnInitialized()
+	{
+		GenerateDummyData();
+		updateTimer = new System.Timers.Timer(5000);
+		updateTimer.Elapsed += async (s, e) => await UpdateDataAsync();
+		updateTimer.AutoReset = true;
+		updateTimer.Enabled = true;
+	}
+
+	public class MeasurementData
+	{
+		public string Measurement { get; set; }
+		public double Value { get; set; }
+		public string Units { get; set; }
+	}
+
+	private async Task UpdateDataAsync()
+	{
+		await InvokeAsync(() =>
+		{
+			GenerateDummyData();
+			lastUpdated = DateTime.Now;
+			StateHasChanged();
+		});
+	}
+
+	private void GenerateDummyData()
+	{
+		measurementList = new List<MeasurementData>
+		{
+			new MeasurementData { Measurement = "Temperature", Value = Math.Round(35 + rand.NextDouble() * 5, 2), Units = "°C" },
+			new MeasurementData { Measurement = "Pressure", Value = Math.Round(3 + rand.NextDouble(), 2), Units = "Pa" },
+			new MeasurementData { Measurement = "Flowrate", Value = Math.Round(50 + rand.NextDouble() * 15, 2), Units = "L/s" },
+			new MeasurementData { Measurement = "Energy Consumption", Value = Math.Round(8 + rand.NextDouble() * 5, 2), Units = "kWh" }
+		};
+	}
+
+	public void Dispose()
+	{
+		updateTimer?.Dispose();
+	}
+}

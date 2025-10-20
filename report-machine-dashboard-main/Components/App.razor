@@ -1,0 +1,130 @@
+@inject NavigationManager NavigationManager
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
+@inject IFileVersionProvider fileVersionProvider
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="@NavigationManager.BaseUri" />
+    <base href="~/" />
+
+    <link href="_content/Radzen.Blazor/css/humanistic-base.css" rel="stylesheet" />
+
+    @* Custom CSS *@
+    <link rel="stylesheet" href="css/site.css" />
+
+    @* Faicon *@
+    <link rel="icon" href="images/PDJ_LogoBlue.ico" type="image/x-icon" />
+
+    @* Material Icon *@
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
+
+    @* Bootstrap *@
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link href="_content/Blazor.Bootstrap/blazor.bootstrap.css" rel="stylesheet" />
+
+    @* Midtrans *@
+    <script type="text/javascript"
+            src="https://app.sandbox.midtrans.com/snap/snap.js"
+            data-client-key="SB-Mid-client-uELU3WfiXUxgYouj"></script>
+
+    @* Animate.js *@
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+    <HeadOutlet @rendermode="@InteractiveServer" />
+</head>
+
+<body>
+    <Routes  />
+
+    <script src="_framework/blazor.web.js"></script>
+
+    @* Bootstrap *@
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <!-- Add chart.js reference if chart components are used in your application. -->
+    @* <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.0.1/chart.umd.js" integrity="sha512-gQhCDsnnnUfaRzD8k1L5llCCV6O9HN09zClIzzeJ8OJ9MpGmIlCxm+pdCkqTwqJ4JcjbojFr79rl2F1mzcoLMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> *@
+    <!-- Add chartjs-plugin-datalabels.min.js reference if chart components with data label feature is used in your application. -->
+    @* <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js" integrity="sha512-JPcRR8yFa8mmCsfrw4TNte1ZvF1e3+1SdGMslZvmrzDYxS69J7J49vkFL8u6u8PlPJK+H3voElBtUCzaXj+6ig==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> *@
+
+    @* Radzen JS *@
+    <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
+    <script src="_content/Radzen.Blazor/Radzen.Blazor.js?v=@(typeof(Radzen.Colors).Assembly.GetName().Version)"></script>
+
+    @* ChartJS *@
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    @* Chart to PDF *@
+    <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <script src="js/script.js"></script>
+
+    <script src="_content/Radzen.Blazor/Radzen.Blazor.js?v=@(typeof(Radzen.Colors).Assembly.GetName().Version)"></script>
+    <script>
+        function selectAllText(elementToBind) {
+            var elementToCheck = document.getElementById(elementToBind);
+            if (elementToCheck) {
+                for (let child of elementToCheck.childNodes) {
+                    if (child instanceof HTMLInputElement) {
+                        child.addEventListener('click',
+                            function () {
+                                this.select();
+                            });
+                    }
+                }
+            }
+        }
+        function getOrientation() {
+            var width = window.innerWidth;
+       
+            var height = window.innerHeight;
+
+            if (width <= 1024) {  // Check for phone or tablet
+                if (width > height) {
+                    return 'PHONE-LANDSCAPE';  // Landscape mode for small screens
+                } else {
+                    return 'PHONE-PORTRAIT';  // Portrait mode for small screens
+                }
+              
+            }
+            return 'DESKTOP';  // For larger screens (i.e., desktops)
+        }
+        function setFocusAndSelect(elementToBind) {
+            setTimeout(function () {
+               
+                var elementToCheck = document.getElementById(elementToBind);
+                if (elementToCheck) {
+                 
+                    // Look for the first input element (such as the one inside RadzenNumeric)
+                    let inputElement = elementToCheck.querySelector('input');
+                    if (inputElement) {
+                        // Set focus and select the text
+                      
+                        inputElement.focus();
+                        inputElement.select();
+
+                        // Optionally, add a click event listener to re-select the text when clicked
+                        inputElement.addEventListener('click', function () {
+                            this.select();
+                        });
+                    }
+                }
+            }, 100); // Adjust this timeout duration if needed      
+        }
+        // Define the snapPay function
+        function snapPay(transactionToken) {
+            if (window.snap && typeof window.snap.pay === 'function') {
+                window.snap.pay(transactionToken); // Call Midtrans snap.pay with the transaction token
+            } else {
+                console.error("Midtrans snap.js is not loaded or available.");
+            }
+        }
+
+    </script>
+</body>
+
+</html>
