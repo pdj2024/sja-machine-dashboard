@@ -4,10 +4,34 @@
 @using System.Text
 
 @inject IJSRuntime JSRuntime
+@inject DialogService DialogService
+
+@inject IMachineService MachineService
 
 <RadzenRow>
 	@* Radzen Chart *@
 	<RadzenColumn SizeMD=12 class="mt-4">
+
+		@if (machineTable == null || machineTable.Count == 0)
+		{
+			<p>Memuat data...</p>
+		}
+		else
+		{
+			@foreach (var tag in machineTable)
+			{
+				<h5>@tag.Key</h5>
+				<RadzenDataGrid Data="@tag.Value" TItem="TableMachine" AllowPaging="true" PageSize="5">
+					<Columns>
+						<RadzenDataGridColumn TItem="TableMachine" Property="Timestamp" Title="Timestamp" />
+						<RadzenDataGridColumn TItem="TableMachine" Property="Value" Title="Value" />
+					</Columns>
+				</RadzenDataGrid>
+				<br />
+			}
+		}
+
+
 
 		@* Export Button *@
 		<div class="d-flex flex-wrap gap-2 mb-3">
@@ -34,24 +58,13 @@
 		</div>
 
 		@* Filter DateTime *@
-		<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
-			<div class="d-flex gap-2">
-				<RadzenFormField AllowFloatingLabel="false" Text="Tanggal Awal">
-					<RadzenDatePicker @bind-Value="StartDate" ShowTime="true" ShowSeconds="true" Name="StartDate" AllowClear="true" ShowButton="false" Style="width:200px" />
-				</RadzenFormField>
-
-				<RadzenFormField AllowFloatingLabel="false" Text="Tanggal Akhir">
-					<RadzenDatePicker @bind-Value="EndDate" ShowTime="true" ShowSeconds="true" Name="StartDate" AllowClear="true" ShowButton="false" Style="width:200px" />
-				</RadzenFormField>
-			</div>
-
-			<div class="d-flex gap-2 flex-wrap">
-				<RadzenButton Click="@RefreshData" Text="Filter" IsBusy="isRefresh" class="w-auto" />
-			</div>
-		</RadzenStack>
+		<FilterDateTimeButton InitialStartDate="@StartDate"
+							  InitialEndDate="@EndDate"
+							  IsLoading="@isLoading"
+							  OnFilter="ApplyDateFilter" />
 
 		@* Dropdown pilih mode filter: Column / Table *@
-		<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
+		@* <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
 			<RadzenFormField AllowFloatingLabel="false" Text="Mode Filter">
 				<RadzenDropDown @bind-Value="SelectedFilterMode"
 								Data="@FilterModes"
@@ -73,7 +86,6 @@
 
 		@if (SelectedFilterMode == "Column")
 		{
-			@* ---------- Column mode UI ---------- *@
 			<div class="filter-panel mb-3 p-3 border rounded" style="background: #fff;">
 				<div class="filter-title mb-2 d-flex align-items-center">
 					<i class="material-symbols-rounded me-1">view_list</i>
@@ -83,7 +95,6 @@
 				@foreach (var table in Tables)
 				{
 					<div class="table-section mb-2 border rounded">
-						<!-- Header Table -->
 						<div class="table-header d-flex justify-content-between align-items-center p-2"
 							 style="cursor: pointer; background: #f8f9fa;"
 							 @onclick="@(() => ToggleCollapse(table.Name))">
@@ -95,7 +106,6 @@
 							</i>
 						</div>
 
-						<!-- Isi Kolom -->
 						@if (!CollapsedTables.Contains(table.Name))
 						{
 							<div class="p-2 ps-4 bg-light border-top">
@@ -120,11 +130,152 @@
 		}
 		else if (SelectedFilterMode == "Table")
 		{
-			@* ---------- Table mode UI ---------- *@
 			<div class="mb-3">
 				@if (!string.IsNullOrEmpty(SelectedTable))
 				{
 					var sel = Tables.FirstOrDefault(t => t.Name == SelectedTable);
+					if (sel != null)
+					{
+						<div class="border rounded p-3 mb-3 bg-light">
+							<h6 class="fw-semibold mb-3">
+								List Kolom dari tabel <b>@sel.Name</b>
+							</h6>
+
+							@foreach (var column in sel.Columns)
+							{
+								<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
+									<span class="ms-1">@column.DisplayName</span>
+								</div>
+							}
+						</div>
+					}
+				}
+				else
+				{
+					<div class="text-muted fst-italic">Pilih tabel dari dropdown untuk melihat kolomnya.</div>
+				}
+			</div>
+		} *@
+
+		<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
+			<RadzenFormField AllowFloatingLabel="false" Text="Mode Filter">
+				<RadzenDropDown @bind-Value="SelectedFilterMode"
+								Data="@FilterModes"
+								Change="@OnFilterModeChanged"
+								Style="width:200px"
+								Placeholder="Pilih mode filter..." />
+			</RadzenFormField>
+
+			@if (SelectedFilterMode == "Table")
+			{
+				<RadzenFormField AllowFloatingLabel="false" Text="Pilih Tabel">
+					<RadzenDropDown @bind-Value="SelectedTable"
+									Data="tablesForUI.Select(t => t.Name).ToList()"
+									Change="@OnTableSelectionChanged"
+									AllowClear="true"
+									Style="width:200px" />
+				</RadzenFormField>
+			}
+			else if (SelectedFilterMode == "Column")
+			{
+				@* <RadzenButton Text="Pilih Kolom" Icon="checklist" Click="ToggleColumnSelectorPopup" /> *@
+
+				<RadzenButton Text="Pilih Kolom" Icon="checklist" Click="OpenColumnSelectorPopup" />
+			}
+
+			<RadzenButton Click="@UpdateChart" Text="Update Chart" Icon="refresh" Class="w-auto" />
+		</RadzenStack>
+
+		@if (SelectedFilterMode == "Column" && SelectedColumns.Any())
+		{
+			<div class="mb-3">
+				<div class="border rounded p-3 mb-3 bg-light">
+					<h6 class="fw-semibold mb-3">
+						List Kolom yang dipilih
+					</h6>
+
+					@foreach (var column in SelectedColumns.Select(GetColumnDisplayName))
+					{
+						<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
+							<span class="ms-1">@column</span>
+						</div>
+					}
+				</div>
+			</div>
+		}
+
+		@if (SelectedFilterMode == "Column" && isColumnSelectorVisible)
+		{
+			<RadzenCard class="mb-4 mx-3" Style="position: relative; z-index: 10;">
+				<RadzenStack Orientation="Orientation.Vertical">
+					<div class="d-flex justify-content-between align-items-center mb-3">
+						<h5>Pilih Kolom untuk Filter</h5>
+						<RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Click="CloseColumnSelectorPopup" />
+					</div>
+
+					<div style="max-height: 400px; overflow-y: auto;">
+						@if (Tables == null || !Tables.Any())
+						{
+							<p>Tidak ada tabel tersedia.</p>
+						}
+						else
+						{
+							@foreach (var table in Tables)
+							{
+								<div class="table-section mb-2 border rounded">
+									<div class="table-header d-flex justify-content-between align-items-center p-2"
+										 style="cursor: pointer; background: #f8f9fa;"
+										 @onclick="@(() => ToggleCollapse(table.Name))">
+										<div>
+											<span class="fw-semibold">Tabel @table.Name</span>
+										</div>
+										<i class="material-symbols-rounded" style="@GetCollapseStyle(table.Name)">
+											expand_more
+										</i>
+									</div>
+
+									@if (!CollapsedTables.Contains(table.Name))
+									{
+										<div class="p-2 ps-4 bg-light border-top">
+											@if (table.Columns == null || !table.Columns.Any())
+											{
+												<span class="text-muted fst-italic">Tidak ada kolom di tabel ini.</span>
+											}
+											else
+											{
+												@foreach (var column in table.Columns)
+												{
+													<div class="column-item mb-1 d-flex align-items-center">
+														<RadzenCheckBox TValue="bool"
+																		Value="@SelectedColumns.Contains(column.FullName)"
+																		Change="(args) => ToggleColumnSelection(column.FullName, args)" />
+														<span class="ms-2">
+															@column.DisplayName
+															<span style="color: #6c757d;">(@column.Description)</span>
+														</span>
+													</div>
+												}
+											}
+										</div>
+									}
+								</div>
+							}
+						}
+					</div>
+
+					<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1rem" Class="mt-4">
+						<RadzenButton Text="Tutup" Click="CloseColumnSelectorPopup" ButtonStyle="ButtonStyle.Primary" />
+					</RadzenStack>
+				</RadzenStack>
+			</RadzenCard>
+		}
+
+		@if (SelectedFilterMode == "Table")
+		{
+			<div class="mb-3">
+				@if (!string.IsNullOrEmpty(SelectedTable))
+				{
+					var sel = tablesForUI.FirstOrDefault(t => t.Name == SelectedTable);
 					if (sel != null)
 					{
 						<div class="border rounded p-3 mb-3 bg-light">
@@ -153,7 +304,7 @@
 			<RadzenChart Style="height:400px;">
 				<RadzenChartTooltipOptions Shared="true" />
 
-				@if (ChartData.Any())
+				@if (ChartDataNew.Any())
 				{
 					@foreach (var dataset in ChartData)
 					{
@@ -251,86 +402,46 @@
 
 	private List<TableModel> Tables = new();
 	private HashSet<string> SelectedColumns = new();
+	private HashSet<string> CollapsedTables = new();
 	private string SelectedTable = "";
 	private Dictionary<string, List<ChartItem>> ChartData = new();
-	private HashSet<string> CollapsedTables = new();
+	private List<ChartItem> ChartDataNew = new List<ChartItem>();
 
 	// Filter mode
 	private List<string> FilterModes = new() { "Column", "Table" };
 	private string SelectedFilterMode = "Table";
 
-	private DateTime StartDate = DateTime.Now.AddHours(-6);
-	private DateTime EndDate = DateTime.Now;
+	private bool isColumnSelectorVisible = false;
+
+	private DateTime? StartDate = DateTime.Now.AddHours(-6);
+	private DateTime? EndDate = DateTime.Now;
+	private bool isLoading = false;
 	private bool isRefresh = false;
 
 	// Export
 	private bool isExportPdf = false;
 	private bool isExportImage = false;
 
-	protected override void OnInitialized()
-	{
-		// Dummy tabel dan kolom (FullName dipakai dalam Column mode)
-		Tables = new List<TableModel>
-		{
-			new TableModel
-			{
-				Name = "Mesin",
-				Columns = new List<ColumnModel>
-				{
-					new ColumnModel { FullName = "Mesin.Temperature", DisplayName = "Temperature", Description = "Temperature Mesin" },
-					new ColumnModel { FullName = "Mesin.Energy_Used", DisplayName = "EnergyUsed", Description = "Energi yang digunakan" },
-					new ColumnModel { FullName = "Mesin.Total_Runtime", DisplayName = "TotalRuntime", Description = "Total jam operasi" }
-				}
-			},
-			new TableModel
-			{
-				Name = "Sensor",
-				Columns = new List<ColumnModel>
-				{
-					new ColumnModel { FullName = "Sensor.Temperature", DisplayName = "Temperature", Description = "Temperature sensor" },
-					new ColumnModel { FullName = "Sensor.Pressure", DisplayName = "Pressure", Description = "Pressure sensor" },
-					new ColumnModel { FullName = "Sensor.Speed", DisplayName = "Speed", Description = "Speed Mesin" }
-				}
-			},
-			new TableModel
-			{
-				Name = "Measurement",
-				Columns = new List<ColumnModel>
-				{
-					new ColumnModel { FullName = "Measurement.Flowrate", DisplayName = "Flowrate", Description = "Flowrate data" },
-					new ColumnModel { FullName = "Measurement.Pressure", DisplayName = "Pressure", Description = "Pressure data" }
-				}
-			}
-		};
+	// private void ToggleCollapse(string tableName)
+	// {
+	// 	if (CollapsedTables.Contains(tableName))
+	// 		CollapsedTables.Remove(tableName);
+	// 	else
+	// 		CollapsedTables.Add(tableName);
+	// }
 
-		// Defaults
-		SelectedFilterMode = "Table";
-		SelectedTable = "Mesin";
-		SelectedColumns.Add("Mesin.Temperature");
-
-		UpdateChart();
-	}
-
-	private void ToggleCollapse(string tableName)
-	{
-		if (CollapsedTables.Contains(tableName))
-			CollapsedTables.Remove(tableName);
-		else
-			CollapsedTables.Add(tableName);
-	}
-
-	private void ToggleColumnSelection(string columnFullName, bool isChecked)
-	{
-		if (isChecked)
-		{
-			if (!SelectedColumns.Contains(columnFullName))
-				SelectedColumns.Add(columnFullName);
-		}
-		else
-		{
-			SelectedColumns.Remove(columnFullName);
-		}
-	}
+	// private void ToggleColumnSelection(string columnFullName, bool isChecked)
+	// {
+	// 	if (isChecked)
+	// 	{
+	// 		if (!SelectedColumns.Contains(columnFullName))
+	// 			SelectedColumns.Add(columnFullName);
+	// 	}
+	// 	else
+	// 	{
+	// 		SelectedColumns.Remove(columnFullName);
+	// 	}
+	// }
 
 	// Table select event handled by RadzenDropDown binding directly (SelectedTable)
 	private void OnTableChange(ChangeEventArgs e)
@@ -341,6 +452,7 @@
 	private void UpdateChart()
 	{
 		ChartData.Clear();
+		ChartDataNew.Clear();
 		var rnd = new Random();
 		var categories = Enumerable.Range(1, 8).Select(i => $"Hari {i}").ToList();
 
@@ -368,7 +480,9 @@
 		else
 		{
 			if (string.IsNullOrEmpty(SelectedTable)) return;
-			var sel = Tables.FirstOrDefault(t => t.Name == SelectedTable);
+
+			var sel = tablesForUI.FirstOrDefault(t => t.Name == SelectedTable);
+
 			if (sel == null) return;
 
 			foreach (var col in sel.Columns)
@@ -391,6 +505,161 @@
 		isRefresh = false;
 		StateHasChanged();
 	}
+
+	private async Task ApplyDateFilter((DateTime? Start, DateTime? End) range)
+	{
+		StartDate = range.Start;
+		EndDate = range.End;
+
+		await LoadData();
+	}
+
+	private async Task LoadData()
+	{
+		isLoading = true;
+		// myData = await MyService.GetAll(start: StartDate, end: EndDate);
+		isLoading = false;
+		StateHasChanged();
+	}
+
+
+	private Dictionary<string, List<ColumnMachine>> machineTags = new();
+	private List<TableModal> tablesForUI = new List<TableModal>();
+
+	private Dictionary<string, List<TableMachine>> machineTable = new();
+
+	protected override async Task OnInitializedAsync()
+	{
+		SelectedFilterMode = "Table";
+		isLoading = true;
+
+		try
+		{
+			var body = new
+			{
+				tgl_start = "2025-10-17T00:00:00",
+				tgl_finish = "2025-10-17T12:00:00",
+				request_data = new[] { "iot_channel1", "iot_ramp" }
+			};
+
+			machineTable = await MachineService.GetTableBy(body, "table", latestData: false);
+
+
+
+
+			machineTags = await MachineService.Browse();
+
+			// Konversi ke modal baru
+			tablesForUI = machineTags.Select(kvp => new TableModal
+			{
+				Name = kvp.Key,
+				Columns = kvp.Value.Select(tag => new ColumnModal
+				{
+					FullName = $"{kvp.Key}.{tag.NamaTag}",
+					DisplayName = tag.NamaTag,
+					Description = tag.Deskripsi
+				}).ToList() ?? new List<ColumnModal>()
+			}).ToList();
+
+			if (tablesForUI.Any())
+			{
+				CollapsedTables = tablesForUI.Skip(1).Select(t => t.Name).ToHashSet();
+			}
+		}
+		catch (Exception ex)
+		{
+			tablesForUI = new List<TableModal>();
+		}
+		finally
+		{
+			isLoading = false;
+			UpdateChart();
+			StateHasChanged();
+		}
+	}
+
+
+	private void OnFilterModeChanged(object value)
+	{
+		SelectedTable = null;
+		isColumnSelectorVisible = false;
+		StateHasChanged();
+	}
+
+	private void OnTableSelectionChanged(object value)
+	{
+		if (SelectedFilterMode == "Table" && value is string tableName)
+		{
+			var selectedTableInfo = Tables.FirstOrDefault(t => t.Name == tableName);
+			if (selectedTableInfo?.Columns != null)
+			{
+				SelectedColumns = selectedTableInfo.Columns.Select(c => c.FullName).ToHashSet();
+			}
+			else
+			{
+				SelectedColumns.Clear();
+			}
+		}
+		StateHasChanged();
+	}
+
+	private void ToggleColumnSelectorPopup()
+	{
+		isColumnSelectorVisible = !isColumnSelectorVisible;
+		if (isColumnSelectorVisible && Tables.Any())
+		{
+			CollapsedTables = Tables.Skip(1).Select(t => t.Name).ToHashSet();
+		}
+	}
+	private async Task OpenColumnSelectorPopup()
+	{
+		var result = await DialogService.OpenAsync<DialogColumnChoose>("Pilih Kolom Filter",
+		   new Dictionary<string, object>() {
+			   { "Tables", Tables },
+			   { "InitialSelectedColumns", SelectedColumns }
+		   },
+		   new DialogOptions() { Width = "600px", Resizable = true, Draggable = true });
+
+		if (result != null)
+		{
+			SelectedColumns = result as HashSet<string> ?? new HashSet<string>();
+			StateHasChanged();
+		}
+	}
+
+	private void CloseColumnSelectorPopup()
+	{
+		isColumnSelectorVisible = false;
+	}
+
+	private void ToggleCollapse(string tableName)
+	{
+		if (CollapsedTables.Contains(tableName))
+			CollapsedTables.Remove(tableName);
+		else
+			CollapsedTables.Add(tableName);
+	}
+
+	private string GetCollapseStyle(string tableName)
+	{
+		return CollapsedTables.Contains(tableName) ? "transform: rotate(-90deg); transition: transform 0.2s;" : "transition: transform 0.2s;";
+	}
+
+	private void ToggleColumnSelection(string columnName, bool? isSelected)
+	{
+		if (isSelected == true)
+			SelectedColumns.Add(columnName);
+		else
+			SelectedColumns.Remove(columnName);
+	}
+
+	private string GetColumnDisplayName(string fullName)
+	{
+		return Tables.SelectMany(t => t.Columns)
+					 .FirstOrDefault(c => c.FullName == fullName)?.DisplayName ?? fullName;
+	}
+
+
 
 	// --- Export function ---
 	private async Task Export(string idChart)

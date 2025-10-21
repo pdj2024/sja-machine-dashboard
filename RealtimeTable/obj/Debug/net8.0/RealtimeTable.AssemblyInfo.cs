@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RealtimeTable")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2a0d5fa5d8d049006ad870cf38e394a0bf18451d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a7762d3d9c3b2370030840296ad62e64b8b4f0a9")]
 [assembly: System.Reflection.AssemblyProductAttribute("RealtimeTable")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RealtimeTable")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

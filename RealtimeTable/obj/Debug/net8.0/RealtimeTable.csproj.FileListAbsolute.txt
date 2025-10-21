@@ -10,9 +10,13 @@ D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\RealtimeTable.AssemblyInfoInputs.cache
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\RealtimeTable.AssemblyInfo.cs
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\RealtimeTable.csproj.CoreCompileInputs.cache
+D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\RealtimeTable.sourcelink.json
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\rjimswa.dswa.cache.json
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\rjsmrazor.dswa.cache.json
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\rjsmcshtml.dswa.cache.json
+D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\scopedcss\RealtimeTablePage.razor.rz.scp.css
+D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\scopedcss\TableHistoryPage.razor.rz.scp.css
+D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\scopedcss\TrendingChartPage.razor.rz.scp.css
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\scopedcss\bundle\RealtimeTable.styles.css
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\scopedcss\projectbundle\RealtimeTable.bundle.scp.css
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\staticwebassets.build.json
@@ -31,7 +35,3 @@ D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\RealtimeTable.pdb
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\RealtimeTable.genruntimeconfig.cache
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\ref\RealtimeTable.dll
-D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\scopedcss\RealtimeTablePage.razor.rz.scp.css
-D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\scopedcss\TableHistoryPage.razor.rz.scp.css
-D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\scopedcss\TrendingChartPage.razor.rz.scp.css
-D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\RealtimeTable.sourcelink.json

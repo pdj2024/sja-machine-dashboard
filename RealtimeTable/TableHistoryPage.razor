@@ -4,10 +4,52 @@
 @using ClosedXML.Excel
 @using System.Text
 
+@using Interfaces
+@using Models
+
 @inject IJSRuntime JSRuntime
+
+@inject IMachineService MachineService
 
 <RadzenRow>
 	<RadzenColumn SizeMD="12" class="mt-4">
+
+		@if (isLoading)
+		{
+			<p><em>Memuat data...</em></p>
+		}
+		else if (machineTags == null || !machineTags.Any())
+		{
+			<p><em>Tidak ada data tag mesin yang ditemukan.</em></p>
+		}
+		else
+		{
+			@foreach (var channelEntry in machineTags)
+			{
+				<div class="mb-4">
+					<h4>@channelEntry.Key</h4>
+					@if (channelEntry.Value != null && channelEntry.Value.Any())
+					{
+						<ul class="list-group">
+							@foreach (var tag in channelEntry.Value)
+							{
+								<li class="list-group-item">
+									<strong>@tag.NamaTag:</strong>
+								</li>
+								<li class="list-group-item">
+									<strong>@tag.Deskripsi</strong>
+								</li>
+							}
+						</ul>
+					}
+					else
+					{
+						<p class="text-muted"><em>Tidak ada tag untuk channel ini.</em></p>
+					}
+				</div>
+			}
+		}
+
 		<div class="d-flex flex-column gap-2">
 			<div class="d-flex align-items-center justify-content-start jus gap-2">
 				<button type="button" class="btn btn-sm bg-success text-white" onclick="@(() => ExportTable("csv"))">
@@ -48,6 +90,13 @@
 			</RadzenStack>
 		</div>
 
+		@* Filter DateTime *@
+		<FilterDateTimeButton InitialStartDate="@StartDate"
+							  InitialEndDate="@EndDate"
+							  IsLoading="@isLoading"
+							  OnFilter="ApplyDateFilter" />
+
+		@* Table History *@
 		<RadzenDataGrid @ref="GridRecord"
 						Data="@HistoryData"
 						TItem="HistoryRecord"
@@ -78,8 +127,10 @@
 	RadzenDataGrid<HistoryRecord> GridRecord;
 	private bool ExportSelectedRowsOnly { get; set; }
 	private List<HistoryRecord> HistoryData = new();
-	private DateTime StartDate = DateTime.Now.AddHours(-6);
-	private DateTime EndDate = DateTime.Now;
+
+	private DateTime? StartDate = DateTime.Now.AddHours(-6);
+	private DateTime? EndDate = DateTime.Now;
+	private bool isLoading = false;
 	private bool isRefresh = false;
 	private bool isRefreshExport = false;
 
@@ -126,6 +177,31 @@
 		isRefresh = true;
 		LoadDummyDataHistory();
 		isRefresh = false;
+		StateHasChanged();
+	}
+
+
+	private Dictionary<string, List<ColumnMachine>> machineTags = new();
+	protected override async Task OnInitializedAsync()
+	{
+		isLoading = true;
+		machineTags = await MachineService.Browse();
+		isLoading = false;
+	}
+
+	private async Task ApplyDateFilter((DateTime? Start, DateTime? End) range)
+	{
+		StartDate = range.Start;
+		EndDate = range.End;
+
+		await LoadData();
+	}
+
+	private async Task LoadData()
+	{
+		isLoading = true;
+		// myData = await MyService.GetAll(start: StartDate, end: EndDate);
+		isLoading = false;
 		StateHasChanged();
 	}
 

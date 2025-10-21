@@ -27,6 +27,13 @@
 			</p>
 		</div>
 
+		@* Filter DateTime *@
+		<FilterDateTimeButton InitialStartDate="@StartDate" 
+							 InitialEndDate="@EndDate"
+							 IsLoading="@isLoading" 
+							 OnFilter="ApplyDateFilter" />
+
+		@* Table Realtiem *@
 		<RadzenDataGrid @ref="Grid"
 						Data="@measurementList"
 						TItem="MeasurementData"
@@ -57,6 +64,10 @@
 	private Random rand = new();
 
 	private double updateInterval = 5000;
+
+	private DateTime? StartDate = DateTime.Now.AddHours(-6);
+	private DateTime? EndDate = DateTime.Now;
+	private bool isLoading = false;
 
 	private List<(string Label, double Value)> IntervalOptions = new()
 	{
@@ -116,6 +127,22 @@
 			new MeasurementData { Measurement = "Flowrate", Value = Math.Round(50 + rand.NextDouble() * 15, 2), Units = "L/s" },
 			new MeasurementData { Measurement = "Energy Consumption", Value = Math.Round(8 + rand.NextDouble() * 5, 2), Units = "kWh" }
 		};
+	}
+
+	private async Task ApplyDateFilter((DateTime? Start, DateTime? End) range)
+	{
+		StartDate = range.Start;
+		EndDate = range.End;
+
+		await LoadData();
+	}
+
+	private async Task LoadData()
+	{
+		isLoading = true;
+		// myData = await MyService.GetAll(start: StartDate, end: EndDate);
+		isLoading = false;
+		StateHasChanged();
 	}
 
 	public void Dispose()

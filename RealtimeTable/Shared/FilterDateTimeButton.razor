@@ -1,0 +1,96 @@
+﻿@using System
+@using Radzen
+@using Radzen.Blazor
+
+<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
+    <div class="d-flex gap-2 flex-wrap">
+        <RadzenFormField AllowFloatingLabel="false" Text="@StartDateLabel">
+            <RadzenDatePicker @bind-Value="startDate"
+                              Name="StartDate"
+                              ShowButton="false"
+                              Style="width: 100px"
+                              DateFormat="dd-MM-yyyy" />
+        </RadzenFormField>
+
+        <RadzenFormField AllowFloatingLabel="false" Text="@StartTimeLabel">
+            <RadzenDatePicker @bind-Value="startTime"
+                              TimeOnly="true"
+                              ShowTime="true"
+                              ShowSeconds="true"
+                              Name="StartTime"
+                              ShowButton="false"
+                              Style="width: 100px"
+                              DateFormat="HH.mm.ss" />
+        </RadzenFormField>
+
+        <RadzenFormField AllowFloatingLabel="false" Text="@EndDateLabel">
+            <RadzenDatePicker @bind-Value="endDate"
+                              Name="EndDate"
+                              ShowButton="false"
+                              Style="width: 100px"
+                              DateFormat="dd-MM-yyyy" />
+        </RadzenFormField>
+
+        <RadzenFormField AllowFloatingLabel="false" Text="@EndTimeLabel">
+            <RadzenDatePicker @bind-Value="endTime"
+                              TimeOnly="true"
+                              ShowTime="true"
+                              ShowSeconds="true"
+                              Name="EndTime"
+                              ShowButton="false"
+                              Style="width: 100px"
+                              DateFormat="HH.mm.ss" />
+        </RadzenFormField>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+        <RadzenButton Click="HandleFilterClick" Text="Filter" IsBusy="@IsLoading" class="w-auto" />
+    </div>
+</RadzenStack>
+
+@code {
+    [Parameter] public DateTime? InitialStartDate { get; set; }
+    [Parameter] public DateTime? InitialEndDate { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public string StartDateLabel { get; set; } = "Tanggal Awal";
+    [Parameter] public string StartTimeLabel { get; set; } = "Pukul Awal";
+    [Parameter] public string EndDateLabel { get; set; } = "Tanggal Akhir";
+    [Parameter] public string EndTimeLabel { get; set; } = "Pukul Akhir";
+
+    [Parameter] public EventCallback<(DateTime? Start, DateTime? End)> OnFilter { get; set; }
+
+    private DateTime? startDate;
+    private DateTime? startTime;
+    private DateTime? endDate;
+    private DateTime? endTime;
+
+    protected override void OnParametersSet()
+    {
+        startDate = InitialStartDate?.Date;
+        startTime = InitialStartDate;
+        endDate = InitialEndDate?.Date;
+        endTime = InitialEndDate;
+    }
+
+    private Task HandleFilterClick()
+    {
+        DateTime? finalStart = CombineDateTime(startDate, startTime);
+        DateTime? finalEnd = CombineDateTime(endDate, endTime);
+
+        return OnFilter.InvokeAsync((finalStart, finalEnd));
+    }
+
+    private DateTime? CombineDateTime(DateTime? datePart, DateTime? timePart)
+    {
+        if (datePart.HasValue && timePart.HasValue)
+        {
+            return datePart.Value.Date + timePart.Value.TimeOfDay;
+        }
+        else if (datePart.HasValue)
+        {
+            return datePart.Value.Date;
+        }
+
+        return null;
+    }
+}

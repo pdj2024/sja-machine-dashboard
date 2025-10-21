@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TableHistory")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a7762d3d9c3b2370030840296ad62e64b8b4f0a9")]
 [assembly: System.Reflection.AssemblyProductAttribute("TableHistory")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TableHistory")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
