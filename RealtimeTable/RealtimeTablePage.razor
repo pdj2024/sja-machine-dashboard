@@ -1,6 +1,17 @@
-﻿@implements IDisposable
+﻿@using Microsoft.JSInterop
 @using Radzen
 @using Radzen.Blazor
+@using ClosedXML.Excel
+@using System.Text
+@using System.Timers
+@using System.Collections.Concurrent
+
+@implements IDisposable
+
+@inject IJSRuntime JSRuntime
+@inject DialogService DialogService
+
+@inject IMachineService MachineService
 
 <RadzenRow>
 	<RadzenColumn SizeMD="12">
@@ -27,47 +38,157 @@
 			</p>
 		</div>
 
-		@* Filter DateTime *@
-		<FilterDateTimeButton InitialStartDate="@StartDate" 
-							 InitialEndDate="@EndDate"
-							 IsLoading="@isLoading" 
-							 OnFilter="ApplyDateFilter" />
+		@* Filter Mode: Table || Column *@
+		<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
+			<RadzenFormField AllowFloatingLabel="false" Text="Mode Filter">
+				<RadzenDropDown @bind-Value="SelectedFilterMode"
+								Data="@FilterModes"
+								Change="@OnFilterModeChanged"
+								Style="width:200px"
+								Placeholder="Pilih mode filter..." />
+			</RadzenFormField>
 
-		@* Table Realtiem *@
-		<RadzenDataGrid @ref="Grid"
+			@if (SelectedFilterMode == "Table")
+			{
+				<RadzenFormField AllowFloatingLabel="false" Text="Pilih Tabel">
+					<RadzenDropDown @bind-Value="SelectedTable"
+									Data="tablesForUI.Select(t => t.Name).ToList()"
+									Change="@OnTableSelectionChanged"
+									Style="width:200px" />
+				</RadzenFormField>
+			}
+			else if (SelectedFilterMode == "Column")
+			{
+				<RadzenButton Text="Pilih Kolom" Icon="checklist" Click="OpenColumnSelectorPopup" />
+			}
+
+			<RadzenButton Click="@ClickUpdateTable" Text="Update Table" IsBusy="@isUpdateTable" Icon="refresh" Class="w-auto" />
+		</RadzenStack>
+
+		@if (SelectedFilterMode == "Column" && SelectedColumns.Any())
+		{
+			<div class="mb-3">
+				<div class="border rounded p-3 mb-3 bg-light">
+					<h6 class="fw-semibold mb-3">
+						List Kolom yang dipilih
+					</h6>
+
+					@foreach (var column in SelectedColumns.Select(GetColumnDisplayName))
+					{
+						<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
+							<span class="ms-1">@column</span>
+						</div>
+					}
+				</div>
+			</div>
+		}
+
+		@if (SelectedFilterMode == "Table")
+		{
+			<div class="mb-3">
+				@if (!string.IsNullOrEmpty(SelectedTable))
+				{
+					var sel = tablesForUI.FirstOrDefault(t => t.Name == SelectedTable);
+					if (sel != null)
+					{
+						<div class="border rounded p-3 mb-3 bg-light">
+							<h6 class="fw-semibold mb-3">
+								List Kolom dari tabel <b>@sel.Name</b>
+							</h6>
+
+							@foreach (var column in sel.Columns)
+							{
+								<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
+									<span class="ms-1">@column.DisplayName</span>
+								</div>
+							}
+						</div>
+					}
+				}
+				else
+				{
+					<div class="text-muted fst-italic">Pilih tabel dari dropdown untuk melihat kolomnya.</div>
+				}
+			</div>
+		}
+
+		@* Table Realtime *@
+		@* <RadzenDataGrid @ref="Grid"
 						Data="@measurementList"
 						TItem="MeasurementData"
 						AllowSorting="true"
 						AllowPaging="false"
 						AllowVirtualization="true">
 			<Columns>
-				<RadzenDataGridColumn TItem="MeasurementData" Property="Measurement" Title="Measurement" Width="200px" TextAlign="TextAlign.Left" />
-				<RadzenDataGridColumn TItem="MeasurementData" Property="Value" Title="Value" Width="200px" TextAlign="TextAlign.Center" />
+				<RadzenDataGridColumn TItem="MeasurementData" Property="Measurement" Title="Measurement" Width="200px" />
+				<RadzenDataGridColumn TItem="MeasurementData" Property="Value" Title="Value" Width="200px">
+					<Template Context="data">
+						<span class="@GetValueClass1(data)">
+							@data.Value
+						</span>
+					</Template>
+				</RadzenDataGridColumn>
 				<RadzenDataGridColumn TItem="MeasurementData" Property="Units" Title="Units" Width="100px" TextAlign="TextAlign.Center" />
 			</Columns>
+		</RadzenDataGrid> *@
+
+		<RadzenDataGrid Data="@HistoryData"
+						TItem="TableRealtime"
+						ColumnWidth="200px"
+						AllowSorting="true"
+						AllowPaging="true"
+						PageSize="10"
+						Style="margin-bottom: 5rem;">
+			<Columns>
+				<RadzenDataGridColumn TItem="TableRealtime" Property="Timestamp" Title="Timestamp">
+					<Template Context="data">
+						@data.Timestamp.ToString("dd-MM-yyyy HH.mm.ss")
+					</Template>
+				</RadzenDataGridColumn>
+
+				<RadzenDataGridColumn TItem="TableRealtime" Property="Measurement" Title="Measurement" />
+
+				<RadzenDataGridColumn TItem="TableRealtime" Property="Value" Title="Value">
+					<Template Context="data">
+						<span class="@GetValueClass(data)">
+							@data.Value
+						</span>
+					</Template>
+				</RadzenDataGridColumn>
+			</Columns>
 		</RadzenDataGrid>
+
 	</RadzenColumn>
 </RadzenRow>
 
 @code {
-	public class MeasurementData
-	{
-		public string Measurement { get; set; }
-		public double Value { get; set; }
-		public string Units { get; set; }
-	}
+	private Dictionary<string, List<TableMachine>> machineTable = new();
+	private Dictionary<string, List<ColumnMachine>> machineTags = new();
 
-	private RadzenDataGrid<MeasurementData> Grid;
-	private List<MeasurementData> measurementList = new();
-	private System.Timers.Timer updateTimer;
-	private DateTime lastUpdated = DateTime.Now;
-	private Random rand = new();
+	private List<TableModal> Tables = new();
+	private List<TableModal> tablesForUI = new List<TableModal>();
+	private List<TableRealtime> HistoryData = new();
 
+	private string SelectedTable = "";
+	private HashSet<string> SelectedColumns = new();
+	private HashSet<string> CollapsedTables = new();
+	private bool isColumnSelectorVisible = false;
+
+	// Timer Auto Fetch
+	private Timer updateTimer;
 	private double updateInterval = 5000;
+	private DateTime lastUpdated = DateTime.Now;
+	private HashSet<string> animatedRows = new();
 
-	private DateTime? StartDate = DateTime.Now.AddHours(-6);
+	// Filter mode
+	private List<string> FilterModes = new() { "Column", "Table" };
+	private string SelectedFilterMode = "Table";
+
+	private DateTime? StartDate = DateTime.Now.AddDays(-1);
 	private DateTime? EndDate = DateTime.Now;
+
 	private bool isLoading = false;
+	private bool isUpdateTable = false;
 
 	private List<(string Label, double Value)> IntervalOptions = new()
 	{
@@ -76,18 +197,6 @@
 		("5 menit", 300000),
 		("1 jam", 3600000)
 	};
-
-	protected override void OnInitialized()
-	{
-		GenerateDummyData();
-
-		// updateTimer = new System.Timers.Timer(5000);
-		// updateTimer.Elapsed += async (s, e) => await UpdateDataAsync();
-		// updateTimer.AutoReset = true;
-		// updateTimer.Enabled = true;
-
-		SetupTimer(updateInterval);
-	}
 
 	private void SetupTimer(double interval)
 	{
@@ -110,43 +219,246 @@
 
 	private async Task UpdateDataAsync()
 	{
-		await InvokeAsync(() =>
+		await InvokeAsync(async () =>
 		{
-			GenerateDummyData();
-			lastUpdated = DateTime.Now;
+			await OnUpdateChartClicked();
 			StateHasChanged();
 		});
-	}
-
-	private void GenerateDummyData()
-	{
-		measurementList = new List<MeasurementData>
-		{
-			new MeasurementData { Measurement = "Temperature", Value = Math.Round(35 + rand.NextDouble() * 5, 2), Units = "°C" },
-			new MeasurementData { Measurement = "Pressure", Value = Math.Round(3 + rand.NextDouble(), 2), Units = "Pa" },
-			new MeasurementData { Measurement = "Flowrate", Value = Math.Round(50 + rand.NextDouble() * 15, 2), Units = "L/s" },
-			new MeasurementData { Measurement = "Energy Consumption", Value = Math.Round(8 + rand.NextDouble() * 5, 2), Units = "kWh" }
-		};
-	}
-
-	private async Task ApplyDateFilter((DateTime? Start, DateTime? End) range)
-	{
-		StartDate = range.Start;
-		EndDate = range.End;
-
-		await LoadData();
-	}
-
-	private async Task LoadData()
-	{
-		isLoading = true;
-		// myData = await MyService.GetAll(start: StartDate, end: EndDate);
-		isLoading = false;
-		StateHasChanged();
 	}
 
 	public void Dispose()
 	{
 		updateTimer?.Dispose();
 	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		// GenerateDummyData();
+		await LoadData();
+
+		base.OnInitialized();
+	}
+
+	private async Task LoadData()
+	{
+		try
+		{
+			isLoading = true;
+
+			machineTags = await MachineService.Browse();
+
+			// Konversi ke modal baru
+			tablesForUI = machineTags.Select(kvp => new TableModal
+			{
+				Name = kvp.Key,
+				Columns = kvp.Value.Select(tag => new ColumnModal
+				{
+					FullName = $"{kvp.Key}.{tag.NamaTag}",
+					DisplayName = tag.NamaTag,
+					Description = tag.Deskripsi
+				}).ToList() ?? new List<ColumnModal>()
+			}).ToList();
+
+			if (tablesForUI.Any())
+			{
+				CollapsedTables = tablesForUI.Skip(1).Select(t => t.Name).ToHashSet();
+
+				SelectedTable = tablesForUI.Select(t => t.Name).First();
+				OnTableSelectionChanged(SelectedTable);
+			}
+		}
+		catch (Exception ex)
+		{
+			tablesForUI = new List<TableModal>();
+		}
+		finally
+		{
+			isLoading = false;
+			StateHasChanged();
+		}
+	}
+
+	private async Task ClickUpdateTable()
+	{
+		isUpdateTable = true;
+		StateHasChanged();
+
+		await UpdateTable();
+
+		isUpdateTable = false;
+		StateHasChanged();
+	}
+
+	private async Task UpdateTable()
+	{
+		HistoryData.Clear();
+
+		// Column Mode
+		if (SelectedFilterMode == "Column")
+		{
+			if (SelectedColumns == null || !SelectedColumns.Any()) return;
+
+			var body = new
+			{
+				request_data = SelectedColumns.ToArray()
+			};
+			machineTable = await MachineService.GetTableBy(body, "tag", latestData: true);
+
+			if (machineTable == null || machineTable.Count == 0)
+			{
+				HistoryData = new List<TableRealtime>();
+				StateHasChanged();
+				return;
+			}
+
+			HistoryData = machineTable
+				.SelectMany(kvp => kvp.Value.Select(v => new TableRealtime
+				{
+					Measurement = kvp.Key,
+					Value = v.Value,
+					Timestamp = Convert.ToDateTime(v.Timestamp)
+				}))
+				.OrderBy(x => x.Timestamp)
+				.ToList();
+		}
+		// Table Mode
+		else
+		{
+			if (string.IsNullOrEmpty(SelectedTable)) return;
+
+			var sel = tablesForUI.FirstOrDefault(t => t.Name == SelectedTable);
+
+			if (sel == null) return;
+
+			var body = new
+			{
+				request_data = new[] { SelectedTable }
+			};
+			machineTable = await MachineService.GetTableBy(body, "table", latestData: true);
+
+			if (machineTable == null || machineTable.Count == 0)
+			{
+				HistoryData = new List<TableRealtime>();
+				StateHasChanged();
+				return;
+			}
+
+			HistoryData = machineTable
+				.SelectMany(kvp => kvp.Value.Select(v => new TableRealtime
+				{
+					Measurement = kvp.Key,
+					Value = v.Value,
+					Timestamp = Convert.ToDateTime(v.Timestamp)
+				}))
+				.OrderBy(x => x.Timestamp)
+				.ToList();
+		}
+		
+		lastUpdated = DateTime.Now;
+		SetupTimer(updateInterval);
+		StateHasChanged();
+	}
+
+	// Pilih Mode Filter
+	private void OnFilterModeChanged(object value)
+	{
+		StateHasChanged();
+	}
+
+	// Pilih Tabel di Mode Filter "Table"
+	private void OnTableSelectionChanged(object value)
+	{
+		if (SelectedFilterMode == "Table" && value is string tableName)
+		{
+			var selectedTableInfo = Tables.FirstOrDefault(t => t.Name == tableName);
+			if (selectedTableInfo?.Columns != null)
+			{
+				SelectedColumns = selectedTableInfo.Columns.Select(c => c.FullName).ToHashSet();
+			}
+			else
+			{
+				SelectedColumns.Clear();
+			}
+		}
+		StateHasChanged();
+	}
+
+	// Modal Pilih Kolom untuk Mode Filter "Column"
+	private async Task OpenColumnSelectorPopup()
+	{
+		var result = await DialogService.OpenAsync<DialogColumnChoose>("Pilih Kolom Filter",
+			new Dictionary<string, object>
+			{
+				{ "MachineTags", machineTags },
+				{ "SelectedColumns", SelectedColumns }
+			},
+			new DialogOptions
+			{
+				Width = "650px",
+				Resizable = true,
+				Draggable = true
+			});
+
+		if (result is HashSet<string> selected)
+		{
+			SelectedColumns = selected;
+			StateHasChanged();
+		}
+	}
+
+	// Menampilkan Kolom yang dipilih untuk Mode Filter "Column"
+	private string GetColumnDisplayName(string fullName)
+	{
+		return Tables.SelectMany(t => t.Columns).FirstOrDefault(c => c.FullName == fullName)?.DisplayName ?? fullName;
+	}
+
+	// Animasi perubahan data
+	private string GetValueClass(TableRealtime data)
+	{
+		return animatedRows.Contains(data.Measurement) ? "value-changed" : "";
+	}
+
+	private async Task OnUpdateChartClicked()
+	{
+		await InvokeAsync(UpdateTable);
+		animatedRows = new HashSet<string>(HistoryData.Select(d => d.Measurement));
+		StateHasChanged();
+		await Task.Delay(1000);
+		animatedRows.Clear();
+		StateHasChanged();
+	}
+
+	// public class MeasurementData
+	// {
+	// 	public string Measurement { get; set; }
+	// 	public double Value { get; set; }
+	// 	public string Units { get; set; }
+	// }
+	// private RadzenDataGrid<MeasurementData> Grid;
+	// private List<MeasurementData> measurementList = new();
+	// private Random rand = new();
+	// private HashSet<double> animatedRows1 = new();
+	// private void GenerateDummyData()
+	// {
+	// 	measurementList = new List<MeasurementData>
+	// 	{
+	// 		new MeasurementData { Measurement = "Temperature", Value = Math.Round(35 + rand.NextDouble() * 5, 2), Units = "°C" },
+	// 		new MeasurementData { Measurement = "Pressure", Value = Math.Round(3 + rand.NextDouble(), 2), Units = "Pa" },
+	// 		new MeasurementData { Measurement = "Flowrate", Value = Math.Round(50 + rand.NextDouble() * 15, 2), Units = "L/s" },
+	// 		new MeasurementData { Measurement = "Energy Consumption", Value = Math.Round(8 + rand.NextDouble() * 5, 2), Units = "kWh" }
+	// 	};
+	// }
+	// private string GetValueClass1(MeasurementData data)
+	// {
+	// 	return animatedRows1.Contains(data.Value) ? "value-changed" : "";
+	// }
+	// private async Task OnUpdateChartClicked1()
+	// {
+	// 	await InvokeAsync(GenerateDummyData);
+	// 	animatedRows1 = new HashSet<double>(measurementList.Select(d => d.Value));
+	// 	StateHasChanged();
+	// 	await Task.Delay(1000);
+	// 	animatedRows1.Clear();
+	// 	StateHasChanged();
+	// }
 }

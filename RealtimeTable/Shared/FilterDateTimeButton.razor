@@ -9,18 +9,20 @@
                               Name="StartDate"
                               ShowButton="false"
                               Style="width: 100px"
-                              DateFormat="dd-MM-yyyy" />
+                              DateFormat="dd-MM-yyyy"
+                              Change="OnDateOrTimeChanged" />
         </RadzenFormField>
 
         <RadzenFormField AllowFloatingLabel="false" Text="@StartTimeLabel">
             <RadzenDatePicker @bind-Value="startTime"
                               TimeOnly="true"
                               ShowTime="true"
-                              ShowSeconds="true"
+                              ShowSeconds="false"
                               Name="StartTime"
                               ShowButton="false"
                               Style="width: 100px"
-                              DateFormat="HH.mm.ss" />
+                              DateFormat="HH:mm"
+                              Change="OnDateOrTimeChanged" />
         </RadzenFormField>
 
         <RadzenFormField AllowFloatingLabel="false" Text="@EndDateLabel">
@@ -28,23 +30,21 @@
                               Name="EndDate"
                               ShowButton="false"
                               Style="width: 100px"
-                              DateFormat="dd-MM-yyyy" />
+                              DateFormat="dd-MM-yyyy"
+                              Change="OnDateOrTimeChanged" />
         </RadzenFormField>
 
         <RadzenFormField AllowFloatingLabel="false" Text="@EndTimeLabel">
             <RadzenDatePicker @bind-Value="endTime"
                               TimeOnly="true"
                               ShowTime="true"
-                              ShowSeconds="true"
+                              ShowSeconds="false"
                               Name="EndTime"
                               ShowButton="false"
                               Style="width: 100px"
-                              DateFormat="HH.mm.ss" />
+                              DateFormat="HH:mm"
+                              Change="OnDateOrTimeChanged" />
         </RadzenFormField>
-    </div>
-
-    <div class="d-flex gap-2 flex-wrap">
-        <RadzenButton Click="HandleFilterClick" Text="Filter" IsBusy="@IsLoading" class="w-auto" />
     </div>
 </RadzenStack>
 
@@ -72,24 +72,22 @@
         endTime = InitialEndDate;
     }
 
-    private Task HandleFilterClick()
+    private async Task OnDateOrTimeChanged(DateTime? _)
     {
+        // Gabungkan tanggal & waktu untuk Start dan End
         DateTime? finalStart = CombineDateTime(startDate, startTime);
         DateTime? finalEnd = CombineDateTime(endDate, endTime);
 
-        return OnFilter.InvokeAsync((finalStart, finalEnd));
+        // Panggil event filter otomatis
+        await OnFilter.InvokeAsync((finalStart, finalEnd));
     }
 
     private DateTime? CombineDateTime(DateTime? datePart, DateTime? timePart)
     {
         if (datePart.HasValue && timePart.HasValue)
-        {
             return datePart.Value.Date + timePart.Value.TimeOfDay;
-        }
         else if (datePart.HasValue)
-        {
             return datePart.Value.Date;
-        }
 
         return null;
     }

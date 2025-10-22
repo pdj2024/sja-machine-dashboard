@@ -1,0 +1,35 @@
+﻿@using Microsoft.AspNetCore.Components
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+    @foreach (var button in ExportOptions)
+    {
+        <button type="button"
+                class="btn btn-sm bg-success text-white"
+                @onclick="@(() => OnExportClick.InvokeAsync(button.Type))"
+                disabled="@IsExporting">
+            @if (IsExporting)
+            {
+                <span>@button.LoadingText</span>
+            }
+            else
+            {
+                <span>@button.Text</span>
+            }
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter] public bool IsExporting { get; set; } = false;
+    [Parameter] public EventCallback<string> OnExportClick { get; set; }
+
+    [Parameter]
+    public List<ExportOption> ExportOptions { get; set; } = new();
+
+    public class ExportOption
+    {
+        public string Type { get; set; } = "";
+        public string Text { get; set; } = "";
+        public string LoadingText { get; set; } = "Exporting...";
+    }
+}

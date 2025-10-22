@@ -1,0 +1,23 @@
+﻿.value-changed {
+    animation: smooth-blue 1.5s ease-in-out;
+}
+
+@keyframes smooth-blue {
+    0% {
+        background-color: #1e3a6a;
+        color: #ffffff;
+        border-radius: 3px;
+    }
+
+    40% {
+        background-color: #384a68;
+        color: #ffffff;
+        border-radius: 3px;
+    }
+
+    100% {
+        background-color: transparent;
+        color: inherit;
+        border-radius: 3px;
+    }
+}

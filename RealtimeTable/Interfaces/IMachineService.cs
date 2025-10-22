@@ -8,5 +8,6 @@ namespace RealtimeTable.Interfaces
         //Task<List<Dictionary<string, object>>> GetTableBy(object data, string type, bool latestData = false);
 
         Task<Dictionary<string, List<TableMachine>>> GetTableBy(object data, string type, bool latestData = false);
+        Task<Dictionary<string, List<ColumnChart>>> GetChart(object data);
     }
 }

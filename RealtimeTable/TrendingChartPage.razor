@@ -11,179 +11,29 @@
 <RadzenRow>
 	@* Radzen Chart *@
 	<RadzenColumn SizeMD=12 class="mt-4">
-
-		@if (machineTable == null || machineTable.Count == 0)
-		{
-			<p>Memuat data...</p>
-		}
-		else
-		{
-			@foreach (var tag in machineTable)
-			{
-				<h5>@tag.Key</h5>
-				<RadzenDataGrid Data="@tag.Value" TItem="TableMachine" AllowPaging="true" PageSize="5">
-					<Columns>
-						<RadzenDataGridColumn TItem="TableMachine" Property="Timestamp" Title="Timestamp" />
-						<RadzenDataGridColumn TItem="TableMachine" Property="Value" Title="Value" />
-					</Columns>
-				</RadzenDataGrid>
-				<br />
-			}
-		}
-
-
-
-		@* Export Button *@
-		<div class="d-flex flex-wrap gap-2 mb-3">
-			<button type="button" class="btn btn-sm bg-success text-white" onclick="@(() => Export("chartArea"))">
-				@if (isExportPdf)
-				{
-					<span>Export Data...</span>
-				}
-				else
-				{
-					<span>Export to PDF</span>
-				}
-			</button>
-			<button type="button" class="btn btn-sm bg-success text-white" onclick="@(() => ExportImage("chartArea", "png"))">
-				@if (isExportImage)
-				{
-					<span>Export Data...</span>
-				}
-				else
-				{
-					<span>Export to Image</span>
-				}
-			</button>
-		</div>
-
 		@* Filter DateTime *@
 		<FilterDateTimeButton InitialStartDate="@StartDate"
 							  InitialEndDate="@EndDate"
 							  IsLoading="@isLoading"
 							  OnFilter="ApplyDateFilter" />
 
-		@* Dropdown pilih mode filter: Column / Table *@
-		@* <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
-			<RadzenFormField AllowFloatingLabel="false" Text="Mode Filter">
-				<RadzenDropDown @bind-Value="SelectedFilterMode"
-								Data="@FilterModes"
-								Style="width:200px"
-								Placeholder="Pilih mode filter..." />
-			</RadzenFormField>
-
-			@if (SelectedFilterMode == "Table")
-			{
-				<RadzenFormField AllowFloatingLabel="false" Text="Pilih Tabel">
-					<RadzenDropDown @bind-Value="SelectedTable"
-									Data="Tables.Select(t => t.Name).ToList()"
-									Style="width:200px" />
-				</RadzenFormField>
-			}
-
-			<RadzenButton Click="@UpdateChart" Text="Update Chart" Icon="refresh" Class="w-auto" />
-		</RadzenStack>
-
-		@if (SelectedFilterMode == "Column")
-		{
-			<div class="filter-panel mb-3 p-3 border rounded" style="background: #fff;">
-				<div class="filter-title mb-2 d-flex align-items-center">
-					<i class="material-symbols-rounded me-1">view_list</i>
-					<span class="fw-semibold">Filter by Column</span>
-				</div>
-
-				@foreach (var table in Tables)
-				{
-					<div class="table-section mb-2 border rounded">
-						<div class="table-header d-flex justify-content-between align-items-center p-2"
-							 style="cursor: pointer; background: #f8f9fa;"
-							 @onclick="@(() => ToggleCollapse(table.Name))">
-							<div>
-								<span class="fw-semibold">Tabel @table.Name</span>
-							</div>
-							<i class="material-symbols-rounded" style="@((CollapsedTables.Contains(table.Name) ? "transform: rotate(-90deg);" : "transition: transform 0.2s;"))">
-								expand_more
-							</i>
-						</div>
-
-						@if (!CollapsedTables.Contains(table.Name))
-						{
-							<div class="p-2 ps-4 bg-light border-top">
-								@foreach (var column in table.Columns)
-								{
-									<div class="column-item mb-1 d-flex align-items-center">
-										<RadzenCheckBox TValue="bool"
-														Value="@(SelectedColumns.Contains(column.FullName))"
-														Change="(args) => ToggleColumnSelection(column.FullName, args)" />
-										<span class="ms-2">
-											@column.DisplayName
-											<span style="color: #1e3a6a;">(@column.Description)</span>
-										</span>
-									</div>
-								}
-							</div>
-						}
-					</div>
-				}
-			</div>
-
-		}
-		else if (SelectedFilterMode == "Table")
-		{
-			<div class="mb-3">
-				@if (!string.IsNullOrEmpty(SelectedTable))
-				{
-					var sel = Tables.FirstOrDefault(t => t.Name == SelectedTable);
-					if (sel != null)
-					{
-						<div class="border rounded p-3 mb-3 bg-light">
-							<h6 class="fw-semibold mb-3">
-								List Kolom dari tabel <b>@sel.Name</b>
-							</h6>
-
-							@foreach (var column in sel.Columns)
-							{
-								<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
-									<span class="ms-1">@column.DisplayName</span>
-								</div>
-							}
-						</div>
-					}
-				}
-				else
-				{
-					<div class="text-muted fst-italic">Pilih tabel dari dropdown untuk melihat kolomnya.</div>
-				}
-			</div>
-		} *@
-
+		@* Filter Mode: Table || Column *@
 		<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
 			<RadzenFormField AllowFloatingLabel="false" Text="Mode Filter">
 				<RadzenDropDown @bind-Value="SelectedFilterMode"
 								Data="@FilterModes"
 								Change="@OnFilterModeChanged"
 								Style="width:200px"
+								Disabled="true"
 								Placeholder="Pilih mode filter..." />
 			</RadzenFormField>
 
-			@if (SelectedFilterMode == "Table")
-			{
-				<RadzenFormField AllowFloatingLabel="false" Text="Pilih Tabel">
-					<RadzenDropDown @bind-Value="SelectedTable"
-									Data="tablesForUI.Select(t => t.Name).ToList()"
-									Change="@OnTableSelectionChanged"
-									AllowClear="true"
-									Style="width:200px" />
-				</RadzenFormField>
-			}
-			else if (SelectedFilterMode == "Column")
-			{
-				@* <RadzenButton Text="Pilih Kolom" Icon="checklist" Click="ToggleColumnSelectorPopup" /> *@
+			<RadzenButton Text="Pilih Kolom" Icon="checklist" Click="OpenColumnSelectorPopup" />
 
-				<RadzenButton Text="Pilih Kolom" Icon="checklist" Click="OpenColumnSelectorPopup" />
-			}
+			<RadzenButton Click="@UpdateChart" Text="Update Chart" IsBusy="@isUpdateChart" Icon="refresh" Class="w-auto" />
 
-			<RadzenButton Click="@UpdateChart" Text="Update Chart" Icon="refresh" Class="w-auto" />
+			@* Export Button *@
+			<ButtonExportChart IsExporting="@isExport" TargetId="chartArea" OnExportPdf="Export" OnExportImage="ExportImage" FormatImage="png" />
 		</RadzenStack>
 
 		@if (SelectedFilterMode == "Column" && SelectedColumns.Any())
@@ -202,72 +52,6 @@
 					}
 				</div>
 			</div>
-		}
-
-		@if (SelectedFilterMode == "Column" && isColumnSelectorVisible)
-		{
-			<RadzenCard class="mb-4 mx-3" Style="position: relative; z-index: 10;">
-				<RadzenStack Orientation="Orientation.Vertical">
-					<div class="d-flex justify-content-between align-items-center mb-3">
-						<h5>Pilih Kolom untuk Filter</h5>
-						<RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Click="CloseColumnSelectorPopup" />
-					</div>
-
-					<div style="max-height: 400px; overflow-y: auto;">
-						@if (Tables == null || !Tables.Any())
-						{
-							<p>Tidak ada tabel tersedia.</p>
-						}
-						else
-						{
-							@foreach (var table in Tables)
-							{
-								<div class="table-section mb-2 border rounded">
-									<div class="table-header d-flex justify-content-between align-items-center p-2"
-										 style="cursor: pointer; background: #f8f9fa;"
-										 @onclick="@(() => ToggleCollapse(table.Name))">
-										<div>
-											<span class="fw-semibold">Tabel @table.Name</span>
-										</div>
-										<i class="material-symbols-rounded" style="@GetCollapseStyle(table.Name)">
-											expand_more
-										</i>
-									</div>
-
-									@if (!CollapsedTables.Contains(table.Name))
-									{
-										<div class="p-2 ps-4 bg-light border-top">
-											@if (table.Columns == null || !table.Columns.Any())
-											{
-												<span class="text-muted fst-italic">Tidak ada kolom di tabel ini.</span>
-											}
-											else
-											{
-												@foreach (var column in table.Columns)
-												{
-													<div class="column-item mb-1 d-flex align-items-center">
-														<RadzenCheckBox TValue="bool"
-																		Value="@SelectedColumns.Contains(column.FullName)"
-																		Change="(args) => ToggleColumnSelection(column.FullName, args)" />
-														<span class="ms-2">
-															@column.DisplayName
-															<span style="color: #6c757d;">(@column.Description)</span>
-														</span>
-													</div>
-												}
-											}
-										</div>
-									}
-								</div>
-							}
-						}
-					</div>
-
-					<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1rem" Class="mt-4">
-						<RadzenButton Text="Tutup" Click="CloseColumnSelectorPopup" ButtonStyle="ButtonStyle.Primary" />
-					</RadzenStack>
-				</RadzenStack>
-			</RadzenCard>
 		}
 
 		@if (SelectedFilterMode == "Table")
@@ -304,7 +88,7 @@
 			<RadzenChart Style="height:400px;">
 				<RadzenChartTooltipOptions Shared="true" />
 
-				@if (ChartDataNew.Any())
+				@if (ChartData.Any())
 				{
 					@foreach (var dataset in ChartData)
 					{
@@ -334,6 +118,12 @@
 
 	</RadzenColumn>
 </RadzenRow>
+
+<style>
+	/* .rz-tick-text {
+					transform: rotate(45deg);
+				} */
+</style>
 
 <script>
 	function exportChart(id) {
@@ -381,171 +171,48 @@
 </script>
 
 @code {
-	public class TableModel
-	{
-		public string Name { get; set; } = "";
-		public List<ColumnModel> Columns { get; set; } = new();
-	}
-
-	public class ColumnModel
-	{
-		public string FullName { get; set; } = "";
-		public string DisplayName { get; set; } = "";
-		public string Description { get; set; } = "";
-	}
-
 	public class ChartItem
 	{
 		public string Category { get; set; } = "";
 		public double Value { get; set; }
 	}
 
-	private List<TableModel> Tables = new();
+	private Dictionary<string, List<TableMachine>> machineTable = new();
+	private Dictionary<string, List<ColumnMachine>> machineTags = new();
+
+	private List<TableModal> Tables = new();
+	private List<TableModal> tablesForUI = new List<TableModal>();
+	private List<TableColumn> HistoryData = new();
+	private Dictionary<string, List<ChartItem>> ChartData = new();
+
+	private string SelectedTable = "";
 	private HashSet<string> SelectedColumns = new();
 	private HashSet<string> CollapsedTables = new();
-	private string SelectedTable = "";
-	private Dictionary<string, List<ChartItem>> ChartData = new();
-	private List<ChartItem> ChartDataNew = new List<ChartItem>();
-
-	// Filter mode
-	private List<string> FilterModes = new() { "Column", "Table" };
-	private string SelectedFilterMode = "Table";
-
 	private bool isColumnSelectorVisible = false;
 
-	private DateTime? StartDate = DateTime.Now.AddHours(-6);
-	private DateTime? EndDate = DateTime.Now;
-	private bool isLoading = false;
-	private bool isRefresh = false;
+	// Filter mode
+	private List<string> FilterModes = new() { "Column" };
+	private string SelectedFilterMode = "Column";
 
-	// Export
-	private bool isExportPdf = false;
+	private DateTime? StartDate = DateTime.Now;
+	private DateTime? EndDate = DateTime.Now;
+
+	private bool isUpdateChart = false;
+	private bool isLoading = false;
+	private bool isExport = false;
 	private bool isExportImage = false;
 
-	// private void ToggleCollapse(string tableName)
-	// {
-	// 	if (CollapsedTables.Contains(tableName))
-	// 		CollapsedTables.Remove(tableName);
-	// 	else
-	// 		CollapsedTables.Add(tableName);
-	// }
-
-	// private void ToggleColumnSelection(string columnFullName, bool isChecked)
-	// {
-	// 	if (isChecked)
-	// 	{
-	// 		if (!SelectedColumns.Contains(columnFullName))
-	// 			SelectedColumns.Add(columnFullName);
-	// 	}
-	// 	else
-	// 	{
-	// 		SelectedColumns.Remove(columnFullName);
-	// 	}
-	// }
-
-	// Table select event handled by RadzenDropDown binding directly (SelectedTable)
-	private void OnTableChange(ChangeEventArgs e)
+	protected override async Task OnInitializedAsync()
 	{
-		SelectedTable = e.Value?.ToString() ?? "";
-	}
-
-	private void UpdateChart()
-	{
-		ChartData.Clear();
-		ChartDataNew.Clear();
-		var rnd = new Random();
-		var categories = Enumerable.Range(1, 8).Select(i => $"Hari {i}").ToList();
-
-		// Column Mode
-		if (SelectedFilterMode == "Column")
-		{
-			foreach (var full in SelectedColumns)
-			{
-				var colDisplay = full;
-				foreach (var t in Tables)
-				{
-					var f = t.Columns.FirstOrDefault(c => c.FullName == full);
-					if (f != null) { colDisplay = f.DisplayName; break; }
-				}
-
-				var dataList = new List<ChartItem>();
-				foreach (var cat in categories)
-				{
-					dataList.Add(new ChartItem { Category = cat, Value = Math.Round(rnd.NextDouble() * 10000, 2) });
-				}
-				ChartData[colDisplay] = dataList;
-			}
-		}
-		// Table Mode
-		else
-		{
-			if (string.IsNullOrEmpty(SelectedTable)) return;
-
-			var sel = tablesForUI.FirstOrDefault(t => t.Name == SelectedTable);
-
-			if (sel == null) return;
-
-			foreach (var col in sel.Columns)
-			{
-				var dataList = new List<ChartItem>();
-				foreach (var cat in categories)
-				{
-					dataList.Add(new ChartItem { Category = cat, Value = Math.Round(rnd.NextDouble() * 10000, 2) });
-				}
-				ChartData[col.DisplayName] = dataList;
-			}
-		}
-		StateHasChanged();
-	}
-
-	private void RefreshData()
-	{
-		isRefresh = true;
-		UpdateChart();
-		isRefresh = false;
-		StateHasChanged();
-	}
-
-	private async Task ApplyDateFilter((DateTime? Start, DateTime? End) range)
-	{
-		StartDate = range.Start;
-		EndDate = range.End;
-
 		await LoadData();
+		base.OnInitialized();
 	}
 
 	private async Task LoadData()
 	{
-		isLoading = true;
-		// myData = await MyService.GetAll(start: StartDate, end: EndDate);
-		isLoading = false;
-		StateHasChanged();
-	}
-
-
-	private Dictionary<string, List<ColumnMachine>> machineTags = new();
-	private List<TableModal> tablesForUI = new List<TableModal>();
-
-	private Dictionary<string, List<TableMachine>> machineTable = new();
-
-	protected override async Task OnInitializedAsync()
-	{
-		SelectedFilterMode = "Table";
-		isLoading = true;
-
 		try
 		{
-			var body = new
-			{
-				tgl_start = "2025-10-17T00:00:00",
-				tgl_finish = "2025-10-17T12:00:00",
-				request_data = new[] { "iot_channel1", "iot_ramp" }
-			};
-
-			machineTable = await MachineService.GetTableBy(body, "table", latestData: false);
-
-
-
+			isLoading = true;
 
 			machineTags = await MachineService.Browse();
 
@@ -564,6 +231,9 @@
 			if (tablesForUI.Any())
 			{
 				CollapsedTables = tablesForUI.Skip(1).Select(t => t.Name).ToHashSet();
+
+				SelectedTable = tablesForUI.Select(t => t.Name).First();
+				OnTableSelectionChanged(SelectedTable);
 			}
 		}
 		catch (Exception ex)
@@ -573,19 +243,104 @@
 		finally
 		{
 			isLoading = false;
-			UpdateChart();
 			StateHasChanged();
 		}
 	}
 
-
-	private void OnFilterModeChanged(object value)
+	private async Task UpdateChart()
 	{
-		SelectedTable = null;
-		isColumnSelectorVisible = false;
+		HistoryData.Clear();
+		ChartData.Clear();
+		isUpdateChart = true;
+		StateHasChanged();
+
+		try
+		{
+			// Column Mode
+			if (SelectedFilterMode == "Column")
+			{
+				if (SelectedColumns == null || !SelectedColumns.Any())
+					return;
+
+				// Ambil data dari API
+				var body = new
+				{
+					tgl_start = StartDate,
+					tgl_finish = EndDate,
+					request_data = SelectedColumns.ToArray()
+				};
+
+				machineTable = await MachineService.GetTableBy(body, "tag", latestData: false);
+
+				if (machineTable == null || machineTable.Count == 0)
+				{
+					HistoryData = new List<TableColumn>();
+					ChartData.Clear();
+					StateHasChanged();
+					return;
+				}
+
+				HistoryData = machineTable
+					.SelectMany(kvp => kvp.Value.Select(v => new
+					{
+						Tag = kvp.Key,
+						v.Timestamp,
+						v.Value
+					}))
+					.GroupBy(x => x.Timestamp)
+					.Select(g => new TableColumn
+					{
+						Timestamp = Convert.ToDateTime(g.Key),
+						Tags = g.ToDictionary(x => x.Tag, x => x.Value)
+					})
+					.OrderBy(x => x.Timestamp)
+					.ToList();
+
+				foreach (var full in SelectedColumns)
+				{
+					var colDisplay = full;
+					foreach (var t in Tables)
+					{
+						var f = t.Columns.FirstOrDefault(c => c.FullName == full);
+						if (f != null) { colDisplay = f.DisplayName; break; }
+					}
+
+					var dataList = HistoryData
+						.Where(h => h.Tags.ContainsKey(full))
+						.Select(h => new ChartItem
+						{
+							Category = h.Timestamp.ToString("dd-MM-yyyy HH.mm"),
+							Value = h.Tags[full]
+						})
+						.ToList();
+
+					ChartData[colDisplay] = dataList;
+				}
+			}
+		}
+		finally
+		{
+			isUpdateChart = false;
+			StateHasChanged();
+		}
+	}
+
+	// Filter DateTime
+	private void ApplyDateFilter((DateTime? Start, DateTime? End) range)
+	{
+		StartDate = range.Start;
+		EndDate = range.End;
+
 		StateHasChanged();
 	}
 
+	// Pilih Mode Filter
+	private void OnFilterModeChanged(object value)
+	{
+		StateHasChanged();
+	}
+
+	// Pilih Tabel di Mode Filter "Table"
 	private void OnTableSelectionChanged(object value)
 	{
 		if (SelectedFilterMode == "Table" && value is string tableName)
@@ -603,79 +358,51 @@
 		StateHasChanged();
 	}
 
-	private void ToggleColumnSelectorPopup()
-	{
-		isColumnSelectorVisible = !isColumnSelectorVisible;
-		if (isColumnSelectorVisible && Tables.Any())
-		{
-			CollapsedTables = Tables.Skip(1).Select(t => t.Name).ToHashSet();
-		}
-	}
+	// Modal Pilih Kolom untuk Mode Filter "Column"
 	private async Task OpenColumnSelectorPopup()
 	{
 		var result = await DialogService.OpenAsync<DialogColumnChoose>("Pilih Kolom Filter",
-		   new Dictionary<string, object>() {
-			   { "Tables", Tables },
-			   { "InitialSelectedColumns", SelectedColumns }
-		   },
-		   new DialogOptions() { Width = "600px", Resizable = true, Draggable = true });
+			new Dictionary<string, object>
+			{
+				{ "MachineTags", machineTags },
+				{ "SelectedColumns", SelectedColumns }
+			},
+			new DialogOptions
+			{
+				Width = "650px",
+				Resizable = true,
+				Draggable = true
+			});
 
-		if (result != null)
+		if (result is HashSet<string> selected)
 		{
-			SelectedColumns = result as HashSet<string> ?? new HashSet<string>();
+			SelectedColumns = selected;
 			StateHasChanged();
 		}
 	}
 
-	private void CloseColumnSelectorPopup()
-	{
-		isColumnSelectorVisible = false;
-	}
-
-	private void ToggleCollapse(string tableName)
-	{
-		if (CollapsedTables.Contains(tableName))
-			CollapsedTables.Remove(tableName);
-		else
-			CollapsedTables.Add(tableName);
-	}
-
-	private string GetCollapseStyle(string tableName)
-	{
-		return CollapsedTables.Contains(tableName) ? "transform: rotate(-90deg); transition: transform 0.2s;" : "transition: transform 0.2s;";
-	}
-
-	private void ToggleColumnSelection(string columnName, bool? isSelected)
-	{
-		if (isSelected == true)
-			SelectedColumns.Add(columnName);
-		else
-			SelectedColumns.Remove(columnName);
-	}
-
+	// Menampilkan Kolom yang dipilih untuk Mode Filter "Column"
 	private string GetColumnDisplayName(string fullName)
 	{
-		return Tables.SelectMany(t => t.Columns)
-					 .FirstOrDefault(c => c.FullName == fullName)?.DisplayName ?? fullName;
+		return Tables.SelectMany(t => t.Columns).FirstOrDefault(c => c.FullName == fullName)?.DisplayName ?? fullName;
 	}
-
 
 
 	// --- Export function ---
 	private async Task Export(string idChart)
 	{
-		isExportPdf = true;
+		isExport = true;
 		StateHasChanged();
 		await JSRuntime.InvokeVoidAsync("exportChart", idChart);
-		isExportPdf = false;
+		isExport = false;
 		StateHasChanged();
 	}
 
-	private async Task ExportImage(string idChart, string format)
+	private async Task ExportImage((string idChart, string format) args)
 	{
 		isExportImage = true;
 		StateHasChanged();
-		await JSRuntime.InvokeVoidAsync("exportChartImage", idChart, format);
+		await JSRuntime.InvokeVoidAsync("exportChartImage", args.idChart, args.format);
 		isExportImage = false;
 		StateHasChanged();
 	}

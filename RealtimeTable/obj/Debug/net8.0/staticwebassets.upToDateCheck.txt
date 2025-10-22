@@ -1,2 +1,3 @@
 wwwroot\background.png
 wwwroot\exampleJsInterop.js
+wwwroot\style.css

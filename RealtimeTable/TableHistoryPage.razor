@@ -4,91 +4,15 @@
 @using ClosedXML.Excel
 @using System.Text
 
-@using Interfaces
-@using Models
-
 @inject IJSRuntime JSRuntime
+@inject DialogService DialogService
 
 @inject IMachineService MachineService
 
 <RadzenRow>
 	<RadzenColumn SizeMD="12" class="mt-4">
-
-		@if (isLoading)
-		{
-			<p><em>Memuat data...</em></p>
-		}
-		else if (machineTags == null || !machineTags.Any())
-		{
-			<p><em>Tidak ada data tag mesin yang ditemukan.</em></p>
-		}
-		else
-		{
-			@foreach (var channelEntry in machineTags)
-			{
-				<div class="mb-4">
-					<h4>@channelEntry.Key</h4>
-					@if (channelEntry.Value != null && channelEntry.Value.Any())
-					{
-						<ul class="list-group">
-							@foreach (var tag in channelEntry.Value)
-							{
-								<li class="list-group-item">
-									<strong>@tag.NamaTag:</strong>
-								</li>
-								<li class="list-group-item">
-									<strong>@tag.Deskripsi</strong>
-								</li>
-							}
-						</ul>
-					}
-					else
-					{
-						<p class="text-muted"><em>Tidak ada tag untuk channel ini.</em></p>
-					}
-				</div>
-			}
-		}
-
-		<div class="d-flex flex-column gap-2">
-			<div class="d-flex align-items-center justify-content-start jus gap-2">
-				<button type="button" class="btn btn-sm bg-success text-white" onclick="@(() => ExportTable("csv"))">
-					@if (isRefreshExport)
-					{
-						<span>Memperbarui Data...</span>
-					}
-					else
-					{
-						<span>Export to CSV</span>
-					}
-				</button>
-				<button type="button" class="btn btn-sm bg-success text-white" onclick="@(() => ExportTable("excel"))">
-					@if (isRefreshExport)
-					{
-						<span>Memperbarui Data...</span>
-					}
-					else
-					{
-						<span>Export to Excel</span>
-					}
-				</button>
-			</div>
-			<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
-				<div class="d-flex gap-2">
-					<RadzenFormField AllowFloatingLabel="false" Text="Tanggal Awal">
-						<RadzenDatePicker @bind-Value="StartDate" ShowTime="true" ShowSeconds="true" Name="StartDate" AllowClear="true" ShowButton="false" Style="width: 200px;" />
-					</RadzenFormField>
-
-					<RadzenFormField AllowFloatingLabel="false" Text="Tanggal Akhir">
-						<RadzenDatePicker @bind-Value="EndDate" ShowTime="true" ShowSeconds="true" Name="StartDate" AllowClear="true" ShowButton="false" Style="width: 200px;" />
-					</RadzenFormField>
-				</div>
-
-				<div class="d-flex gap-2 flex-wrap">
-					<RadzenButton Click="@RefreshData" Text="Filter" IsBusy="isRefresh" class="w-auto" />
-				</div>
-			</RadzenStack>
-		</div>
+		@* Export Button *@
+		<ButtonExportTable IsExporting="@isExport" OnExportClick="ExportTable" ExportOptions="@ExportOptions" />
 
 		@* Filter DateTime *@
 		<FilterDateTimeButton InitialStartDate="@StartDate"
@@ -96,132 +20,373 @@
 							  IsLoading="@isLoading"
 							  OnFilter="ApplyDateFilter" />
 
+		@* Filter Mode: Table || Column *@
+		<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
+			<RadzenFormField AllowFloatingLabel="false" Text="Mode Filter">
+				<RadzenDropDown @bind-Value="SelectedFilterMode"
+								Data="@FilterModes"
+								Change="@OnFilterModeChanged"
+								Style="width:200px"
+								Placeholder="Pilih mode filter..." />
+			</RadzenFormField>
+
+			@if (SelectedFilterMode == "Table")
+			{
+				<RadzenFormField AllowFloatingLabel="false" Text="Pilih Tabel">
+					<RadzenDropDown @bind-Value="SelectedTable"
+									Data="tablesForUI.Select(t => t.Name).ToList()"
+									Change="@OnTableSelectionChanged"
+									Style="width:200px" />
+				</RadzenFormField>
+			}
+			else if (SelectedFilterMode == "Column")
+			{
+				<RadzenButton Text="Pilih Kolom" Icon="checklist" Click="OpenColumnSelectorPopup" />
+			}
+
+			<RadzenButton Click="@UpdateTable" Text="Update Table" IsBusy="@isUpdateTable" Icon="refresh" Class="w-auto" />
+		</RadzenStack>
+
+		@if (SelectedFilterMode == "Column" && SelectedColumns.Any())
+		{
+			<div class="mb-3">
+				<div class="border rounded p-3 mb-3 bg-light">
+					<h6 class="fw-semibold mb-3">
+						List Kolom yang dipilih
+					</h6>
+
+					@foreach (var column in SelectedColumns.Select(GetColumnDisplayName))
+					{
+						<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
+							<span class="ms-1">@column</span>
+						</div>
+					}
+				</div>
+			</div>
+		}
+
+		@if (SelectedFilterMode == "Table")
+		{
+			<div class="mb-3">
+				@if (!string.IsNullOrEmpty(SelectedTable))
+				{
+					var sel = tablesForUI.FirstOrDefault(t => t.Name == SelectedTable);
+					if (sel != null)
+					{
+						<div class="border rounded p-3 mb-3 bg-light">
+							<h6 class="fw-semibold mb-3">
+								List Kolom dari tabel <b>@sel.Name</b>
+							</h6>
+
+							@foreach (var column in sel.Columns)
+							{
+								<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
+									<span class="ms-1">@column.DisplayName</span>
+								</div>
+							}
+						</div>
+					}
+				}
+				else
+				{
+					<div class="text-muted fst-italic">Pilih tabel dari dropdown untuk melihat kolomnya.</div>
+				}
+			</div>
+		}
+
 		@* Table History *@
-		<RadzenDataGrid @ref="GridRecord"
-						Data="@HistoryData"
-						TItem="HistoryRecord"
-						AllowSorting="true"
-						AllowPaging="true"
-						PagerPosition="PagerPosition.Bottom"
-						PagerHorizontalAlign="HorizontalAlign.Left">
+		<RadzenDataGrid Data="@HistoryData" TItem="TableColumn" ColumnWidth="200px" AllowSorting="true" AllowPaging="true" PageSize="10" Style="margin-bottom: 5rem;">
 			<Columns>
-				<RadzenDataGridColumn TItem="HistoryRecord" Property="Timestamp" Title="Timestamp" Width="200px" TextAlign="TextAlign.Center" />
-				<RadzenDataGridColumn TItem="HistoryRecord" Property="Machine" Title="Machine" Width="200px" TextAlign="TextAlign.Left" />
-				<RadzenDataGridColumn TItem="HistoryRecord" Property="Sensor" Title="Sensor" Width="200px" TextAlign="TextAlign.Left" />
-				<RadzenDataGridColumn TItem="HistoryRecord" Property="Measurement" Title="Measurement" Width="200px" TextAlign="TextAlign.Left" />
-				<RadzenDataGridColumn TItem="HistoryRecord" Property="Value" Title="Value" Width="100px" TextAlign="TextAlign.Center" />
-				<RadzenDataGridColumn TItem="HistoryRecord" Property="Units" Title="Units" Width="100px" TextAlign="TextAlign.Center" />
-				<RadzenDataGridColumn TItem="HistoryRecord" Property="Status" Title="Status" Width="100px" TextAlign="TextAlign.Center" />
-				<RadzenDataGridColumn TItem="HistoryRecord" Property="OperatorName" Title="Operator" Width="200px" TextAlign="TextAlign.Left" />
+				<RadzenDataGridColumn TItem="TableColumn" Property="Timestamp" Title="Timestamp">
+					<Template Context="data">
+						@data.Timestamp.ToString("dd-MM-yyyy HH:mm:ss")
+					</Template>
+				</RadzenDataGridColumn>
+				@foreach (var tag in HistoryData.SelectMany(h => h.Tags.Keys).Distinct())
+				{
+					<RadzenDataGridColumn TItem="TableColumn" Title="@tag">
+						<Template Context="data">
+							@if (data.Tags.TryGetValue(tag, out var value))
+							{
+								@value
+							}
+						</Template>
+					</RadzenDataGridColumn>
+				}
 			</Columns>
 		</RadzenDataGrid>
+
 	</RadzenColumn>
 </RadzenRow>
 
 @code {
-	protected override void OnInitialized()
-	{
-		LoadDummyDataHistory();
-	}
-
-	RadzenDataGrid<HistoryRecord> GridRecord;
-	private bool ExportSelectedRowsOnly { get; set; }
-	private List<HistoryRecord> HistoryData = new();
-
-	private DateTime? StartDate = DateTime.Now.AddHours(-6);
-	private DateTime? EndDate = DateTime.Now;
-	private bool isLoading = false;
-	private bool isRefresh = false;
-	private bool isRefreshExport = false;
-
-	public class HistoryRecord
-	{
-		public DateTime Timestamp { get; set; }
-		public string Machine { get; set; }
-		public string Sensor { get; set; }
-		public string Measurement { get; set; }
-		public double Value { get; set; }
-		public string Units { get; set; }
-		public string Status { get; set; }
-		public string OperatorName { get; set; }
-	}
-
-	private void LoadDummyDataHistory()
-	{
-		var rnd = new Random();
-		string[] machines = { "Machine A", "Machine B", "Machine C", "Machine D" };
-		string[] sensors = { "Optic", "Heat", "Vibration", "RPM" };
-		string[] measurements = { "Temperature", "Pressure", "Flowrate", "Energy Consumption" };
-		string[] units = { "°C", "PA", "L/s", "kWh" };
-		string[] statuses = { "Normal", "Normal", "Low", "High" };
-		string[] operators = { "Opertor A", "Opertor B", "Opertor C", "Opertor D" };
-
-		HistoryData = Enumerable.Range(1, 50).Select(i => new HistoryRecord
-		{
-			Timestamp = DateTime.Now.AddMinutes(-rnd.Next(360)),
-			Measurement = measurements[rnd.Next(measurements.Length)],
-			Machine = machines[rnd.Next(machines.Length)],
-			Sensor = sensors[rnd.Next(sensors.Length)],
-			Value = Math.Round(rnd.NextDouble() * 100, 2),
-			Units = units[rnd.Next(units.Length)],
-			Status = statuses[rnd.Next(statuses.Length)],
-			OperatorName = operators[rnd.Next(operators.Length)]
-		})
-		.Where(h => h.Timestamp >= StartDate && h.Timestamp <= EndDate)
-		.OrderByDescending(h => h.Timestamp)
-		.ToList();
-	}
-
-	private void RefreshData()
-	{
-		isRefresh = true;
-		LoadDummyDataHistory();
-		isRefresh = false;
-		StateHasChanged();
-	}
-
-
+	private Dictionary<string, List<TableMachine>> machineTable = new();
 	private Dictionary<string, List<ColumnMachine>> machineTags = new();
+
+	private List<TableModal> Tables = new();
+	private List<TableModal> tablesForUI = new List<TableModal>();
+	private List<TableColumn> HistoryData = new();
+	private bool ExportSelectedRowsOnly { get; set; }
+
+	private string SelectedTable = "";
+	private HashSet<string> SelectedColumns = new();
+	private HashSet<string> CollapsedTables = new();
+	private bool isColumnSelectorVisible = false;
+
+	// Filter mode
+	private List<string> FilterModes = new() { "Column", "Table" };
+	private string SelectedFilterMode = "Table";
+
+	private DateTime? StartDate = DateTime.Now;
+	private DateTime? EndDate = DateTime.Now;
+
+	private bool isLoading = false;
+	private bool isUpdateTable = false;
+	private bool isExport = false;
+
+	private List<ButtonExportTable.ExportOption> ExportOptions = new()
+	{
+		new ButtonExportTable.ExportOption { Type = "csv", Text = "Ekspor CSV", LoadingText = "Export CSV..." },
+		new ButtonExportTable.ExportOption { Type = "excel", Text = "Ekspor Excel", LoadingText = "Export Excel..." },
+	};
+
 	protected override async Task OnInitializedAsync()
 	{
-		isLoading = true;
-		machineTags = await MachineService.Browse();
-		isLoading = false;
-	}
-
-	private async Task ApplyDateFilter((DateTime? Start, DateTime? End) range)
-	{
-		StartDate = range.Start;
-		EndDate = range.End;
-
 		await LoadData();
+		base.OnInitialized();
 	}
 
 	private async Task LoadData()
 	{
-		isLoading = true;
-		// myData = await MyService.GetAll(start: StartDate, end: EndDate);
-		isLoading = false;
+		try
+		{
+			isLoading = true;
+
+			machineTags = await MachineService.Browse();
+
+			// Konversi ke modal baru
+			tablesForUI = machineTags.Select(kvp => new TableModal
+			{
+				Name = kvp.Key,
+				Columns = kvp.Value.Select(tag => new ColumnModal
+				{
+					FullName = $"{kvp.Key}.{tag.NamaTag}",
+					DisplayName = tag.NamaTag,
+					Description = tag.Deskripsi
+				}).ToList() ?? new List<ColumnModal>()
+			}).ToList();
+
+			if (tablesForUI.Any())
+			{
+				CollapsedTables = tablesForUI.Skip(1).Select(t => t.Name).ToHashSet();
+
+				SelectedTable = tablesForUI.Select(t => t.Name).First();
+				OnTableSelectionChanged(SelectedTable);
+			}
+		}
+		catch (Exception ex)
+		{
+			tablesForUI = new List<TableModal>();
+		}
+		finally
+		{
+			isLoading = false;
+			StateHasChanged();
+		}
+	}
+
+	private async Task UpdateTable()
+	{
+		HistoryData.Clear();
+		isUpdateTable = true;
 		StateHasChanged();
+
+		try
+		{
+			// Column Mode
+			if (SelectedFilterMode == "Column")
+			{
+				if (SelectedColumns == null || !SelectedColumns.Any()) return;
+
+				var body = new
+				{
+					tgl_start = StartDate,
+					tgl_finish = EndDate,
+					request_data = SelectedColumns.ToArray()
+				};
+				machineTable = await MachineService.GetTableBy(body, "tag", latestData: false);
+
+				if (machineTable == null || machineTable.Count == 0)
+				{
+					HistoryData = new List<TableColumn>();
+					StateHasChanged();
+					return;
+				}
+
+				HistoryData = machineTable
+					.SelectMany(kvp => kvp.Value.Select(v => new
+					{
+						Tag = kvp.Key,
+						v.Timestamp,
+						v.Value
+					}))
+					.GroupBy(x => x.Timestamp)
+					.Select(g => new TableColumn
+					{
+						Timestamp = Convert.ToDateTime(g.Key),
+						Tags = g.ToDictionary(x => x.Tag, x => x.Value)
+					})
+					.OrderBy(x => x.Timestamp)
+					.ToList();
+			}
+			// Table Mode
+			else
+			{
+				if (string.IsNullOrEmpty(SelectedTable)) return;
+
+				var sel = tablesForUI.FirstOrDefault(t => t.Name == SelectedTable);
+
+				if (sel == null) return;
+
+				var body = new
+				{
+					tgl_start = StartDate,
+					tgl_finish = EndDate,
+					request_data = new[] { SelectedTable }
+				};
+				machineTable = await MachineService.GetTableBy(body, "table", latestData: false);
+
+				if (machineTable == null || machineTable.Count == 0)
+				{
+					HistoryData = new List<TableColumn>();
+					StateHasChanged();
+					return;
+				}
+
+				HistoryData = machineTable
+					.SelectMany(kvp => kvp.Value.Select(v => new { Tag = kvp.Key, v.Timestamp, v.Value }))
+					.GroupBy(x => x.Timestamp)
+					.Select(g => new TableColumn
+					{
+						Timestamp = Convert.ToDateTime(g.Key),
+						Tags = g.ToDictionary(x => x.Tag, x => x.Value)
+					})
+					.OrderBy(x => x.Timestamp)
+					.ToList();
+			}
+		}
+		finally
+		{
+			isUpdateTable = false;
+			StateHasChanged();
+		}
+	}
+
+	// Filter DateTime
+	private void ApplyDateFilter((DateTime? Start, DateTime? End) range)
+	{
+		StartDate = range.Start;
+		EndDate = range.End;
+
+		StateHasChanged();
+	}
+
+	// Pilih Mode Filter
+	private void OnFilterModeChanged(object value)
+	{
+		StateHasChanged();
+	}
+
+	// Pilih Tabel di Mode Filter "Table"
+	private void OnTableSelectionChanged(object value)
+	{
+		if (SelectedFilterMode == "Table" && value is string tableName)
+		{
+			var selectedTableInfo = Tables.FirstOrDefault(t => t.Name == tableName);
+			if (selectedTableInfo?.Columns != null)
+			{
+				SelectedColumns = selectedTableInfo.Columns.Select(c => c.FullName).ToHashSet();
+			}
+			else
+			{
+				SelectedColumns.Clear();
+			}
+		}
+		StateHasChanged();
+	}
+
+	// Modal Pilih Kolom untuk Mode Filter "Column"
+	private async Task OpenColumnSelectorPopup()
+	{
+		var result = await DialogService.OpenAsync<DialogColumnChoose>("Pilih Kolom Filter",
+			new Dictionary<string, object>
+			{
+				{ "MachineTags", machineTags },
+				{ "SelectedColumns", SelectedColumns }
+			},
+			new DialogOptions
+			{
+				Width = "650px",
+				Resizable = true,
+				Draggable = true
+			});
+
+		if (result is HashSet<string> selected)
+		{
+			SelectedColumns = selected;
+			StateHasChanged();
+		}
+	}
+
+	// Menampilkan Kolom yang dipilih untuk Mode Filter "Column"
+	private string GetColumnDisplayName(string fullName)
+	{
+		return Tables.SelectMany(t => t.Columns).FirstOrDefault(c => c.FullName == fullName)?.DisplayName ?? fullName;
 	}
 
 	public async Task ExportTable(string type)
 	{
-		isRefreshExport = true;
+		isExport = true;
 		StateHasChanged();
+
+		if (HistoryData == null || !HistoryData.Any())
+		{
+			isExport = false;
+			StateHasChanged();
+			return;
+		}
+
+		var allTags = HistoryData
+			.SelectMany(h => h.Tags.Keys)
+			.Distinct()
+			.ToList();
 
 		if (type.ToLower() == "csv")
 		{
 			var csv = new StringBuilder();
-			csv.AppendLine("Measurement,Value,Units,Timestamp");
 
-			foreach (var item in HistoryData)
+			// Header
+			csv.Append("Timestamp");
+			foreach (var tag in allTags)
+				csv.Append($",{tag}");
+			csv.AppendLine();
+
+			// Data rows
+			foreach (var row in HistoryData)
 			{
-				csv.AppendLine($"{item.Measurement},{item.Value},{item.Units},{item.Timestamp:yyyy-MM-dd HH:mm:ss}");
+				csv.Append(row.Timestamp.ToString("dd-MM-yyyy HH.mm.ss"));
+				foreach (var tag in allTags)
+				{
+					if (row.Tags.TryGetValue(tag, out var value))
+						csv.Append($",{value}");
+					else
+						csv.Append(",");
+				}
+				csv.AppendLine();
 			}
 
 			var bytes = Encoding.UTF8.GetBytes(csv.ToString());
-			var fileName = $"HistoryData_{DateTime.Now:yyyyMMddHHmmss}.csv";
+			var fileName = $"HistoryData_{DateTime.Now:ddMMyyyyHHmmss}.csv";
 
 			using var stream = new MemoryStream(bytes);
 			using var streamRef = new Microsoft.JSInterop.DotNetStreamReference(stream);
@@ -233,40 +398,38 @@
 			var worksheet = workbook.Worksheets.Add("History Data");
 
 			// Header
-			worksheet.Cell(1, 1).Value = "Measurement";
-			worksheet.Cell(1, 2).Value = "Value";
-			worksheet.Cell(1, 3).Value = "Units";
-			worksheet.Cell(1, 4).Value = "Timestamp";
+			worksheet.Cell(1, 1).Value = "Timestamp";
+			for (int i = 0; i < allTags.Count; i++)
+				worksheet.Cell(1, i + 2).Value = allTags[i];
 
 			// Data rows
-			int row = 2;
-			foreach (var item in HistoryData)
+			int rowIndex = 2;
+			foreach (var row in HistoryData)
 			{
-				worksheet.Cell(row, 1).Value = item.Measurement;
-				worksheet.Cell(row, 2).Value = item.Value;
-				worksheet.Cell(row, 3).Value = item.Units;
-				worksheet.Cell(row, 4).Value = item.Timestamp;
-				worksheet.Cell(row, 4).Style.DateFormat.Format = "yyyy-MM-dd HH:mm:ss";
-				row++;
+				worksheet.Cell(rowIndex, 1).Value = row.Timestamp;
+				worksheet.Cell(rowIndex, 1).Style.DateFormat.Format = "dd-MM-yyyy HH.mm.ss";
+
+				for (int i = 0; i < allTags.Count; i++)
+				{
+					if (row.Tags.TryGetValue(allTags[i], out var value))
+						worksheet.Cell(rowIndex, i + 2).Value = value;
+				}
+				rowIndex++;
 			}
 
-			// Auto-fit kolom
 			worksheet.Columns().AdjustToContents();
 
-			// Simpan workbook ke MemoryStream
 			using var stream = new MemoryStream();
 			workbook.SaveAs(stream);
 			stream.Position = 0;
 
-			// Nama file
-			var fileName = $"HistoryData_{DateTime.Now:yyyyMMddHHmmss}.xlsx";
+			var fileName = $"HistoryData_{DateTime.Now:ddMMyyyyHHmmss}.xlsx";
 
-			// Download via JS
 			using var streamRef = new DotNetStreamReference(stream);
 			await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
 		}
 
-		isRefreshExport = false;
+		isExport = false;
 		StateHasChanged();
 	}
 }

@@ -4,124 +4,113 @@
 @using Radzen.Blazor
 @inject DialogService DialogService
 
-<RadzenStack Orientation="Orientation.Vertical">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5>Pilih Kolom untuk Filter</h5>
-        <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Click="Cancel" />
-    </div>
+	<RadzenStack Orientation="Orientation.Vertical">
+		<div style="max-height: 400px; overflow-y: auto;">
+			@if (Tables == null || !Tables.Any())
+			{
+				<p>Tidak ada tabel tersedia.</p>
+			}
+			else
+			{
+				@foreach (var table in Tables)
+				{
+					<div class="table-section mb-2 border rounded">
+						<div class="table-header d-flex justify-content-between align-items-center p-2"
+							 style="cursor: pointer; background: #f8f9fa;"
+							 @onclick="@(() => ToggleCollapse(table.Name))">
+							<div>
+								<span class="fw-semibold">Tabel @table.Name</span>
+							</div>
+							<i class="material-symbols-rounded" style="@GetCollapseStyle(table.Name)">
+								expand_more
+							</i>
+						</div>
 
-    <div style="min-width: 500px; max-height: 70vh; overflow-y: auto;">
-        @if (Tables == null || !Tables.Any())
-        {
-            <p>Tidak ada tabel tersedia.</p>
-        }
-        else
-        {
-            @foreach (var table in Tables)
-            {
-                <div class="table-section mb-2 border rounded">
-                    <div class="table-header d-flex justify-content-between align-items-center p-2"
-                         style="cursor: pointer; background: #f8f9fa;"
-                         @onclick="@(() => ToggleCollapse(table.Name))">
-                        <div>
-                            <span class="fw-semibold">Tabel @table.Name</span>
-                        </div>
-                        <i class="material-symbols-rounded" style="@GetCollapseStyle(table.Name)">
-                            expand_more
-                        </i>
-                    </div>
+						@if (!CollapsedTables.Contains(table.Name))
+						{
+							<div class="p-2 ps-4 bg-light border-top">
+								@if (table.Columns == null || !table.Columns.Any())
+								{
+									<span class="text-muted fst-italic">Tidak ada kolom di tabel ini.</span>
+								}
+								else
+								{
+									@foreach (var column in table.Columns)
+									{
+										<div class="column-item mb-1 d-flex align-items-center">
+											<RadzenCheckBox TValue="bool"
+															Value="@SelectedColumns.Contains(column.FullName)"
+															Change="(args) => ToggleColumnSelection(column.FullName, args)" />
+											<span class="ms-2">
+												@column.DisplayName
+												<span style="color: #6c757d;">(@column.Description)</span>
+											</span>
+										</div>
+									}
+								}
+							</div>
+						}
+					</div>
+				}
+			}
+		</div>
 
-                    @if (!CollapsedTables.Contains(table.Name))
-                    {
-                        <div class="p-2 ps-4 bg-light border-top">
-                            @if (table.Columns == null || !table.Columns.Any())
-                            {
-                                <span class="text-muted fst-italic">Tidak ada kolom di tabel ini.</span>
-                            }
-                            else
-                            {
-                                @foreach (var column in table.Columns)
-                                {
-                                    <div class="column-item mb-1 d-flex align-items-center">
-                                        <RadzenCheckBox TValue="bool"
-                                                        Value="@ComponentSelectedColumns.Contains(column.FullName)"
-                                                        Change="(args) => ToggleColumnSelectionInPopup(column.FullName, args)" />
-                                        <span class="ms-2">
-                                            @column.DisplayName
-                                            <span style="color: #6c757d;">(@column.Description)</span>
-                                        </span>
-                                    </div>
-                                }
-                            }
-                        </div>
-                    }
-                </div>
-            }
-        }
-    </div>
-
-    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1rem" Class="mt-4">
-        <RadzenButton Text="Batal" Click="Cancel" ButtonStyle="ButtonStyle.Light" />
-        <RadzenButton Text="Terapkan" Click="ApplyChanges" ButtonStyle="ButtonStyle.Primary" />
-    </RadzenStack>
-</RadzenStack>
+		<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1rem" Class="mt-4">
+			<RadzenButton Text="Tutup" Click="CloseColumnSelectorPopup" ButtonStyle="ButtonStyle.Primary" />
+		</RadzenStack>
+	</RadzenStack>
 
 @code {
-    [Parameter] public List<TableModel> Tables { get; set; } = new();
-    [Parameter] public HashSet<string> InitialSelectedColumns { get; set; } = new();
+	[Parameter] public Dictionary<string, List<ColumnMachine>> MachineTags { get; set; } = new();
+	[Parameter] public HashSet<string> SelectedColumns { get; set; } = new();
 
-    private HashSet<string> ComponentSelectedColumns { get; set; } = new();
-    private HashSet<string> CollapsedTables { get; set; } = new();
+	private List<TableModal> Tables { get; set; } = new();
+	private HashSet<string> CollapsedTables { get; set; } = new();
 
-    protected override void OnInitialized()
-    {
-        ComponentSelectedColumns = new HashSet<string>(InitialSelectedColumns);
-        if (Tables.Any()) {
-            CollapsedTables = Tables.Skip(1).Select(t => t.Name).ToHashSet();
-        }
-    }
+	protected override void OnInitialized()
+	{
+		// Konversi dari Dictionary ke List<TableModal> agar mudah dirender
+		Tables = MachineTags.Select(mt => new TableModal
+		{
+			Name = mt.Key,
+			Columns = mt.Value.Select(c => new ColumnModal
+			{
+				FullName = $"{mt.Key}.{c.NamaTag}",
+				DisplayName = c.NamaTag,
+				Description = c.Deskripsi
+			}).ToList()
+		}).ToList();
 
-    private void ToggleCollapse(string tableName)
-    {
-        if (CollapsedTables.Contains(tableName))
-            CollapsedTables.Remove(tableName);
-        else
-            CollapsedTables.Add(tableName);
-    }
+		// Collapse semua tabel kecuali pertama
+		if (Tables.Any())
+			CollapsedTables = Tables.Skip(1).Select(t => t.Name).ToHashSet();
+	}
 
-    private string GetCollapseStyle(string tableName)
-    {
-        return CollapsedTables.Contains(tableName) ? "transform: rotate(-90deg); transition: transform 0.2s;" : "transition: transform 0.2s;";
-    }
+	private void ToggleCollapse(string tableName)
+	{
+		if (CollapsedTables.Contains(tableName))
+			CollapsedTables.Remove(tableName);
+		else
+			CollapsedTables.Add(tableName);
+	}
 
-    private void ToggleColumnSelectionInPopup(string columnName, bool? isSelected)
-    {
-        if (isSelected == true)
-            ComponentSelectedColumns.Add(columnName);
-        else
-            ComponentSelectedColumns.Remove(columnName);
-    }
+	private string GetCollapseStyle(string tableName)
+	{
+		return CollapsedTables.Contains(tableName)
+			? "transform: rotate(-90deg); transition: transform 0.2s;"
+			: "transition: transform 0.2s;";
+	}
 
-    private void ApplyChanges()
-    {
-        DialogService.Close(ComponentSelectedColumns);
-    }
+	private void ToggleColumnSelection(string columnName, bool? isSelected)
+	{
+		if (isSelected == true)
+			SelectedColumns.Add(columnName);
+		else
+			SelectedColumns.Remove(columnName);
+	}
 
-    private void Cancel()
-    {
-        DialogService.Close();
-    }
-
-    public class TableModel
-    {
-        public string Name { get; set; } = "";
-        public List<ColumnModel> Columns { get; set; } = new();
-    }
-
-    public class ColumnModel
-    {
-        public string FullName { get; set; } = "";
-        public string DisplayName { get; set; } = "";
-        public string Description { get; set; } = "";
-    }
+	private void CloseColumnSelectorPopup()
+	{
+		DialogService.Close(SelectedColumns);
+	}
 }
