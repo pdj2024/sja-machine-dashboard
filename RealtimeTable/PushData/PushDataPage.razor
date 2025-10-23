@@ -1,0 +1,28 @@
+﻿@attribute [Authorize(Policy = "AdminOnly")]
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.JSInterop
+@using Radzen
+@using Radzen.Blazor
+@using ClosedXML.Excel
+@using System.Text
+@using System.Timers
+@using System.Collections.Concurrent
+
+@inject IJSRuntime jsRuntime
+@inject NavigationManager navigation
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+@inject IUserService UserService
+
+<RadzenRow>
+	<RadzenColumn SizeMD="12" class="mt-1">
+		<p>@PageTitle</p>
+	</RadzenColumn>
+</RadzenRow>
+
+
+@code {
+	private string PageTitle = "Push Data Page";
+}
