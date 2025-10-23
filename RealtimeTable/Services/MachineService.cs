@@ -18,12 +18,7 @@ namespace RealtimeTable.Services
         {
             var response = await _apiService.Get<ApiResponse<Dictionary<string, List<ColumnMachine>>>>(Endpoint + "/browse");
 
-            if (response?.Data != null)
-            {
-                return response.Data;
-            }
-
-            return new Dictionary<string, List<ColumnMachine>>();
+            return response?.Data ?? new Dictionary<string, List<ColumnMachine>>();
         }
 
         public async Task<Dictionary<string, List<TableMachine>>> GetTableBy(object data, string type, bool latestData = false)
@@ -71,12 +66,7 @@ namespace RealtimeTable.Services
         {
             var response = await _apiService.Post<ApiResponse<Dictionary<string, List<ColumnChart>>>>(Endpoint + "/chart", data);
 
-            if (response?.Data != null)
-            {
-                return response.Data;
-            }
-
-            return new Dictionary<string, List<ColumnChart>>();
+            return response?.Data ?? new Dictionary<string, List<ColumnChart>>();
         }
     }
 }

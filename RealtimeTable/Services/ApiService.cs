@@ -4,9 +4,11 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Web;
+using Azure;
+using DevExpress.Data.Browsing;
+using Microsoft.AspNetCore.Http;
 using RealtimeTable.Interfaces;
 using RealtimeTable.Models;
-using Microsoft.AspNetCore.Http;
 using static System.Net.WebRequestMethods;
 
 namespace RealtimeTable.Services
@@ -103,6 +105,45 @@ namespace RealtimeTable.Services
             }
 
             return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+
+        public async Task<T> PostUser<T>(string baseUrl, object data)
+        {
+            await AddAuthHeader();
+
+            var jsonContent = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(baseUrl, jsonContent);
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync();
+
+            return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+
+        public async Task<T> Put<T>(string endpoint, string id, object data)
+        {
+            await AddAuthHeader();
+
+            var jsonContent = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
+
+            var url = $"{endpoint}?no_id={id}";
+
+            var response = await _httpClient.PutAsync(url, jsonContent);
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync();
+
+            return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+
+        public async Task Delete(string endpoint, string id)
+        {
+            await AddAuthHeader();
+
+            var url = $"{endpoint}?no_id={id}";
+
+            var response = await _httpClient.DeleteAsync(url);
+            response.EnsureSuccessStatusCode();
         }
     }
 }

@@ -10,7 +10,7 @@
 
 <RadzenRow>
 	@* Radzen Chart *@
-	<RadzenColumn SizeMD=12 class="mt-4">
+	<RadzenColumn SizeMD=12 class="mt-1">
 		@* Filter DateTime *@
 		<FilterDateTimeButton InitialStartDate="@StartDate"
 							  InitialEndDate="@EndDate"
@@ -31,9 +31,6 @@
 			<RadzenButton Text="Pilih Kolom" Icon="checklist" Click="OpenColumnSelectorPopup" />
 
 			<RadzenButton Click="@UpdateChart" Text="Update Chart" IsBusy="@isUpdateChart" Icon="refresh" Class="w-auto" />
-
-			@* Export Button *@
-			<ButtonExportChart IsExporting="@isExport" TargetId="chartArea" OnExportPdf="Export" OnExportImage="ExportImage" FormatImage="png" />
 		</RadzenStack>
 
 		@if (SelectedFilterMode == "Column" && SelectedColumns.Any())
@@ -54,38 +51,12 @@
 			</div>
 		}
 
-		@if (SelectedFilterMode == "Table")
-		{
-			<div class="mb-3">
-				@if (!string.IsNullOrEmpty(SelectedTable))
-				{
-					var sel = tablesForUI.FirstOrDefault(t => t.Name == SelectedTable);
-					if (sel != null)
-					{
-						<div class="border rounded p-3 mb-3 bg-light">
-							<h6 class="fw-semibold mb-3">
-								List Kolom dari tabel <b>@sel.Name</b>
-							</h6>
-
-							@foreach (var column in sel.Columns)
-							{
-								<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
-									<span class="ms-1">@column.DisplayName</span>
-								</div>
-							}
-						</div>
-					}
-				}
-				else
-				{
-					<div class="text-muted fst-italic">Pilih tabel dari dropdown untuk melihat kolomnya.</div>
-				}
-			</div>
-		}
-
 		@* Line Chart *@
 		<div id="chartArea" style="margin-bottom: 3rem;">
 			<RadzenChart Style="height:400px;">
+				@* Export Button *@
+				<ButtonExportChart IsExporting="@isExport" TargetId="chartArea" OnExportPdf="Export" OnExportImage="ExportImage" FormatImage="png" />
+				
 				<RadzenChartTooltipOptions Shared="true" />
 
 				@if (ChartData.Any())
@@ -97,11 +68,11 @@
 										  CategoryProperty="Category"
 										  Title="@dataset.Key"
 										  ValueProperty="Value">
-							<RadzenMarkers Visible="true" MarkerType="MarkerType.Circle" />
+							<RadzenMarkers Visible="false" MarkerType="MarkerType.Circle" />
 						</RadzenLineSeries>
 					}
 
-					<RadzenCategoryAxis Padding="20" />
+					<RadzenCategoryAxis Padding="20" Visible="false" />
 					<RadzenValueAxis>
 						<RadzenGridLines Visible="true" />
 						<RadzenAxisTitle Text="Value" />
@@ -118,12 +89,6 @@
 
 	</RadzenColumn>
 </RadzenRow>
-
-<style>
-	/* .rz-tick-text {
-					transform: rotate(45deg);
-				} */
-</style>
 
 <script>
 	function exportChart(id) {
@@ -262,7 +227,6 @@
 				if (SelectedColumns == null || !SelectedColumns.Any())
 					return;
 
-				// Ambil data dari API
 				var body = new
 				{
 					tgl_start = StartDate,
@@ -270,51 +234,37 @@
 					request_data = SelectedColumns.ToArray()
 				};
 
-				machineTable = await MachineService.GetTableBy(body, "tag", latestData: false);
+				var result = await MachineService.GetChart(body);
 
-				if (machineTable == null || machineTable.Count == 0)
+				if (result == null || result.Count == 0)
 				{
-					HistoryData = new List<TableColumn>();
 					ChartData.Clear();
 					StateHasChanged();
 					return;
 				}
 
-				HistoryData = machineTable
-					.SelectMany(kvp => kvp.Value.Select(v => new
-					{
-						Tag = kvp.Key,
-						v.Timestamp,
-						v.Value
-					}))
-					.GroupBy(x => x.Timestamp)
-					.Select(g => new TableColumn
-					{
-						Timestamp = Convert.ToDateTime(g.Key),
-						Tags = g.ToDictionary(x => x.Tag, x => x.Value)
-					})
-					.OrderBy(x => x.Timestamp)
-					.ToList();
-
-				foreach (var full in SelectedColumns)
+				foreach (var kvp in result)
 				{
-					var colDisplay = full;
+					var colDisplay = kvp.Key;
 					foreach (var t in Tables)
 					{
-						var f = t.Columns.FirstOrDefault(c => c.FullName == full);
-						if (f != null) { colDisplay = f.DisplayName; break; }
+						var f = t.Columns.FirstOrDefault(c => c.FullName == kvp.Key);
+						if (f != null)
+						{
+							colDisplay = f.DisplayName;
+							break;
+						}
 					}
 
-					var dataList = HistoryData
-						.Where(h => h.Tags.ContainsKey(full))
-						.Select(h => new ChartItem
+					ChartData[colDisplay] = kvp.Value
+						.Select(x => new ChartItem
 						{
-							Category = h.Timestamp.ToString("dd-MM-yyyy HH.mm"),
-							Value = h.Tags[full]
+							Category = DateTime.TryParse(x.Timestamp, out var dt)
+								? dt.ToString("dd-MM-yyyy HH:mm")
+								: x.Timestamp,
+							Value = x.Value
 						})
 						.ToList();
-
-					ChartData[colDisplay] = dataList;
 				}
 			}
 		}
@@ -365,7 +315,13 @@
 			new Dictionary<string, object>
 			{
 				{ "MachineTags", machineTags },
-				{ "SelectedColumns", SelectedColumns }
+				{ "SelectedColumns", SelectedColumns },
+				{ "OnUpdate", EventCallback.Factory.Create<HashSet<string>>(this, async (cols) =>
+					{
+						SelectedColumns = cols;
+						await UpdateChart();
+					})
+				}
 			},
 			new DialogOptions
 			{

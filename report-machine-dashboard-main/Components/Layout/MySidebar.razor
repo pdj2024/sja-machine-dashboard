@@ -137,6 +137,10 @@ border: 0; margin: 0; margin-bottom: 0em !important">
         <RadzenPanelMenuItem Text="Real-Time" Value="@("realtime")" />
         <RadzenPanelMenuItem Text="History" Value="@("history")" />
         <RadzenPanelMenuItem Text="Chart" Value="@("chart")" />
+        @if (isAdmin)
+        {
+            <RadzenPanelMenuItem Text="User" Value="@("user")" />
+        }
 	</RadzenPanelMenu>
 
 
@@ -174,6 +178,21 @@ border: 0; margin: 0; margin-bottom: 0em !important">
     }
 
     }*/
+
+    // Cek Role Admin
+    [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; }
+    private bool isAdmin = false;
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            isAdmin = user.IsInRole("admin");
+        }
+    }
+
 	protected override void OnInitialized()
 	{
 		TabService.OnSidebarToggle += StateHasChanged; // Subscribe to updates

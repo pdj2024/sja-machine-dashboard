@@ -390,7 +390,13 @@
 			new Dictionary<string, object>
 			{
 				{ "MachineTags", machineTags },
-				{ "SelectedColumns", SelectedColumns }
+				{ "SelectedColumns", SelectedColumns },
+				{ "OnUpdate", EventCallback.Factory.Create<HashSet<string>>(this, async (cols) =>
+					{
+						SelectedColumns = cols;
+						await UpdateTable();
+					})
+				}
 			},
 			new DialogOptions
 			{

@@ -10,10 +10,7 @@
 @inject IMachineService MachineService
 
 <RadzenRow>
-	<RadzenColumn SizeMD="12" class="mt-4">
-		@* Export Button *@
-		<ButtonExportTable IsExporting="@isExport" OnExportClick="ExportTable" ExportOptions="@ExportOptions" />
-
+	<RadzenColumn SizeMD="12" class="mt-1">
 		@* Filter DateTime *@
 		<FilterDateTimeButton InitialStartDate="@StartDate"
 							  InitialEndDate="@EndDate"
@@ -94,6 +91,9 @@
 			</div>
 		}
 
+		@* Export Button *@
+		<ButtonExportTable IsExporting="@isExport" OnExportClick="ExportTable" ExportOptions="@ExportOptions" />
+		
 		@* Table History *@
 		<RadzenDataGrid Data="@HistoryData" TItem="TableColumn" ColumnWidth="200px" AllowSorting="true" AllowPaging="true" PageSize="10" Style="margin-bottom: 5rem;">
 			<Columns>
@@ -322,7 +322,13 @@
 			new Dictionary<string, object>
 			{
 				{ "MachineTags", machineTags },
-				{ "SelectedColumns", SelectedColumns }
+				{ "SelectedColumns", SelectedColumns },
+				{ "OnUpdate", EventCallback.Factory.Create<HashSet<string>>(this, async (cols) =>
+					{
+						SelectedColumns = cols;
+						await UpdateTable();
+					})
+				}
 			},
 			new DialogOptions
 			{

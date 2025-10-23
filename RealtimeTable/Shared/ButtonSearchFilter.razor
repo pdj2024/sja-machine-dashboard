@@ -1,0 +1,23 @@
+﻿@using Microsoft.AspNetCore.Components
+@using Radzen
+@using Radzen.Blazor
+
+<div class="d-flex gap-2 flex-wrap">
+	<RadzenButton Click="@OnSearch" Text="Cari" Icon="search" Class="w-auto" />
+
+	@if (ShowClearButton)
+	{
+		<RadzenButton Click="@OnClear" Text="Hapus Filter" Icon="close" Class="w-auto" />
+	}
+</div>
+
+@code {
+	[Parameter]
+	public EventCallback OnSearch { get; set; }
+
+	[Parameter]
+	public EventCallback OnClear { get; set; }
+
+	[Parameter]
+	public bool ShowClearButton { get; set; } = false;
+}

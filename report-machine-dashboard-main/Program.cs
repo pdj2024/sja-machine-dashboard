@@ -77,6 +77,14 @@ builder.Services.AddHttpClient<RealtimeTable.Interfaces.IApiService, RealtimeTab
     client.BaseAddress = new Uri("https://kopi.padajaya.biz.id/");
 });
 builder.Services.AddScoped<RealtimeTable.Interfaces.IMachineService, RealtimeTable.Services.MachineService>();
+builder.Services.AddScoped<RealtimeTable.Interfaces.IUserService, RealtimeTable.Services.UserService>();
+
+// Add Policy for Admin
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
+});
+
 
 
 

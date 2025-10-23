@@ -3,73 +3,77 @@
 @using Radzen
 @using Radzen.Blazor
 @inject DialogService DialogService
+@inject NotificationService NotificationService
 
-	<RadzenStack Orientation="Orientation.Vertical">
-		<div style="max-height: 400px; overflow-y: auto;">
-			@if (Tables == null || !Tables.Any())
+<RadzenStack Orientation="Orientation.Vertical">
+	<div style="max-height: 400px; overflow-y: auto;">
+		@if (Tables == null || !Tables.Any())
+		{
+			<p>Tidak ada tabel tersedia.</p>
+		}
+		else
+		{
+			@foreach (var table in Tables)
 			{
-				<p>Tidak ada tabel tersedia.</p>
-			}
-			else
-			{
-				@foreach (var table in Tables)
-				{
-					<div class="table-section mb-2 border rounded">
-						<div class="table-header d-flex justify-content-between align-items-center p-2"
-							 style="cursor: pointer; background: #f8f9fa;"
-							 @onclick="@(() => ToggleCollapse(table.Name))">
-							<div>
-								<span class="fw-semibold">Tabel @table.Name</span>
-							</div>
-							<i class="material-symbols-rounded" style="@GetCollapseStyle(table.Name)">
-								expand_more
-							</i>
+				<div class="table-section mb-2 border rounded">
+					<div class="table-header d-flex justify-content-between align-items-center p-2"
+						 style="cursor: pointer; background: #f8f9fa;"
+						 @onclick="@(() => ToggleCollapse(table.Name))">
+						<div>
+							<span class="fw-semibold">Tabel @table.Name</span>
 						</div>
-
-						@if (!CollapsedTables.Contains(table.Name))
-						{
-							<div class="p-2 ps-4 bg-light border-top">
-								@if (table.Columns == null || !table.Columns.Any())
-								{
-									<span class="text-muted fst-italic">Tidak ada kolom di tabel ini.</span>
-								}
-								else
-								{
-									@foreach (var column in table.Columns)
-									{
-										<div class="column-item mb-1 d-flex align-items-center">
-											<RadzenCheckBox TValue="bool"
-															Value="@SelectedColumns.Contains(column.FullName)"
-															Change="(args) => ToggleColumnSelection(column.FullName, args)" />
-											<span class="ms-2">
-												@column.DisplayName
-												<span style="color: #6c757d;">(@column.Description)</span>
-											</span>
-										</div>
-									}
-								}
-							</div>
-						}
+						<i class="material-symbols-rounded" style="@GetCollapseStyle(table.Name)">
+							expand_more
+						</i>
 					</div>
-				}
-			}
-		</div>
 
-		<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1rem" Class="mt-4">
-			<RadzenButton Text="Tutup" Click="CloseColumnSelectorPopup" ButtonStyle="ButtonStyle.Primary" />
-		</RadzenStack>
+					@if (!CollapsedTables.Contains(table.Name))
+					{
+						<div class="p-2 ps-4 bg-light border-top">
+							@if (table.Columns == null || !table.Columns.Any())
+							{
+								<span class="text-muted fst-italic">Tidak ada kolom di tabel ini.</span>
+							}
+							else
+							{
+								@foreach (var column in table.Columns)
+								{
+									<div class="column-item mb-1 d-flex align-items-center">
+										<RadzenCheckBox TValue="bool"
+														Value="@SelectedColumns.Contains(column.FullName)"
+														Change="(args) => ToggleColumnSelection(column.FullName, args)" />
+										<span class="ms-2">
+											@column.DisplayName
+											<span style="color: #6c757d;">(@column.Description)</span>
+										</span>
+									</div>
+								}
+							}
+						</div>
+					}
+				</div>
+			}
+		}
+	</div>
+
+	<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1rem" Class="mt-4">
+		@* <RadzenButton Text="Update" Click="CloseColumnSelectorPopup" ButtonStyle="ButtonStyle.Primary" /> *@
+		<RadzenButton Text="Update" Click="OnUpdateClick" ButtonStyle="ButtonStyle.Primary" />
 	</RadzenStack>
+</RadzenStack>
 
 @code {
 	[Parameter] public Dictionary<string, List<ColumnMachine>> MachineTags { get; set; } = new();
 	[Parameter] public HashSet<string> SelectedColumns { get; set; } = new();
+	[Parameter] public EventCallback<HashSet<string>> OnUpdate { get; set; }
 
 	private List<TableModal> Tables { get; set; } = new();
 	private HashSet<string> CollapsedTables { get; set; } = new();
 
+	private const int MaxSelectedColumns = 8;
+
 	protected override void OnInitialized()
 	{
-		// Konversi dari Dictionary ke List<TableModal> agar mudah dirender
 		Tables = MachineTags.Select(mt => new TableModal
 		{
 			Name = mt.Key,
@@ -104,9 +108,32 @@
 	private void ToggleColumnSelection(string columnName, bool? isSelected)
 	{
 		if (isSelected == true)
+		{
+			// Pembatasan pemilihan kolom
+			if (SelectedColumns.Count >= MaxSelectedColumns)
+			{
+				NotificationService.Notify(new NotificationMessage
+				{
+					Severity = NotificationSeverity.Warning,
+					Summary = "Batas Maksimal Tercapai",
+					Detail = $"Maksimal hanya {MaxSelectedColumns} kolom yang dapat dipilih.",
+					Duration = 3000
+				});
+				return;
+			}
+
 			SelectedColumns.Add(columnName);
+		}
 		else
+		{
 			SelectedColumns.Remove(columnName);
+		}
+	}
+
+	private async Task OnUpdateClick()
+	{
+		await OnUpdate.InvokeAsync(SelectedColumns);
+		DialogService.Close(SelectedColumns);
 	}
 
 	private void CloseColumnSelectorPopup()

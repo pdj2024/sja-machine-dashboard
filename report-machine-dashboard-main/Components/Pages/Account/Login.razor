@@ -5,6 +5,8 @@
 @inject NavigationManager navigationManager
 @using Services
 
+@inject RealtimeTable.Interfaces.IUserService UserService
+
 
 <div style="height: 100vh; display: flex; justify-content: center; align-items: center; background-size: cover; background-repeat: no-repeat;">
 	<div style="@ContainerStyle" class="box-form">
@@ -158,40 +160,83 @@
 	public string MobileResponsiveStyle => "width: 90%; padding: 15px;";
 
 	/* public string ContainerStyle => "width: 100%; max-width: 400px; margin: 50px auto; padding: 20px; background-color: #ffffff; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); font-family: Arial, sans-serif;";
-     public string HeaderStyle => "text-align: center; margin-bottom: 20px;";
-     public string HeaderTextStyle => "font-size: 24px; color: #333; font-weight: bold;";
-     public string FormGroupStyle => "margin-bottom: 15px;";
-     public string LabelStyle => "font-size: 14px; color: #666; font-weight: 600; margin-bottom: 5px; display: block;";
-     public string InputStyle => "width: 100%; padding: 10px; font-size: 14px; border-radius: 5px; border: 1px solid #ddd; background-color: #f9f9f9; box-sizing: border-box;";
-     public string InputFocusStyle => "border-color: #1e3a6a; outline: none; background-color: #fff;";
-     public string ErrorMessageStyle => "color: #f44336; font-size: 12px; text-align: center; margin-bottom: 15px;";
-     public string ButtonStyle => "width: 100%; padding: 12px; background-color: #1e3a6a; color: white; font-size: 16px; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.3s ease;";
-     public string ButtonHoverStyle => "background-color: #267bb3;";
-     public string MobileResponsiveStyle => "width: 90%; padding: 15px;";*/
+	public string HeaderStyle => "text-align: center; margin-bottom: 20px;";
+	public string HeaderTextStyle => "font-size: 24px; color: #333; font-weight: bold;";
+	public string FormGroupStyle => "margin-bottom: 15px;";
+	public string LabelStyle => "font-size: 14px; color: #666; font-weight: 600; margin-bottom: 5px; display: block;";
+	public string InputStyle => "width: 100%; padding: 10px; font-size: 14px; border-radius: 5px; border: 1px solid #ddd; background-color: #f9f9f9; box-sizing: border-box;";
+	public string InputFocusStyle => "border-color: #1e3a6a; outline: none; background-color: #fff;";
+	public string ErrorMessageStyle => "color: #f44336; font-size: 12px; text-align: center; margin-bottom: 15px;";
+	public string ButtonStyle => "width: 100%; padding: 12px; background-color: #1e3a6a; color: white; font-size: 16px; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.3s ease;";
+	public string ButtonHoverStyle => "background-color: #267bb3;";
+	public string MobileResponsiveStyle => "width: 90%; padding: 15px;";*/
 	//===
 
 
+	private List<RealtimeTable.Models.User> userList = new();
+	private RealtimeTable.Models.User user = new();
 
 	private async Task Authenticate()
 	{
 		/* if (Model.UserName == "" ||
-          Model.Password == "")
+		Model.Password == "")
           {
 
-          errorMessage = "Semua field harus terisi";
+			errorMessage = "Semua field harus terisi";
 
-        return;
-        }*/
+			return;
+			}*/
 
 		// Initialize dictionary
 		Dictionary<string, List<string>> masUserMenu = new Dictionary<string, List<string>>();
 
 		// Add an entry to the dictionary
 		// masUserMenu.Add("admin24", new List<string> { "VIEW_TAGIHAN", "ADD_TAGIHAN" });
-		masUserMenu.Add("demo", new List<string> { "VIEW_TAGIHAN", "ADD_TAGIHAN" });
-		//  masUserMenu.Add("admin3", new List<string> { "VIEW_TAGIHAN" });
+		// masUserMenu.Add("demo", new List<string> { "VIEW_TAGIHAN", "ADD_TAGIHAN" });
+		// masUserMenu.Add("admin3", new List<string> { "VIEW_TAGIHAN" });
 
-		string passwordNya = "inidemo";
+		// string passwordNya = "inidemo";
+		// if (Model.UserName == "demo")
+		// {
+		// 	if (Model.Password != passwordNya)
+		// 	{
+		// 		errorMessage = "Invalid User Name or Password";
+		// 		return;
+		// 	}
+		// }
+
+		// GetAll User
+		userList = (await UserService.GetAll()).ToList();
+		user = userList.Where(e => Model.UserName == e.Username).FirstOrDefault() ?? new RealtimeTable.Models.User();
+
+		if (string.IsNullOrEmpty(user.No_Id))
+		{
+			errorMessage = "Invalid User Name or Password";
+			return;
+		}
+
+		if (user.Role == "admin")
+		{
+			masUserMenu.Add(user.Username, new List<string> { "VIEW_TAGIHAN", "ADD_TAGIHAN", "MANAGE_USER" });
+		}
+		else
+		{
+			masUserMenu.Add(user.Username, new List<string> { "VIEW_TAGIHAN", "ADD_TAGIHAN" });
+		}
+
+		// Pengecekan Login User
+		if (user.Status != "aktif")
+		{
+			errorMessage = "Invalid User Status is Non Active";
+			return;
+		}
+
+		if (Model.Password != user.Password)
+		{
+			errorMessage = "Invalid User Name or Password";
+			return;
+		}
+
 
 		if (!masUserMenu.ContainsKey(Model.UserName))
 		{
@@ -199,19 +244,11 @@
 			return;
 		}
 
-		if (Model.UserName == "demo")
-		{
-			if (Model.Password != passwordNya)
-			{
-				errorMessage = "Invalid User Name or Password";
-				return;
-			}
-		}
-
 
 		var claims = new List<Claim>
 		{
-			new Claim(ClaimTypes.Name, Model.UserName)
+			new Claim(ClaimTypes.Name, Model.UserName),
+			new Claim(ClaimTypes.Role, user.Role)         // Claim Role
 		};
 		// Add Policies
 

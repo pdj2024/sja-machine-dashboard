@@ -1,0 +1,182 @@
+﻿@attribute [Authorize(Policy = "AdminOnly")]
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.JSInterop
+@using Radzen
+@using Radzen.Blazor
+@using ClosedXML.Excel
+@using System.Text
+@using System.Timers
+@using System.Collections.Concurrent
+
+@inject IJSRuntime jsRuntime
+@inject NavigationManager navigation
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+@inject IUserService UserService
+
+<RadzenRow>
+	<RadzenColumn SizeMD="12" class="mt-1">
+		<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
+			<RadzenFormField AllowFloatingLabel="false" Text="Status" class="text-primary">
+				<RadzenDropDown TValue="string"
+								Data="@StatusDropdown"
+								@bind-Value="filterStatus"
+								TextProperty="Text"
+								ValueProperty="Value"
+								AllowClear="true"
+								AllowFiltering="true"
+								FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+								class="status-select"
+								Change="LoadData" />
+			</RadzenFormField>
+			<RadzenFormField AllowFloatingLabel="false" Text="Role" class="text-primary">
+				<RadzenDropDown TValue="string"
+								Data="@RoleDropdown"
+								@bind-Value="filterRole"
+								TextProperty="Text"
+								ValueProperty="Value"
+								AllowClear="true"
+								AllowFiltering="true"
+								FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+								class="status-select"
+								Change="LoadData" />
+			</RadzenFormField>
+			@* <RadzenFormField AllowFloatingLabel="false" Text="Cari Username">
+				<RadzenTextBox @bind-Value="searchName"
+							   class="search-name"
+							   @onfocus="@(e => SelectAll(e))"
+							   Change="LoadData" />
+			</RadzenFormField> *@
+
+			<ButtonSearchFilter OnSearch="LoadData" OnClear="ClearFilter" ShowClearButton="@(!string.IsNullOrEmpty(searchName) || !string.IsNullOrEmpty(filterStatus) || !string.IsNullOrEmpty(filterRole))" />
+		</RadzenStack>
+
+		@* Add Button *@
+		<RadzenButton Text="Tambah User" Icon="add_circle" Click="AddUser" class="mb-3" />
+
+		@* Table User *@
+		<RadzenDataGrid Data="@userList" TItem="User" ColumnWidth="200px" AllowSorting="true" AllowPaging="true" PageSize="10" Style="margin-bottom: 5rem;">
+			<Columns>
+				<RadzenDataGridColumn TItem="User" Property="No_Id" Title="ID" />
+				<RadzenDataGridColumn TItem="User" Property="Username" Title="Username" />
+				<RadzenDataGridColumn TItem="User" Property="Password" Title="Password" />
+				<RadzenDataGridColumn TItem="User" Property="Role" Title="Role" />
+				<RadzenDataGridColumn TItem="User" Property="Status" Title="Status" />
+				<RadzenDataGridColumn TItem="User" Title="Aksi">
+					<Template Context="data">
+						<RadzenButton Icon="edit"
+									  ButtonStyle="ButtonStyle.Primary"
+									  Size="ButtonSize.Small"
+									  Click="@(args => EditUser(data))"
+									  Text="Edit" />
+					</Template>
+				</RadzenDataGridColumn>
+			</Columns>
+		</RadzenDataGrid>
+
+	</RadzenColumn>
+</RadzenRow>
+
+
+@code {
+	private IEnumerable<User> user;
+	private List<User> userList = new();
+
+	private string? searchName;
+	private string? filterStatus;
+	private string? filterRole;
+
+	record StatusFilter(string CriteriaText, string Text, string? Value);
+
+	static readonly IReadOnlyList<StatusFilter> StatusDropdown = new StatusFilter[] {
+		new("[Status] = aktif", "Aktif", "aktif"),
+		new("[Status] = nonaktif", "Non Aktif", "nonaktif")
+	};
+
+	static readonly IReadOnlyList<StatusFilter> RoleDropdown = new StatusFilter[] {
+		new("[Status] = admin", "Admin", "admin"),
+		new("[Status] = user", "User", "user")
+	};
+
+	protected override async Task OnInitializedAsync()
+	{
+		await LoadData();
+		base.OnInitialized();
+	}
+
+	private async Task LoadData()
+	{
+		user = await UserService.GetAll();
+		userList = user.ToList();
+		ApplyFilter();
+		StateHasChanged();
+	}
+
+	private void ApplyFilter()
+	{
+		IEnumerable<User> filtered = user;
+
+		// Search Username
+		if (!string.IsNullOrWhiteSpace(searchName))
+		{
+			filtered = filtered.Where(u =>
+				(u.Username?.Contains(searchName, StringComparison.OrdinalIgnoreCase) ?? false));
+		}
+
+		// Filter Status
+		if (!string.IsNullOrWhiteSpace(filterStatus))
+		{
+			filtered = filtered.Where(u =>
+				string.Equals(u.Status, filterStatus, StringComparison.OrdinalIgnoreCase));
+		}
+
+		// Filter Role
+		if (!string.IsNullOrWhiteSpace(filterRole))
+		{
+			filtered = filtered.Where(u =>
+				string.Equals(u.Role, filterRole, StringComparison.OrdinalIgnoreCase));
+		}
+
+		userList = filtered.ToList();
+	}
+
+	private async Task AddUser()
+	{
+		var result = await DialogService.OpenAsync<AddEditUser>(
+			"Tambah User",
+			new Dictionary<string, object>(),
+			new DialogOptions { Width = "600px", Resizable = true, Draggable = true }
+		);
+
+		if (result is bool saved && saved)
+			await LoadData();
+	}
+
+	private async Task EditUser(User user)
+	{
+		var result = await DialogService.OpenAsync<AddEditUser>(
+			"Ubah User",
+			new Dictionary<string, object> { { "NoId", user.No_Id } },
+			new DialogOptions { Width = "600px", Resizable = true, Draggable = true }
+		);
+
+		if (result is bool saved && saved)
+			await LoadData();
+	}
+
+	private async Task ClearFilter()
+	{
+		searchName = "";
+		filterStatus = "";
+		filterRole = "";
+
+		await LoadData();
+	}
+
+	private async Task SelectAll(FocusEventArgs e)
+	{
+		await jsRuntime.InvokeVoidAsync("eval", "document.activeElement.select()");
+	}
+}
