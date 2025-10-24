@@ -1,165 +1,178 @@
-﻿@using Microsoft.JSInterop
-@using Radzen
-@using Radzen.Blazor
-@using ClosedXML.Excel
-@using System.Text
-@using System.Timers
-@using System.Collections.Concurrent
-
-@implements IDisposable
+﻿@implements IDisposable
 
 @inject IJSRuntime JSRuntime
 @inject DialogService DialogService
+@inject NotificationService NotificationService
 
 @inject IMachineService MachineService
 
 <RadzenRow>
 	<RadzenColumn SizeMD="12">
-		<div class="d-flex flex-column gap-2">
-			<p class="text-muted mt-2">
-				@{
-					var culture = new System.Globalization.CultureInfo("id-ID");
-					string hari = culture.DateTimeFormat.GetDayName(lastUpdated.DayOfWeek);
-					string tanggal = lastUpdated.ToString("dd MMMM yyyy HH.mm.ss", culture);
-				}
-				Terakhir update: <b>@hari, @tanggal</b>
-			</p>
-			<p class="text-muted mt-2">
-				@* Fetch Data setiap: <b>5 detik</b> *@
-				Fetch Data setiap:
-				<select class="form-select d-inline-block w-auto ms-2" @onchange="OnIntervalChange">
-					@foreach (var option in IntervalOptions)
-					{
-						<option value="@option.Value" selected="@(updateInterval == option.Value)">
-							@option.Label
-						</option>
-					}
-				</select>
-			</p>
-		</div>
-
-		@* Filter Mode: Table || Column *@
-		<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
-			<RadzenFormField AllowFloatingLabel="false" Text="Mode Filter">
-				<RadzenDropDown @bind-Value="SelectedFilterMode"
-								Data="@FilterModes"
-								Change="@OnFilterModeChanged"
-								Style="width:200px"
-								Placeholder="Pilih mode filter..." />
-			</RadzenFormField>
-
-			@if (SelectedFilterMode == "Table")
-			{
-				<RadzenFormField AllowFloatingLabel="false" Text="Pilih Tabel">
-					<RadzenDropDown @bind-Value="SelectedTable"
-									Data="tablesForUI.Select(t => t.Name).ToList()"
-									Change="@OnTableSelectionChanged"
-									Style="width:200px" />
-				</RadzenFormField>
-			}
-			else if (SelectedFilterMode == "Column")
-			{
-				<RadzenButton Text="Pilih Kolom" Icon="checklist" Click="OpenColumnSelectorPopup" />
-			}
-
-			<RadzenButton Click="@ClickUpdateTable" Text="Update Table" IsBusy="@isUpdateTable" Icon="refresh" Class="w-auto" />
-		</RadzenStack>
-
-		@if (SelectedFilterMode == "Column" && SelectedColumns.Any())
-		{
-			<div class="mb-3">
-				<div class="border rounded p-3 mb-3 bg-light">
-					<h6 class="fw-semibold mb-3">
-						List Kolom yang dipilih
-					</h6>
-
-					@foreach (var column in SelectedColumns.Select(GetColumnDisplayName))
-					{
-						<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
-							<span class="ms-1">@column</span>
-						</div>
-					}
+		<div class="card border shadow-xs mb-4">
+			@* Header Table *@
+			<div class="card-header border-bottom pb-0">
+				<div class="d-sm-flex align-items-center">
+					<div>
+						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Realtime Table</h6>
+						<p class="text-sm">Pantau data terkini hanya dalam satu tampilan! Semua tabel, selalu update setiap saat.</p>
+						<p class="text-muted mt-2">
+							@{
+								var culture = new System.Globalization.CultureInfo("id-ID");
+								string hari = culture.DateTimeFormat.GetDayName(lastUpdated.DayOfWeek);
+								string tanggal = lastUpdated.ToString("dd MMMM yyyy HH.mm.ss", culture);
+							}
+							Terakhir update: <b>@hari, @tanggal</b>
+						</p>
+					</div>
+					<div class="ms-auto d-flex"></div>
 				</div>
 			</div>
-		}
 
-		@if (SelectedFilterMode == "Table")
-		{
-			<div class="mb-3">
-				@if (!string.IsNullOrEmpty(SelectedTable))
-				{
-					var sel = tablesForUI.FirstOrDefault(t => t.Name == SelectedTable);
-					if (sel != null)
-					{
-						<div class="border rounded p-3 mb-3 bg-light">
-							<h6 class="fw-semibold mb-3">
-								List Kolom dari tabel <b>@sel.Name</b>
-							</h6>
-
-							@foreach (var column in sel.Columns)
+			@* Body Table *@
+			<div class="card-body px-0 py-0">
+				<div class="border-bottom py-3 px-3">
+					@* Interval Fetch Data *@
+					<p class="text-muted mt-2">
+						@* Fetch Data setiap: <b>5 detik</b> *@
+						Fetch Data setiap:
+						<select class="form-select d-inline-block w-auto ms-2" @onchange="OnIntervalChange">
+							@foreach (var option in IntervalOptions)
 							{
-								<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
-									<span class="ms-1">@column.DisplayName</span>
-								</div>
+								<option value="@option.Value" selected="@(updateInterval == option.Value)">
+									@option.Label
+								</option>
+							}
+						</select>
+					</p>
+
+					@* Filter Mode: Table || Column *@
+					<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
+						<RadzenFormField AllowFloatingLabel="false" Text="Mode Filter">
+							<RadzenDropDown @bind-Value="SelectedFilterMode"
+											Data="@FilterModes"
+											Change="@OnFilterModeChanged"
+											Style="width:200px"
+											Placeholder="Pilih mode filter..." />
+						</RadzenFormField>
+
+						@if (SelectedFilterMode == "Table")
+						{
+							<RadzenFormField AllowFloatingLabel="false" Text="Pilih Tabel">
+								<RadzenDropDown @bind-Value="SelectedTable"
+												Data="tablesForUI.Select(t => t.Name).ToList()"
+												Change="@OnTableSelectionChanged"
+												Style="width:200px" />
+							</RadzenFormField>
+						}
+						else if (SelectedFilterMode == "Column")
+						{
+							<RadzenButton Text="Pilih Kolom" Icon="checklist" Click="OpenColumnSelectorPopup" />
+						}
+
+						<RadzenButton Click="@ClickUpdateTable" Text="Update Table" IsBusy="@isUpdateTable" Icon="refresh" Class="w-auto" />
+					</RadzenStack>
+
+					@if (SelectedFilterMode == "Column" && SelectedColumns.Any())
+					{
+						<div class="mb-3">
+							<div class="border rounded p-3 mb-3 bg-light">
+								<h6 class="fw-semibold mb-3">
+									List Kolom yang dipilih
+								</h6>
+
+								@foreach (var column in SelectedColumns.Select(GetColumnDisplayName))
+								{
+									<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
+										<span class="ms-1">@column</span>
+									</div>
+								}
+							</div>
+						</div>
+					}
+
+					@if (SelectedFilterMode == "Table")
+					{
+						<div class="mb-3">
+							@if (!string.IsNullOrEmpty(SelectedTable))
+							{
+								var sel = tablesForUI.FirstOrDefault(t => t.Name == SelectedTable);
+								if (sel != null)
+								{
+									<div class="border rounded p-3 mb-3 bg-light">
+										<h6 class="fw-semibold mb-3">
+											List Kolom dari tabel <b>@sel.Name</b>
+										</h6>
+
+										@foreach (var column in sel.Columns)
+										{
+											<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
+												<span class="ms-1">@column.DisplayName</span>
+											</div>
+										}
+									</div>
+								}
+							}
+							else
+							{
+								<div class="text-muted fst-italic">Pilih tabel dari dropdown untuk melihat kolomnya.</div>
 							}
 						</div>
 					}
-				}
-				else
-				{
-					<div class="text-muted fst-italic">Pilih tabel dari dropdown untuk melihat kolomnya.</div>
-				}
+				</div>
+
+				<div class="table-responsive p-0">
+					@* Table Realtime *@
+					@* <RadzenDataGrid @ref="Grid"
+										Data="@measurementList"
+										TItem="MeasurementData"
+										AllowSorting="true"
+										AllowPaging="false"
+										AllowVirtualization="true">
+							<Columns>
+								<RadzenDataGridColumn TItem="MeasurementData" Property="Measurement" Title="Measurement" Width="200px" />
+								<RadzenDataGridColumn TItem="MeasurementData" Property="Value" Title="Value" Width="200px">
+									<Template Context="data">
+										<span class="@GetValueClass1(data)">
+											@data.Value
+										</span>
+									</Template>
+								</RadzenDataGridColumn>
+								<RadzenDataGridColumn TItem="MeasurementData" Property="Units" Title="Units" Width="100px" TextAlign="TextAlign.Center" />
+							</Columns>
+						</RadzenDataGrid> *@
+
+					<RadzenDataGrid Data="@HistoryData"
+									TItem="TableRealtime"
+									ColumnWidth="200px"
+									AllowSorting="true"
+									AllowPaging="true"
+									PageSize="10"
+									Style="margin-bottom: 5rem;">
+						<Columns>
+							<RadzenDataGridColumn TItem="TableRealtime" Property="Timestamp" Title="Timestamp">
+								<Template Context="data">
+									@data.Timestamp.ToString("dd-MM-yyyy HH.mm.ss")
+								</Template>
+							</RadzenDataGridColumn>
+
+							<RadzenDataGridColumn TItem="TableRealtime" Property="Measurement" Title="Measurement" />
+
+							<RadzenDataGridColumn TItem="TableRealtime" Property="Value" Title="Value">
+								<Template Context="data">
+									<span class="@GetValueClass(data)">
+										@data.Value
+									</span>
+								</Template>
+							</RadzenDataGridColumn>
+						</Columns>
+					</RadzenDataGrid>
+				</div>
 			</div>
-		}
-
-		@* Table Realtime *@
-		@* <RadzenDataGrid @ref="Grid"
-						Data="@measurementList"
-						TItem="MeasurementData"
-						AllowSorting="true"
-						AllowPaging="false"
-						AllowVirtualization="true">
-			<Columns>
-				<RadzenDataGridColumn TItem="MeasurementData" Property="Measurement" Title="Measurement" Width="200px" />
-				<RadzenDataGridColumn TItem="MeasurementData" Property="Value" Title="Value" Width="200px">
-					<Template Context="data">
-						<span class="@GetValueClass1(data)">
-							@data.Value
-						</span>
-					</Template>
-				</RadzenDataGridColumn>
-				<RadzenDataGridColumn TItem="MeasurementData" Property="Units" Title="Units" Width="100px" TextAlign="TextAlign.Center" />
-			</Columns>
-		</RadzenDataGrid> *@
-
-		<RadzenDataGrid Data="@HistoryData"
-						TItem="TableRealtime"
-						ColumnWidth="200px"
-						AllowSorting="true"
-						AllowPaging="true"
-						PageSize="10"
-						Style="margin-bottom: 5rem;">
-			<Columns>
-				<RadzenDataGridColumn TItem="TableRealtime" Property="Timestamp" Title="Timestamp">
-					<Template Context="data">
-						@data.Timestamp.ToString("dd-MM-yyyy HH.mm.ss")
-					</Template>
-				</RadzenDataGridColumn>
-
-				<RadzenDataGridColumn TItem="TableRealtime" Property="Measurement" Title="Measurement" />
-
-				<RadzenDataGridColumn TItem="TableRealtime" Property="Value" Title="Value">
-					<Template Context="data">
-						<span class="@GetValueClass(data)">
-							@data.Value
-						</span>
-					</Template>
-				</RadzenDataGridColumn>
-			</Columns>
-		</RadzenDataGrid>
+		</div>
 
 	</RadzenColumn>
 </RadzenRow>
+
 
 @code {
 	private Dictionary<string, List<TableMachine>> machineTable = new();
@@ -296,7 +309,11 @@
 		// Column Mode
 		if (SelectedFilterMode == "Column")
 		{
-			if (SelectedColumns == null || !SelectedColumns.Any()) return;
+			if (SelectedColumns == null || !SelectedColumns.Any())
+			{
+				NotificationService.Notify(NotificationSeverity.Warning, "Kolom Tabel Belum Dipilih", "Silahkan pilih kolom terlebih dahulu!");
+				return;
+			}
 
 			var body = new
 			{

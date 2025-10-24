@@ -187,8 +187,8 @@
 			return;
 			}*/
 
-		// Initialize dictionary
-		Dictionary<string, List<string>> masUserMenu = new Dictionary<string, List<string>>();
+				// Initialize dictionary
+				Dictionary<string, List<string>> masUserMenu = new Dictionary<string, List<string>>();
 
 		// Add an entry to the dictionary
 		// masUserMenu.Add("admin24", new List<string> { "VIEW_TAGIHAN", "ADD_TAGIHAN" });
@@ -212,6 +212,7 @@
 		if (string.IsNullOrEmpty(user.No_Id))
 		{
 			errorMessage = "Invalid User Name or Password";
+			Model.Password = "";
 			return;
 		}
 
@@ -228,12 +229,14 @@
 		if (user.Status != "aktif")
 		{
 			errorMessage = "Invalid User Status is Non Active";
+			Model.Password = "";
 			return;
 		}
 
 		if (Model.Password != user.Password)
 		{
 			errorMessage = "Invalid User Name or Password";
+			Model.Password = "";
 			return;
 		}
 
@@ -241,6 +244,7 @@
 		if (!masUserMenu.ContainsKey(Model.UserName))
 		{
 			errorMessage = "Invalid User Name or Password";
+			Model.Password = "";
 			return;
 		}
 

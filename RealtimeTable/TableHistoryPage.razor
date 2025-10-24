@@ -1,121 +1,146 @@
-﻿@using Microsoft.JSInterop
-@using Radzen
-@using Radzen.Blazor
-@using ClosedXML.Excel
-@using System.Text
-
-@inject IJSRuntime JSRuntime
+﻿@inject IJSRuntime JSRuntime
 @inject DialogService DialogService
+@inject NotificationService NotificationService
 
 @inject IMachineService MachineService
 
 <RadzenRow>
-	<RadzenColumn SizeMD="12" class="mt-1">
-		@* Filter DateTime *@
-		<FilterDateTimeButton InitialStartDate="@StartDate"
-							  InitialEndDate="@EndDate"
-							  IsLoading="@isLoading"
-							  OnFilter="ApplyDateFilter" />
+	<RadzenColumn SizeMD="12">
+		<div class="card border shadow-xs mb-4">
+			@* Header Table *@
+			<div class="card-header border-bottom pb-0">
+				<div class="d-sm-flex align-items-center">
+					<div>
+						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Table History</h6>
+						<p class="text-sm">Menampilkan seluruh data dari setiap tabel yang tersedia dengan lengkap dan terstruktur.</p>
+						@if (isExport)
+						{
+							<div style="margin-bottom: 10px;">
+								<RadzenProgressBar Value="@exportProgress"
+												   Mode="ProgressBarMode.Determinate"
+												   ShowValue="true"
+												   ValueTextFormat="{0}%"
+												   Style="height: 10px; width: 100%;" />
+							</div>
+						}
+					</div>
+					<div class="ms-auto d-flex">
+						@* Export Button *@
+						<ButtonExportTable IsExporting="@isExport" OnExportClick="ExportTable" ExportOptions="@ExportOptions" />
+					</div>
+				</div>
+			</div>
 
-		@* Filter Mode: Table || Column *@
-		<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
-			<RadzenFormField AllowFloatingLabel="false" Text="Mode Filter">
-				<RadzenDropDown @bind-Value="SelectedFilterMode"
-								Data="@FilterModes"
-								Change="@OnFilterModeChanged"
-								Style="width:200px"
-								Placeholder="Pilih mode filter..." />
-			</RadzenFormField>
+			@* Body Table *@
+			<div class="card-body px-0 py-0">
+				<div class="border-bottom py-3 px-3">
+					@* Filter DateTime *@
+					<FilterDateTimeButton InitialStartDate="@StartDate"
+										  InitialEndDate="@EndDate"
+										  IsLoading="@isLoading"
+										  OnFilter="ApplyDateFilter" />
 
-			@if (SelectedFilterMode == "Table")
-			{
-				<RadzenFormField AllowFloatingLabel="false" Text="Pilih Tabel">
-					<RadzenDropDown @bind-Value="SelectedTable"
-									Data="tablesForUI.Select(t => t.Name).ToList()"
-									Change="@OnTableSelectionChanged"
-									Style="width:200px" />
-				</RadzenFormField>
-			}
-			else if (SelectedFilterMode == "Column")
-			{
-				<RadzenButton Text="Pilih Kolom" Icon="checklist" Click="OpenColumnSelectorPopup" />
-			}
+					@* Filter Mode: Table || Column *@
+					<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
+						<RadzenFormField AllowFloatingLabel="false" Text="Mode Filter">
+							<RadzenDropDown @bind-Value="SelectedFilterMode"
+											Data="@FilterModes"
+											Change="@OnFilterModeChanged"
+											Style="width:200px"
+											Placeholder="Pilih mode filter..." />
+						</RadzenFormField>
 
-			<RadzenButton Click="@UpdateTable" Text="Update Table" IsBusy="@isUpdateTable" Icon="refresh" Class="w-auto" />
-		</RadzenStack>
+						@if (SelectedFilterMode == "Table")
+						{
+							<RadzenFormField AllowFloatingLabel="false" Text="Pilih Tabel">
+								<RadzenDropDown @bind-Value="SelectedTable"
+												Data="tablesForUI.Select(t => t.Name).ToList()"
+												Change="@OnTableSelectionChanged"
+												Style="width:200px" />
+							</RadzenFormField>
+						}
+						else if (SelectedFilterMode == "Column")
+						{
+							<RadzenButton Text="Pilih Kolom" Icon="checklist" Click="OpenColumnSelectorPopup" />
+						}
 
-		@if (SelectedFilterMode == "Column" && SelectedColumns.Any())
-		{
-			<div class="mb-3">
-				<div class="border rounded p-3 mb-3 bg-light">
-					<h6 class="fw-semibold mb-3">
-						List Kolom yang dipilih
-					</h6>
+						<RadzenButton Click="@UpdateTable" Text="Update Table" IsBusy="@isUpdateTable" Icon="refresh" Class="w-auto" />
+					</RadzenStack>
 
-					@foreach (var column in SelectedColumns.Select(GetColumnDisplayName))
+					@if (SelectedFilterMode == "Column" && SelectedColumns.Any())
 					{
-						<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
-							<span class="ms-1">@column</span>
+						<div class="mb-3">
+							<div class="border rounded p-3 mb-3 bg-light">
+								<h6 class="fw-semibold mb-3">
+									List Kolom yang dipilih
+								</h6>
+
+								@foreach (var column in SelectedColumns.Select(GetColumnDisplayName))
+								{
+									<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
+										<span class="ms-1">@column</span>
+									</div>
+								}
+							</div>
+						</div>
+					}
+
+					@if (SelectedFilterMode == "Table")
+					{
+						<div class="mb-3">
+							@if (!string.IsNullOrEmpty(SelectedTable))
+							{
+								var sel = tablesForUI.FirstOrDefault(t => t.Name == SelectedTable);
+								if (sel != null)
+								{
+									<div class="border rounded p-3 mb-3 bg-light">
+										<h6 class="fw-semibold mb-3">
+											List Kolom dari tabel <b>@sel.Name</b>
+										</h6>
+
+										@foreach (var column in sel.Columns)
+										{
+											<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
+												<span class="ms-1">@column.DisplayName</span>
+											</div>
+										}
+									</div>
+								}
+							}
+							else
+							{
+								<div class="text-muted fst-italic">Pilih tabel dari dropdown untuk melihat kolomnya.</div>
+							}
 						</div>
 					}
 				</div>
-			</div>
-		}
 
-		@if (SelectedFilterMode == "Table")
-		{
-			<div class="mb-3">
-				@if (!string.IsNullOrEmpty(SelectedTable))
-				{
-					var sel = tablesForUI.FirstOrDefault(t => t.Name == SelectedTable);
-					if (sel != null)
-					{
-						<div class="border rounded p-3 mb-3 bg-light">
-							<h6 class="fw-semibold mb-3">
-								List Kolom dari tabel <b>@sel.Name</b>
-							</h6>
-
-							@foreach (var column in sel.Columns)
+				<div class="table-responsive p-0">
+					@* Table History *@
+					<RadzenDataGrid Data="@HistoryData" TItem="TableColumn" ColumnWidth="200px" AllowSorting="true" AllowPaging="true" PageSize="10" Style="margin-bottom: 5rem;">
+						<Columns>
+							<RadzenDataGridColumn TItem="TableColumn" Property="Timestamp" Title="Timestamp">
+								<Template Context="data">
+									@data.Timestamp.ToString("dd-MM-yyyy HH:mm:ss")
+								</Template>
+							</RadzenDataGridColumn>
+							@foreach (var tag in HistoryData.SelectMany(h => h.Tags.Keys).Distinct())
 							{
-								<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
-									<span class="ms-1">@column.DisplayName</span>
-								</div>
+								<RadzenDataGridColumn TItem="TableColumn" Title="@tag">
+									<Template Context="data">
+										@if (data.Tags.TryGetValue(tag, out var value))
+										{
+											@value
+										}
+									</Template>
+								</RadzenDataGridColumn>
 							}
-						</div>
-					}
-				}
-				else
-				{
-					<div class="text-muted fst-italic">Pilih tabel dari dropdown untuk melihat kolomnya.</div>
-				}
+						</Columns>
+					</RadzenDataGrid>
+				</div>
 			</div>
-		}
-
-		@* Export Button *@
-		<ButtonExportTable IsExporting="@isExport" OnExportClick="ExportTable" ExportOptions="@ExportOptions" />
+		</div>
 		
-		@* Table History *@
-		<RadzenDataGrid Data="@HistoryData" TItem="TableColumn" ColumnWidth="200px" AllowSorting="true" AllowPaging="true" PageSize="10" Style="margin-bottom: 5rem;">
-			<Columns>
-				<RadzenDataGridColumn TItem="TableColumn" Property="Timestamp" Title="Timestamp">
-					<Template Context="data">
-						@data.Timestamp.ToString("dd-MM-yyyy HH:mm:ss")
-					</Template>
-				</RadzenDataGridColumn>
-				@foreach (var tag in HistoryData.SelectMany(h => h.Tags.Keys).Distinct())
-				{
-					<RadzenDataGridColumn TItem="TableColumn" Title="@tag">
-						<Template Context="data">
-							@if (data.Tags.TryGetValue(tag, out var value))
-							{
-								@value
-							}
-						</Template>
-					</RadzenDataGridColumn>
-				}
-			</Columns>
-		</RadzenDataGrid>
-
 	</RadzenColumn>
 </RadzenRow>
 
@@ -143,6 +168,7 @@
 	private bool isLoading = false;
 	private bool isUpdateTable = false;
 	private bool isExport = false;
+	private double exportProgress = 0;
 
 	private List<ButtonExportTable.ExportOption> ExportOptions = new()
 	{
@@ -206,7 +232,11 @@
 			// Column Mode
 			if (SelectedFilterMode == "Column")
 			{
-				if (SelectedColumns == null || !SelectedColumns.Any()) return;
+				if (SelectedColumns == null || !SelectedColumns.Any())
+				{
+					NotificationService.Notify(NotificationSeverity.Warning, "Kolom Tabel Belum Dipilih", "Silahkan pilih kolom terlebih dahulu!");
+					return;
+				}
 
 				var body = new
 				{
@@ -350,92 +380,132 @@
 		return Tables.SelectMany(t => t.Columns).FirstOrDefault(c => c.FullName == fullName)?.DisplayName ?? fullName;
 	}
 
+	// --- Export function ---
 	public async Task ExportTable(string type)
 	{
 		isExport = true;
+		exportProgress = 0;
+		NotificationService.Notify(NotificationSeverity.Info, "Export Data", "Menyiapkan file untuk diekspor...");
 		StateHasChanged();
 
-		if (HistoryData == null || !HistoryData.Any())
+		try
 		{
-			isExport = false;
-			StateHasChanged();
-			return;
-		}
-
-		var allTags = HistoryData
-			.SelectMany(h => h.Tags.Keys)
-			.Distinct()
-			.ToList();
-
-		if (type.ToLower() == "csv")
-		{
-			var csv = new StringBuilder();
-
-			// Header
-			csv.Append("Timestamp");
-			foreach (var tag in allTags)
-				csv.Append($",{tag}");
-			csv.AppendLine();
-
-			// Data rows
-			foreach (var row in HistoryData)
+			if (HistoryData == null || !HistoryData.Any())
 			{
-				csv.Append(row.Timestamp.ToString("dd-MM-yyyy HH.mm.ss"));
+				NotificationService.Notify(NotificationSeverity.Warning, "Export Gagal", "Tidak ada data untuk diekspor.");
+				isExport = false;
+				exportProgress = 0;
+				StateHasChanged();
+				return;
+			}
+
+			var allTags = HistoryData
+				.SelectMany(h => h.Tags.Keys)
+				.Distinct()
+				.ToList();
+
+			await SimulateProgress(0, 30);
+
+			if (type.ToLower() == "csv")
+			{
+				var csv = new StringBuilder();
+
+				csv.Append("Timestamp");
 				foreach (var tag in allTags)
-				{
-					if (row.Tags.TryGetValue(tag, out var value))
-						csv.Append($",{value}");
-					else
-						csv.Append(",");
-				}
+					csv.Append($",{tag}");
 				csv.AppendLine();
-			}
 
-			var bytes = Encoding.UTF8.GetBytes(csv.ToString());
-			var fileName = $"HistoryData_{DateTime.Now:ddMMyyyyHHmmss}.csv";
+				int count = 0;
+				int total = HistoryData.Count;
 
-			using var stream = new MemoryStream(bytes);
-			using var streamRef = new Microsoft.JSInterop.DotNetStreamReference(stream);
-			await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
-		}
-		else if (type.ToLower() == "excel")
-		{
-			using var workbook = new XLWorkbook();
-			var worksheet = workbook.Worksheets.Add("History Data");
-
-			// Header
-			worksheet.Cell(1, 1).Value = "Timestamp";
-			for (int i = 0; i < allTags.Count; i++)
-				worksheet.Cell(1, i + 2).Value = allTags[i];
-
-			// Data rows
-			int rowIndex = 2;
-			foreach (var row in HistoryData)
-			{
-				worksheet.Cell(rowIndex, 1).Value = row.Timestamp;
-				worksheet.Cell(rowIndex, 1).Style.DateFormat.Format = "dd-MM-yyyy HH.mm.ss";
-
-				for (int i = 0; i < allTags.Count; i++)
+				foreach (var row in HistoryData)
 				{
-					if (row.Tags.TryGetValue(allTags[i], out var value))
-						worksheet.Cell(rowIndex, i + 2).Value = value;
+					csv.Append(row.Timestamp.ToString("dd-MM-yyyy HH.mm.ss"));
+					foreach (var tag in allTags)
+					{
+						if (row.Tags.TryGetValue(tag, out var value))
+							csv.Append($",{value}");
+						else
+							csv.Append(",");
+					}
+					csv.AppendLine();
+
+					count++;
+					exportProgress = 30 + (count / (double)total * 60); // progress 30–90%
+					StateHasChanged();
 				}
-				rowIndex++;
+
+				await SimulateProgress(exportProgress, 95);
+
+				var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+				var fileName = $"HistoryData_{DateTime.Now:ddMMyyyyHHmmss}.csv";
+
+				using var stream = new MemoryStream(bytes);
+				using var streamRef = new DotNetStreamReference(stream);
+				await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+			}
+			else if (type.ToLower() == "excel")
+			{
+				using var workbook = new ClosedXML.Excel.XLWorkbook();
+				var worksheet = workbook.Worksheets.Add("History Data");
+
+				worksheet.Cell(1, 1).Value = "Timestamp";
+				for (int i = 0; i < allTags.Count; i++)
+					worksheet.Cell(1, i + 2).Value = allTags[i];
+
+				int rowIndex = 2;
+				int total = HistoryData.Count;
+				foreach (var row in HistoryData)
+				{
+					worksheet.Cell(rowIndex, 1).Value = row.Timestamp;
+					worksheet.Cell(rowIndex, 1).Style.DateFormat.Format = "dd-MM-yyyy HH.mm.ss";
+
+					for (int i = 0; i < allTags.Count; i++)
+					{
+						if (row.Tags.TryGetValue(allTags[i], out var value))
+							worksheet.Cell(rowIndex, i + 2).Value = value;
+					}
+					rowIndex++;
+
+					exportProgress = 30 + ((rowIndex - 1) / (double)total * 60);
+					StateHasChanged();
+				}
+
+				await SimulateProgress(exportProgress, 95);
+
+				using var stream = new MemoryStream();
+				workbook.SaveAs(stream);
+				stream.Position = 0;
+
+				var fileName = $"HistoryData_{DateTime.Now:ddMMyyyyHHmmss}.xlsx";
+
+				using var streamRef = new DotNetStreamReference(stream);
+				await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
 			}
 
-			worksheet.Columns().AdjustToContents();
-
-			using var stream = new MemoryStream();
-			workbook.SaveAs(stream);
-			stream.Position = 0;
-
-			var fileName = $"HistoryData_{DateTime.Now:ddMMyyyyHHmmss}.xlsx";
-
-			using var streamRef = new DotNetStreamReference(stream);
-			await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+			await SimulateProgress(95, 100);
+			NotificationService.Notify(NotificationSeverity.Success, "Export Selesai", $"Data berhasil diekspor ke format {type.ToUpper()}!");
 		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Export Gagal", $"Terjadi kesalahan: {ex.Message}");
+		}
+		finally
+		{
+			await Task.Delay(500);
+			isExport = false;
+			exportProgress = 0;
+			StateHasChanged();
+		}
+	}
 
-		isExport = false;
-		StateHasChanged();
+	private async Task SimulateProgress(double from, double to)
+	{
+		for (double i = from; i <= to; i += 5)
+		{
+			exportProgress = i;
+			StateHasChanged();
+			await Task.Delay(100);
+		}
 	}
 }

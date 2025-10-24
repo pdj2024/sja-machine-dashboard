@@ -42,7 +42,7 @@ namespace Services
 
 
         // Company Setting 
-        public string clientLogo = "images/logo_company_santos_landscape.png";
+        public string clientLogo = "images/logo_company_santos_square.png";
         public const string welcomeBackground = "images/lembah_metro.jpg";
         public string clientName = "Report Machine";
         public string jumlahDecimalQty = "N2";

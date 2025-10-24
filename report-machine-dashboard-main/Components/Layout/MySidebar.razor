@@ -17,8 +17,13 @@
 
 border: 0; margin: 0; margin-bottom: 0em !important">
 
-		<RadzenImage Path="@pdjService.clientLogo"
+		@* <RadzenImage Path="@pdjService.clientLogo"
 					 style="width: auto; height: 48px;
+                        border-radius: 10%;" /* Make the image circular * /
+					 AlternateText="Application logo">
+		</RadzenImage> *@
+		<RadzenImage Path="@pdjService.clientLogo"
+					 style="width: auto; height: 86px;
                         border-radius: 10%;" /* Make the image circular * /
 					 AlternateText="Application logo">
 		</RadzenImage>
@@ -134,7 +139,7 @@ border: 0; margin: 0; margin-bottom: 0em !important">
 
     <RadzenPanelMenu Style="width: 250px;" Click="(item) => OnItemClick(item)">
         <RadzenPanelMenuItem Text="Dashboard" Value="@("dashboard")" />
-        <RadzenPanelMenuItem Text="Real-Time" Value="@("realtime")" />
+        <RadzenPanelMenuItem Text="Realtime" Value="@("realtime")" />
         <RadzenPanelMenuItem Text="History" Value="@("history")" />
         <RadzenPanelMenuItem Text="Chart" Value="@("chart")" />
         @if (isAdmin)

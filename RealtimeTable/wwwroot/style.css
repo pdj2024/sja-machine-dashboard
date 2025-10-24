@@ -21,3 +21,17 @@
         border-radius: 3px;
     }
 }
+
+/* Pagination Table Radzen */
+.rz-tabview-nav .rz-state-focused:not(.rz-tabview-selected):not(.rz-state-disabled) {
+    background-color: var(--rz-pager-back-button-background-color);
+    color: #1e3a6a;
+}
+.rz-pager-page.rz-pager-element.rz-state-active.rz-state-focused {
+    background-color: #1e3a6a;
+    color: #ffffff;
+}
+.rz-pager-page.rz-state-active {
+    background-color: #1e3a6a;
+    color: #ffffff;
+}
