@@ -147,6 +147,9 @@
 									AllowSorting="true"
 									AllowPaging="true"
 									PageSize="10"
+									PageSizeOptions="@(new int[] { 10, 20, 50 })"
+									PagerHorizontalAlign="HorizontalAlign.Right"
+									ShowPagingSummary="true"
 									Style="margin-bottom: 5rem;">
 						<Columns>
 							<RadzenDataGridColumn TItem="TableRealtime" Property="Timestamp" Title="Timestamp">
@@ -165,6 +168,11 @@
 								</Template>
 							</RadzenDataGridColumn>
 						</Columns>
+
+						<PagingSummaryTemplate>
+							<RadzenIcon Icon="database" Style="color: var(--rz-primary); font-size: var(--rz-pager-summary-font-size);" />
+							Total page @context.CurrentPage of @context.NumberOfPages <b>(total @context.TotalCount data)</b>
+						</PagingSummaryTemplate>
 					</RadzenDataGrid>
 				</div>
 			</div>
@@ -311,7 +319,8 @@
 		{
 			if (SelectedColumns == null || !SelectedColumns.Any())
 			{
-				NotificationService.Notify(NotificationSeverity.Warning, "Kolom Tabel Belum Dipilih", "Silahkan pilih kolom terlebih dahulu!");
+				await OpenColumnSelectorPopup();
+				// NotificationService.Notify(NotificationSeverity.Warning, "Kolom Tabel Belum Dipilih", "Silahkan pilih kolom terlebih dahulu!");
 				return;
 			}
 
@@ -319,7 +328,7 @@
 			{
 				request_data = SelectedColumns.ToArray()
 			};
-			machineTable = await MachineService.GetTableBy(body, "tag", latestData: true);
+			machineTable = await MachineService.GetTableBy(body, "tag");
 
 			if (machineTable == null || machineTable.Count == 0)
 			{
@@ -332,7 +341,7 @@
 				.SelectMany(kvp => kvp.Value.Select(v => new TableRealtime
 				{
 					Measurement = kvp.Key,
-					Value = v.Value,
+					Value = Convert.ToDouble(v.Value),
 					Timestamp = Convert.ToDateTime(v.Timestamp)
 				}))
 				.OrderBy(x => x.Timestamp)
@@ -351,7 +360,7 @@
 			{
 				request_data = new[] { SelectedTable }
 			};
-			machineTable = await MachineService.GetTableBy(body, "table", latestData: true);
+			machineTable = await MachineService.GetTableBy(body, "table");
 
 			if (machineTable == null || machineTable.Count == 0)
 			{
@@ -364,7 +373,7 @@
 				.SelectMany(kvp => kvp.Value.Select(v => new TableRealtime
 				{
 					Measurement = kvp.Key,
-					Value = v.Value,
+					Value = Convert.ToDouble(v.Value),
 					Timestamp = Convert.ToDateTime(v.Timestamp)
 				}))
 				.OrderBy(x => x.Timestamp)

@@ -52,9 +52,10 @@
 		}
 	</div>
 
-	<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1rem" Class="mt-4">
+	<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" Class="mt-2">
 		@* <RadzenButton Text="Update" Click="CloseColumnSelectorPopup" ButtonStyle="ButtonStyle.Primary" /> *@
-		<RadzenButton Text="Update" Click="OnUpdateClick" ButtonStyle="ButtonStyle.Primary" />
+		<RadzenButton Text="Update" Click="OnUpdateClick" IsBusy="@isUpdate" ButtonStyle="ButtonStyle.Primary" />
+		<RadzenButton Text="Clear" Click="ClearSelectedColumn" ButtonStyle="ButtonStyle.Light" />
 	</RadzenStack>
 </RadzenStack>
 
@@ -62,11 +63,13 @@
 	[Parameter] public Dictionary<string, List<ColumnMachine>> MachineTags { get; set; } = new();
 	[Parameter] public HashSet<string> SelectedColumns { get; set; } = new();
 	[Parameter] public EventCallback<HashSet<string>> OnUpdate { get; set; }
+	[Parameter] public bool IsTable { get; set; } = false;
 
 	private List<TableModal> Tables { get; set; } = new();
 	private HashSet<string> CollapsedTables { get; set; } = new();
 
 	private const int MaxSelectedColumns = 8;
+	private bool isUpdate = false;
 
 	protected override void OnInitialized()
 	{
@@ -77,7 +80,7 @@
 			{
 				FullName = $"{mt.Key}.{c.NamaTag}",
 				DisplayName = c.NamaTag,
-				Description = c.Deskripsi
+				Description = c.AliasPendek
 			}).ToList()
 		}).ToList();
 
@@ -106,7 +109,7 @@
 		if (isSelected == true)
 		{
 			// Pembatasan pemilihan kolom
-			if (SelectedColumns.Count >= MaxSelectedColumns)
+			if (SelectedColumns.Count >= MaxSelectedColumns && !IsTable)
 			{
 				NotificationService.Notify(new NotificationMessage
 				{
@@ -128,8 +131,19 @@
 
 	private async Task OnUpdateClick()
 	{
+		isUpdate = true;
+		StateHasChanged();
+		
 		await OnUpdate.InvokeAsync(SelectedColumns);
+
+		isUpdate = false;
+		StateHasChanged();
 		DialogService.Close(SelectedColumns);
+	}
+
+	private void ClearSelectedColumn()
+	{
+		SelectedColumns.Clear();
 	}
 
 	private void CloseColumnSelectorPopup()

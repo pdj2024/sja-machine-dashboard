@@ -11,12 +11,25 @@
     </RadzenColumn>
     <RadzenColumn Size="7">
         <RadzenStack AlignItems="AlignItems.Center" Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.End">
-            @if (!string.IsNullOrEmpty(username))
-            {
-                <span style="font-weight: 600; color: #1e3a6a;">@username</span>
-            }
+            <RadzenProfileMenu>
+                <Template>
+                    <img src="images/default-avatar.jpg" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; margin-right: 5px;" />
 
-            <a href="/logout"><RadzenButton Icon="exit_to_app" Style="background-color: transparent; color: #1e3a6a;   text-align: center !important;" Text="Logout" /></a>
+                    @if (!string.IsNullOrEmpty(username))
+                    {
+                        <span style="font-weight: 600; color: #1e3a6a;">@username</span>
+                    }
+                    else
+                    {
+                        <span style="font-weight: 600; color: #1e3a6a;">Username</span>
+                    }
+                </Template>
+                <ChildContent>
+                    <RadzenProfileMenuItem Text="Logout" Path="logout" Icon="logout"></RadzenProfileMenuItem>
+                </ChildContent>
+            </RadzenProfileMenu>
+
+            @* <a href="/logout"><RadzenButton Icon="exit_to_app" Style="background-color: transparent; color: #1e3a6a;   text-align: center !important;" Text="Logout" /></a> *@
            
         </RadzenStack>
     </RadzenColumn>

@@ -9,7 +9,7 @@
 		<div class="card border shadow-xs mb-4">
 			@* Header Table *@
 			<div class="card-header border-bottom pb-0">
-				<div class="d-sm-flex align-items-center">
+				<div class="d-flex flex-wrap align-items-center">
 					<div>
 						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Table History</h6>
 						<p class="text-sm">Menampilkan seluruh data dari setiap tabel yang tersedia dengan lengkap dan terstruktur.</p>
@@ -26,7 +26,7 @@
 					</div>
 					<div class="ms-auto d-flex">
 						@* Export Button *@
-						<ButtonExportTable IsExporting="@isExport" OnExportClick="ExportTable" ExportOptions="@ExportOptions" />
+						<ButtonExportTable IsExporting="@isExport" OnExportClick="ExportTables" ExportOptions="@ExportOptions" />
 					</div>
 				</div>
 			</div>
@@ -52,12 +52,7 @@
 
 						@if (SelectedFilterMode == "Table")
 						{
-							<RadzenFormField AllowFloatingLabel="false" Text="Pilih Tabel">
-								<RadzenDropDown @bind-Value="SelectedTable"
-												Data="tablesForUI.Select(t => t.Name).ToList()"
-												Change="@OnTableSelectionChanged"
-												Style="width:200px" />
-							</RadzenFormField>
+							<RadzenButton Text="Pilih Tabel" Icon="checklist" Click="OpenTableSelectorPopup" />
 						}
 						else if (SelectedFilterMode == "Column")
 						{
@@ -88,59 +83,136 @@
 					@if (SelectedFilterMode == "Table")
 					{
 						<div class="mb-3">
-							@if (!string.IsNullOrEmpty(SelectedTable))
+							@if (SelectedTables != null && SelectedTables.Any())
 							{
-								var sel = tablesForUI.FirstOrDefault(t => t.Name == SelectedTable);
-								if (sel != null)
+								@foreach (var tableName in SelectedTables)
 								{
-									<div class="border rounded p-3 mb-3 bg-light">
-										<h6 class="fw-semibold mb-3">
-											List Kolom dari tabel <b>@sel.Name</b>
-										</h6>
+									var sel = tablesForUI.FirstOrDefault(t => t.Name == tableName);
+									if (sel != null)
+									{
+										<div class="border rounded p-3 mb-3 bg-light">
+											<h6 class="fw-semibold mb-3">
+												List Kolom dari tabel <b>@sel.Name</b>
+											</h6>
 
-										@foreach (var column in sel.Columns)
-										{
-											<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
-												<span class="ms-1">@column.DisplayName</span>
-											</div>
-										}
-									</div>
+											@if (sel.Columns != null && sel.Columns.Any())
+											{
+												@foreach (var column in sel.Columns)
+												{
+													<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
+														<span class="ms-1">@column.DisplayName</span>
+														@* <span class="text-muted">(@column.Description)</span> *@
+													</div>
+												}
+											}
+											else
+											{
+												<div class="text-muted fst-italic">
+													Tabel ini belum memiliki kolom.
+												</div>
+											}
+										</div>
+									}
 								}
-							}
-							else
-							{
-								<div class="text-muted fst-italic">Pilih tabel dari dropdown untuk melihat kolomnya.</div>
 							}
 						</div>
 					}
+
 				</div>
 
 				<div class="table-responsive p-0">
 					@* Table History *@
-					<RadzenDataGrid Data="@HistoryData" TItem="TableColumn" ColumnWidth="200px" AllowSorting="true" AllowPaging="true" PageSize="10" Style="margin-bottom: 5rem;">
-						<Columns>
-							<RadzenDataGridColumn TItem="TableColumn" Property="Timestamp" Title="Timestamp">
-								<Template Context="data">
-									@data.Timestamp.ToString("dd-MM-yyyy HH:mm:ss")
-								</Template>
-							</RadzenDataGridColumn>
-							@foreach (var tag in HistoryData.SelectMany(h => h.Tags.Keys).Distinct())
-							{
-								<RadzenDataGridColumn TItem="TableColumn" Title="@tag">
+					@if (SelectedFilterMode == "Column" && SelectedColumns.Any())
+					{
+						<RadzenDataGrid Data="@HistoryData"
+										TItem="TableColumn"
+										ColumnWidth="200px"
+										AllowSorting="true"
+										AllowPaging="true"
+										PageSize="10"
+										PageSizeOptions="@(new int[] { 10, 20, 50 })"
+										PagerHorizontalAlign="HorizontalAlign.Right"
+										ShowPagingSummary="true"
+										Style="margin-bottom: 5rem;">
+
+							<Columns>
+								<RadzenDataGridColumn TItem="TableColumn" Property="Timestamp" Title="Timestamp">
 									<Template Context="data">
-										@if (data.Tags.TryGetValue(tag, out var value))
-										{
-											@value
-										}
+										@data.Timestamp.ToString("dd-MM-yyyy HH:mm:ss")
 									</Template>
 								</RadzenDataGridColumn>
+								@foreach (var tag in HistoryData.SelectMany(h => h.Tags.Keys).Distinct())
+								{
+									<RadzenDataGridColumn TItem="TableColumn" Title="@tag">
+										<Template Context="data">
+											@if (data.Tags.TryGetValue(tag, out var value))
+											{
+												@value
+											}
+										</Template>
+									</RadzenDataGridColumn>
+								}
+							</Columns>
+
+							<PagingSummaryTemplate>
+								<RadzenIcon Icon="database" Style="color: var(--rz-primary); font-size: var(--rz-pager-summary-font-size);" />
+								Total page @context.CurrentPage of @context.NumberOfPages <b>(total @context.TotalCount data)</b>
+							</PagingSummaryTemplate>
+						</RadzenDataGrid>
+					}
+
+					@if (SelectedFilterMode == "Table")
+					{
+						@if (MultiTableData.Any())
+						{
+							foreach (var table in MultiTableData)
+							{
+								<h5 class="ms-2 mt-4 mb-2 fw-bold" style="color: #1e3a6a;">Tabel: @table.Key</h5>
+
+								<RadzenDataGrid Data="@table.Value"
+												TItem="TableColumn"
+												ColumnWidth="200px"
+												AllowSorting="true"
+												AllowPaging="true"
+												PageSize="10"
+												PageSizeOptions="@(new int[] { 10, 20, 50 })"
+												PagerHorizontalAlign="HorizontalAlign.Right"
+												ShowPagingSummary="true"
+												Style="margin-bottom: 5rem;">
+
+									<Columns>
+										<RadzenDataGridColumn TItem="TableColumn" Property="Timestamp" Title="Timestamp">
+											<Template Context="data">
+												@data.Timestamp.ToString("dd-MM-yyyy HH:mm:ss")
+											</Template>
+										</RadzenDataGridColumn>
+
+										@foreach (var tag in table.Value.SelectMany(h => h.Tags.Keys).Distinct())
+										{
+											<RadzenDataGridColumn TItem="TableColumn" Title="@tag">
+												<Template Context="data">
+													@if (data.Tags.TryGetValue(tag, out var value))
+													{
+														@value
+													}
+												</Template>
+											</RadzenDataGridColumn>
+										}
+									</Columns>
+
+									<PagingSummaryTemplate>
+										<RadzenIcon Icon="database" Style="color: var(--rz-primary); font-size: var(--rz-pager-summary-font-size);" />
+										Total page @context.CurrentPage of @context.NumberOfPages <b>(total @context.TotalCount data)</b>
+									</PagingSummaryTemplate>
+								</RadzenDataGrid>
 							}
-						</Columns>
-					</RadzenDataGrid>
+						}
+					}
+
 				</div>
 			</div>
 		</div>
-		
+
 	</RadzenColumn>
 </RadzenRow>
 
@@ -153,7 +225,8 @@
 	private List<TableColumn> HistoryData = new();
 	private bool ExportSelectedRowsOnly { get; set; }
 
-	private string SelectedTable = "";
+	private Dictionary<string, List<TableColumn>> MultiTableData = new();
+	private HashSet<string> SelectedTables = new();
 	private HashSet<string> SelectedColumns = new();
 	private HashSet<string> CollapsedTables = new();
 	private bool isColumnSelectorVisible = false;
@@ -162,8 +235,8 @@
 	private List<string> FilterModes = new() { "Column", "Table" };
 	private string SelectedFilterMode = "Table";
 
-	private DateTime? StartDate = DateTime.Now;
-	private DateTime? EndDate = DateTime.Now;
+	private DateTime? StartDate = DateTime.Now.ToLocalTime().Date;
+	private DateTime? EndDate = DateTime.Now.ToLocalTime();
 
 	private bool isLoading = false;
 	private bool isUpdateTable = false;
@@ -198,17 +271,17 @@
 				{
 					FullName = $"{kvp.Key}.{tag.NamaTag}",
 					DisplayName = tag.NamaTag,
-					Description = tag.Deskripsi
+					Description = tag.AliasPendek
 				}).ToList() ?? new List<ColumnModal>()
 			}).ToList();
 
-			if (tablesForUI.Any())
-			{
-				CollapsedTables = tablesForUI.Skip(1).Select(t => t.Name).ToHashSet();
+			// if (tablesForUI.Any())
+			// {
+			// 	CollapsedTables = tablesForUI.Skip(1).Select(t => t.Name).ToHashSet();
 
-				SelectedTable = tablesForUI.Select(t => t.Name).First();
-				OnTableSelectionChanged(SelectedTable);
-			}
+			// 	SelectedTable = tablesForUI.Select(t => t.Name).First();
+			// 	OnTableSelectionChanged(SelectedTable);
+			// }
 		}
 		catch (Exception ex)
 		{
@@ -224,6 +297,7 @@
 	private async Task UpdateTable()
 	{
 		HistoryData.Clear();
+		MultiTableData.Clear();
 		isUpdateTable = true;
 		StateHasChanged();
 
@@ -234,7 +308,7 @@
 			{
 				if (SelectedColumns == null || !SelectedColumns.Any())
 				{
-					NotificationService.Notify(NotificationSeverity.Warning, "Kolom Tabel Belum Dipilih", "Silahkan pilih kolom terlebih dahulu!");
+					await OpenColumnSelectorPopup();
 					return;
 				}
 
@@ -244,7 +318,7 @@
 					tgl_finish = EndDate,
 					request_data = SelectedColumns.ToArray()
 				};
-				machineTable = await MachineService.GetTableBy(body, "tag", latestData: false);
+				machineTable = await MachineService.GetTableBy(body, "tag");
 
 				if (machineTable == null || machineTable.Count == 0)
 				{
@@ -264,7 +338,10 @@
 					.Select(g => new TableColumn
 					{
 						Timestamp = Convert.ToDateTime(g.Key),
-						Tags = g.ToDictionary(x => x.Tag, x => x.Value)
+						Tags = g.ToDictionary(
+							x => x.Tag,
+							x => x.Value != null ? x.Value.ToString() : "null"
+						)
 					})
 					.OrderBy(x => x.Timestamp)
 					.ToList();
@@ -272,37 +349,12 @@
 			// Table Mode
 			else
 			{
-				if (string.IsNullOrEmpty(SelectedTable)) return;
-
-				var sel = tablesForUI.FirstOrDefault(t => t.Name == SelectedTable);
-
-				if (sel == null) return;
-
-				var body = new
+				if (!SelectedTables.Any())
 				{
-					tgl_start = StartDate,
-					tgl_finish = EndDate,
-					request_data = new[] { SelectedTable }
-				};
-				machineTable = await MachineService.GetTableBy(body, "table", latestData: false);
-
-				if (machineTable == null || machineTable.Count == 0)
-				{
-					HistoryData = new List<TableColumn>();
-					StateHasChanged();
+					await OpenTableSelectorPopup();
 					return;
 				}
-
-				HistoryData = machineTable
-					.SelectMany(kvp => kvp.Value.Select(v => new { Tag = kvp.Key, v.Timestamp, v.Value }))
-					.GroupBy(x => x.Timestamp)
-					.Select(g => new TableColumn
-					{
-						Timestamp = Convert.ToDateTime(g.Key),
-						Tags = g.ToDictionary(x => x.Tag, x => x.Value)
-					})
-					.OrderBy(x => x.Timestamp)
-					.ToList();
+				await LoadMultipleTables();
 			}
 		}
 		finally
@@ -324,25 +376,79 @@
 	// Pilih Mode Filter
 	private void OnFilterModeChanged(object value)
 	{
+		if (SelectedFilterMode == "Column")
+		{
+			MultiTableData.Clear();
+		}
+		else
+		{
+			HistoryData.Clear();
+		}
 		StateHasChanged();
 	}
 
-	// Pilih Tabel di Mode Filter "Table"
-	private void OnTableSelectionChanged(object value)
+	// Load Data Tables untuk Mode Filter "Table"
+	private async Task LoadMultipleTables()
 	{
-		if (SelectedFilterMode == "Table" && value is string tableName)
+		MultiTableData.Clear();
+
+		foreach (var tableName in SelectedTables)
 		{
-			var selectedTableInfo = Tables.FirstOrDefault(t => t.Name == tableName);
-			if (selectedTableInfo?.Columns != null)
+			var body = new
 			{
-				SelectedColumns = selectedTableInfo.Columns.Select(c => c.FullName).ToHashSet();
-			}
-			else
+				tgl_start = StartDate,
+				tgl_finish = EndDate,
+				request_data = new[] { tableName }
+			};
+
+			var result = await MachineService.GetTableBy(body, "table");
+			if (result != null && result.Any())
 			{
-				SelectedColumns.Clear();
+				var historyData = result
+					.SelectMany(kvp => kvp.Value.Select(v => new { Tag = kvp.Key, v.Timestamp, v.Value }))
+					.GroupBy(x => x.Timestamp)
+					.Select(g => new TableColumn
+					{
+						Timestamp = Convert.ToDateTime(g.Key),
+						Tags = g.ToDictionary(x => x.Tag, x => x.Value == null ? "null" : x.Value.ToString())
+					})
+					.OrderBy(x => x.Timestamp)
+					.ToList();
+
+				MultiTableData[tableName] = historyData;
 			}
 		}
+
 		StateHasChanged();
+	}
+
+	// Modal Pilih Kolom untuk Mode Filter "Table"
+	private async Task OpenTableSelectorPopup()
+	{
+		var result = await DialogService.OpenAsync<DialogTableChoose>("Pilih Tabel",
+			new Dictionary<string, object>
+			{
+			{ "AllTables", tablesForUI },
+			{ "SelectedTables", SelectedTables },
+			{ "OnUpdate", EventCallback.Factory.Create<HashSet<string>>(this, async (tables) =>
+				{
+					SelectedTables = tables;
+					await UpdateTable();
+				})
+			}
+			},
+			new DialogOptions
+			{
+				Width = "600px",
+				Resizable = true,
+				Draggable = true
+			});
+
+		if (result is HashSet<string> selected)
+		{
+			SelectedTables = selected;
+			StateHasChanged();
+		}
 	}
 
 	// Modal Pilih Kolom untuk Mode Filter "Column"
@@ -358,7 +464,8 @@
 						SelectedColumns = cols;
 						await UpdateTable();
 					})
-				}
+				},
+				{ "IsTable", true }
 			},
 			new DialogOptions
 			{
@@ -381,7 +488,7 @@
 	}
 
 	// --- Export function ---
-	public async Task ExportTable(string type)
+	public async Task ExportTables(string type)
 	{
 		isExport = true;
 		exportProgress = 0;
@@ -390,7 +497,8 @@
 
 		try
 		{
-			if (HistoryData == null || !HistoryData.Any())
+			// Jika tidak ada data sama sekali
+			if ((HistoryData == null || !HistoryData.Any()) && (MultiTableData == null || !MultiTableData.Any()))
 			{
 				NotificationService.Notify(NotificationSeverity.Warning, "Export Gagal", "Tidak ada data untuk diekspor.");
 				isExport = false;
@@ -399,88 +507,128 @@
 				return;
 			}
 
-			var allTags = HistoryData
-				.SelectMany(h => h.Tags.Keys)
-				.Distinct()
-				.ToList();
-
 			await SimulateProgress(0, 30);
 
-			if (type.ToLower() == "csv")
+			// =======================
+			// MODE: Column (HistoryData tunggal)
+			// =======================
+			if (HistoryData != null && HistoryData.Any())
 			{
-				var csv = new StringBuilder();
-
-				csv.Append("Timestamp");
-				foreach (var tag in allTags)
-					csv.Append($",{tag}");
-				csv.AppendLine();
-
-				int count = 0;
-				int total = HistoryData.Count;
-
-				foreach (var row in HistoryData)
-				{
-					csv.Append(row.Timestamp.ToString("dd-MM-yyyy HH.mm.ss"));
-					foreach (var tag in allTags)
-					{
-						if (row.Tags.TryGetValue(tag, out var value))
-							csv.Append($",{value}");
-						else
-							csv.Append(",");
-					}
-					csv.AppendLine();
-
-					count++;
-					exportProgress = 30 + (count / (double)total * 60); // progress 30–90%
-					StateHasChanged();
-				}
-
-				await SimulateProgress(exportProgress, 95);
-
-				var bytes = Encoding.UTF8.GetBytes(csv.ToString());
-				var fileName = $"HistoryData_{DateTime.Now:ddMMyyyyHHmmss}.csv";
-
-				using var stream = new MemoryStream(bytes);
-				using var streamRef = new DotNetStreamReference(stream);
-				await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+				await ExportSingleTable(HistoryData, "HistoryData", type);
 			}
-			else if (type.ToLower() == "excel")
+			// =======================
+			// MODE: Multi-Table
+			// =======================
+			else if (MultiTableData != null && MultiTableData.Any())
 			{
-				using var workbook = new ClosedXML.Excel.XLWorkbook();
-				var worksheet = workbook.Worksheets.Add("History Data");
-
-				worksheet.Cell(1, 1).Value = "Timestamp";
-				for (int i = 0; i < allTags.Count; i++)
-					worksheet.Cell(1, i + 2).Value = allTags[i];
-
-				int rowIndex = 2;
-				int total = HistoryData.Count;
-				foreach (var row in HistoryData)
+				if (type.ToLower() == "excel")
 				{
-					worksheet.Cell(rowIndex, 1).Value = row.Timestamp;
-					worksheet.Cell(rowIndex, 1).Style.DateFormat.Format = "dd-MM-yyyy HH.mm.ss";
+					using var workbook = new ClosedXML.Excel.XLWorkbook();
 
-					for (int i = 0; i < allTags.Count; i++)
+					foreach (var tablePair in MultiTableData)
 					{
-						if (row.Tags.TryGetValue(allTags[i], out var value))
-							worksheet.Cell(rowIndex, i + 2).Value = value;
+						var tableName = tablePair.Key;
+						var tableData = tablePair.Value;
+
+						if (tableData == null || !tableData.Any())
+							continue;
+
+						var allTags = tableData
+							.SelectMany(h => h.Tags.Keys)
+							.Distinct()
+							.ToList();
+
+						var worksheet = workbook.Worksheets.Add(tableName.Length > 31 ? tableName[..31] : tableName);
+
+						worksheet.Cell(1, 1).Value = "Timestamp";
+						for (int i = 0; i < allTags.Count; i++)
+							worksheet.Cell(1, i + 2).Value = allTags[i];
+
+						int rowIndex = 2;
+						int total = tableData.Count;
+
+						foreach (var row in tableData)
+						{
+							worksheet.Cell(rowIndex, 1).Value = row.Timestamp;
+							worksheet.Cell(rowIndex, 1).Style.DateFormat.Format = "dd-MM-yyyy HH.mm.ss";
+
+							for (int i = 0; i < allTags.Count; i++)
+							{
+								if (row.Tags.TryGetValue(allTags[i], out var value))
+									worksheet.Cell(rowIndex, i + 2).Value = value;
+							}
+
+							rowIndex++;
+							exportProgress = 30 + Math.Round(((rowIndex - 1) / (double)total * 60 / MultiTableData.Count));
+							StateHasChanged();
+						}
+
+						worksheet.Columns().AdjustToContents();
 					}
-					rowIndex++;
 
-					exportProgress = 30 + ((rowIndex - 1) / (double)total * 60);
-					StateHasChanged();
+					await SimulateProgress(exportProgress, 95);
+
+					using var stream = new MemoryStream();
+					workbook.SaveAs(stream);
+					stream.Position = 0;
+
+					var fileName = $"AllTables_{DateTime.Now:ddMMyyyyHHmmss}.xlsx";
+					using var streamRef = new DotNetStreamReference(stream);
+					await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
 				}
+				else if (type.ToLower() == "csv")
+				{
+					// CSV dibuat per tabel (karena CSV tidak mendukung multi-sheet)
+					foreach (var tablePair in MultiTableData)
+					{
+						var tableName = tablePair.Key;
+						var tableData = tablePair.Value;
 
-				await SimulateProgress(exportProgress, 95);
+						if (tableData == null || !tableData.Any())
+							continue;
 
-				using var stream = new MemoryStream();
-				workbook.SaveAs(stream);
-				stream.Position = 0;
+						var allTags = tableData
+							.SelectMany(h => h.Tags.Keys)
+							.Distinct()
+							.ToList();
 
-				var fileName = $"HistoryData_{DateTime.Now:ddMMyyyyHHmmss}.xlsx";
+						var csv = new StringBuilder();
 
-				using var streamRef = new DotNetStreamReference(stream);
-				await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+						csv.Append("Timestamp");
+						foreach (var tag in allTags)
+							csv.Append($",{tag}");
+						csv.AppendLine();
+
+						int count = 0;
+						int total = tableData.Count;
+
+						foreach (var row in tableData)
+						{
+							csv.Append(row.Timestamp.ToString("dd-MM-yyyy HH.mm.ss"));
+							foreach (var tag in allTags)
+							{
+								if (row.Tags.TryGetValue(tag, out var value))
+									csv.Append($",{value}");
+								else
+									csv.Append(",");
+							}
+							csv.AppendLine();
+
+							count++;
+							exportProgress = 30 + Math.Round((count / (double)total * 60 / MultiTableData.Count));
+							StateHasChanged();
+						}
+
+						await SimulateProgress(exportProgress, 95);
+
+						var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+						var fileName = $"{tableName}_{DateTime.Now:ddMMyyyyHHmmss}.csv";
+
+						using var stream = new MemoryStream(bytes);
+						using var streamRef = new DotNetStreamReference(stream);
+						await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+					}
+				}
 			}
 
 			await SimulateProgress(95, 100);
@@ -499,11 +647,95 @@
 		}
 	}
 
+	private async Task ExportSingleTable(List<TableColumn> tableData, string sheetName, string type)
+	{
+		var allTags = tableData
+			.SelectMany(h => h.Tags.Keys)
+			.Distinct()
+			.ToList();
+
+		if (type.ToLower() == "csv")
+		{
+			var csv = new StringBuilder();
+			csv.Append("Timestamp");
+			foreach (var tag in allTags)
+				csv.Append($",{tag}");
+			csv.AppendLine();
+
+			int count = 0;
+			int total = tableData.Count;
+
+			foreach (var row in tableData)
+			{
+				csv.Append(row.Timestamp.ToString("dd-MM-yyyy HH.mm.ss"));
+				foreach (var tag in allTags)
+				{
+					if (row.Tags.TryGetValue(tag, out var value))
+						csv.Append($",{value}");
+					else
+						csv.Append(",");
+				}
+				csv.AppendLine();
+
+				count++;
+				exportProgress = 30 + Math.Round((count / (double)total * 60));
+				StateHasChanged();
+			}
+
+			await SimulateProgress(exportProgress, 95);
+
+			var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+			var fileName = $"{sheetName}_{DateTime.Now:ddMMyyyyHHmmss}.csv";
+
+			using var stream = new MemoryStream(bytes);
+			using var streamRef = new DotNetStreamReference(stream);
+			await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+		}
+		else if (type.ToLower() == "excel")
+		{
+			using var workbook = new ClosedXML.Excel.XLWorkbook();
+			var worksheet = workbook.Worksheets.Add(sheetName);
+
+			worksheet.Cell(1, 1).Value = "Timestamp";
+			for (int i = 0; i < allTags.Count; i++)
+				worksheet.Cell(1, i + 2).Value = allTags[i];
+
+			int rowIndex = 2;
+			int total = tableData.Count;
+
+			foreach (var row in tableData)
+			{
+				worksheet.Cell(rowIndex, 1).Value = row.Timestamp;
+				worksheet.Cell(rowIndex, 1).Style.DateFormat.Format = "dd-MM-yyyy HH.mm.ss";
+
+				for (int i = 0; i < allTags.Count; i++)
+				{
+					if (row.Tags.TryGetValue(allTags[i], out var value))
+						worksheet.Cell(rowIndex, i + 2).Value = value;
+				}
+
+				rowIndex++;
+				exportProgress = 30 + Math.Round(((rowIndex - 1) / (double)total * 60));
+				StateHasChanged();
+			}
+
+			await SimulateProgress(exportProgress, 95);
+
+			using var stream = new MemoryStream();
+			workbook.SaveAs(stream);
+			stream.Position = 0;
+
+			var fileName = $"{sheetName}_{DateTime.Now:ddMMyyyyHHmmss}.xlsx";
+			using var streamRef = new DotNetStreamReference(stream);
+			await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+		}
+	}
+
 	private async Task SimulateProgress(double from, double to)
 	{
 		for (double i = from; i <= to; i += 5)
 		{
-			exportProgress = i;
+			exportProgress = Math.Round(i);
 			StateHasChanged();
 			await Task.Delay(100);
 		}

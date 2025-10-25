@@ -14,7 +14,7 @@
 		<div class="card border shadow-xs mb-4">
 			@* Header Table *@
 			<div class="card-header border-bottom pb-0">
-				<div class="d-sm-flex align-items-center">
+				<div class="d-flex flex-wrap align-items-center">
 					<div>
 						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Table History</h6>
 						<p class="text-sm">Menampilkan seluruh data dari setiap tabel yang tersedia dengan lengkap dan terstruktur.</p>
@@ -34,7 +34,7 @@
 				<div class="border-bottom py-3 px-3">
 					@* Filtering Data *@
 					<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
-						<RadzenFormField AllowFloatingLabel="false" Text="Status" class="text-primary">
+						<RadzenFormField AllowFloatingLabel="false" Text="Status">
 							<RadzenDropDown TValue="string"
 											Data="@StatusDropdown"
 											@bind-Value="filterStatus"
@@ -43,10 +43,9 @@
 											AllowClear="true"
 											AllowFiltering="true"
 											FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-											class="status-select"
 											Change="LoadData" />
 						</RadzenFormField>
-						<RadzenFormField AllowFloatingLabel="false" Text="Role" class="text-primary">
+						<RadzenFormField AllowFloatingLabel="false" Text="Role">
 							<RadzenDropDown TValue="string"
 											Data="@RoleDropdown"
 											@bind-Value="filterRole"
@@ -55,7 +54,6 @@
 											AllowClear="true"
 											AllowFiltering="true"
 											FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-											class="status-select"
 											Change="LoadData" />
 						</RadzenFormField>
 						@* <RadzenFormField AllowFloatingLabel="false" Text="Cari Username">
@@ -71,11 +69,18 @@
 
 				<div class="table-responsive p-0">
 					@* Table User *@
-					<RadzenDataGrid Data="@userList" TItem="User" ColumnWidth="200px" AllowSorting="true" AllowPaging="true" PageSize="10" Style="margin-bottom: 5rem;">
+					<RadzenDataGrid Data="@userList"
+									TItem="User"
+									ColumnWidth="200px"
+									AllowSorting="true"
+									AllowPaging="true"
+									AllowRowSelectOnRowClick="true"
+									SelectionMode="DataGridSelectionMode.Single"
+									RowSelect="@EditUser"
+									PageSize="10"
+									Style="margin-bottom: 5rem;">
 						<Columns>
-							<RadzenDataGridColumn TItem="User" Property="No_Id" Title="ID" />
 							<RadzenDataGridColumn TItem="User" Property="Username" Title="Username" />
-							@* <RadzenDataGridColumn TItem="User" Property="Password" Title="Password" /> *@
 							<RadzenDataGridColumn TItem="User" Property="Role" Title="Role" />
 							<RadzenDataGridColumn TItem="User" Property="Status" Title="Status" />
 							<RadzenDataGridColumn TItem="User" Title="Aksi">
@@ -84,6 +89,7 @@
 												  ButtonStyle="ButtonStyle.Primary"
 												  Size="ButtonSize.Small"
 												  Click="@(args => EditUser(data))"
+												  @onclick:stopPropagation="true"
 												  Text="Edit" />
 								</Template>
 							</RadzenDataGridColumn>
@@ -100,6 +106,7 @@
 @code {
 	private IEnumerable<User> user;
 	private List<User> userList = new();
+	private User? selectedUser;
 
 	private string? searchName;
 	private string? filterStatus;

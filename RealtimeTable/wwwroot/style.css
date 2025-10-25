@@ -35,3 +35,46 @@
     background-color: #1e3a6a;
     color: #ffffff;
 }
+
+/* Notification Radzen */
+.rz-notification {
+    top: 0px !important;
+    right: 20px !important;
+    left: auto !important;
+    bottom: auto !important;
+    z-index: 99999 !important;
+}
+/* SUCCESS */
+.rz-notification-success .rz-notification-item {
+    background-color: #00D390 !important;
+    color: #09090B !important;
+}
+
+/* INFO */
+.rz-notification-info .rz-notification-item {
+    background-color: #00BAFE !important;
+    color: #09090B !important;
+}
+
+/* WARNING */
+.rz-notification-warn .rz-notification-item {
+    background-color: #FCB700 !important;
+    color: #09090B !important;
+}
+
+/* ERROR */
+.rz-notification-error .rz-notification-item {
+    background-color: #FF627D !important;
+    color: #09090B !important;
+}
+
+/* Row Table Clicked Radzen */
+.rz-state-highlight.rz-data-row {
+    background-color: #ffff00 !important;
+}
+
+/* Profile Menu Radzen */
+ul.rz-profile-menu {
+    padding-block: 0;
+    border-inline-start: 0;
+}

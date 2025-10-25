@@ -1,0 +1,121 @@
+﻿@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<RadzenStack Orientation="Orientation.Vertical">
+	<div style="max-height: 450px; overflow-y: auto;">
+		@if (AllTables == null || !AllTables.Any())
+		{
+			<p class="text-muted fst-italic">Tidak ada tabel tersedia.</p>
+		}
+		else
+		{
+			@foreach (var table in AllTables)
+			{
+				<div class="table-section mb-2 border rounded">
+					<!-- Header -->
+					<div class="table-header d-flex justify-content-between align-items-center p-2"
+						 style="cursor: pointer; background: #f8f9fa;"
+						 @onclick="@(() => ToggleCollapse(table.Name))">
+						<div class="d-flex align-items-center">
+							<RadzenCheckBox TValue="bool"
+											Value="@SelectedTables.Contains(table.Name)"
+											Change="(args) => ToggleTableSelection(table.Name, args)"
+											@onclick:stopPropagation=true />
+							<span class="ms-2 fw-semibold">Tabel @table.Name</span>
+						</div>
+						<div class="d-flex align-items-center text-muted">
+							<span class="me-2">@($"{table.Columns?.Count ?? 0} kolom")</span>
+							<i class="material-symbols-rounded" style="@GetCollapseStyle(table.Name)">expand_more</i>
+						</div>
+					</div>
+
+					<!-- Body -->
+					@if (!CollapsedTables.Contains(table.Name))
+					{
+						<div class="p-2 ps-4 bg-light border-top">
+							@if (table.Columns == null || !table.Columns.Any())
+							{
+								<span class="text-muted fst-italic">Tidak ada kolom di tabel ini.</span>
+							}
+							else
+							{
+								<ul class="list-unstyled mb-0">
+									@foreach (var column in table.Columns)
+									{
+										<li class="mb-1">
+											<span class="fw-semibold">@column.DisplayName</span>
+											<span class="text-muted ms-1">(@column.Description)</span>
+										</li>
+									}
+								</ul>
+							}
+						</div>
+					}
+				</div>
+			}
+		}
+	</div>
+
+	<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" Class="mt-3">
+		<RadzenButton Text="Update" Click="OnUpdateClick" IsBusy="@isUpdate" ButtonStyle="ButtonStyle.Primary" />
+		<RadzenButton Text="Clear" Click="ClearSelectedTables" ButtonStyle="ButtonStyle.Light" />
+	</RadzenStack>
+</RadzenStack>
+
+@code {
+	[Parameter] public List<TableModal> AllTables { get; set; } = new();
+	[Parameter] public HashSet<string> SelectedTables { get; set; } = new();
+	[Parameter] public EventCallback<HashSet<string>> OnUpdate { get; set; }
+
+	private HashSet<string> CollapsedTables { get; set; } = new();
+	private bool isUpdate = false;
+
+	protected override void OnInitialized()
+	{
+		// Collapse semua tabel
+		if (AllTables.Any())
+		{
+			CollapsedTables = AllTables.Select(t => t.Name).ToHashSet();
+		}
+	}
+
+	private void ToggleCollapse(string tableName)
+	{
+		if (CollapsedTables.Contains(tableName))
+			CollapsedTables.Remove(tableName);
+		else
+			CollapsedTables.Add(tableName);
+	}
+
+	private string GetCollapseStyle(string tableName)
+	{
+		return CollapsedTables.Contains(tableName)
+			? "transform: rotate(-90deg); transition: transform 0.2s;"
+			: "transition: transform 0.2s;";
+	}
+
+	private void ToggleTableSelection(string tableName, bool? isSelected)
+	{
+		if (isSelected == true)
+			SelectedTables.Add(tableName);
+		else
+			SelectedTables.Remove(tableName);
+	}
+
+	private async Task OnUpdateClick()
+	{
+		isUpdate = true;
+		StateHasChanged();
+
+		await OnUpdate.InvokeAsync(SelectedTables);
+
+		isUpdate = false;
+		StateHasChanged();
+		DialogService.Close(SelectedTables);
+	}
+
+	private void ClearSelectedTables()
+	{
+		SelectedTables.Clear();
+	}
+}

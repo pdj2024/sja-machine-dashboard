@@ -52,6 +52,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXERpYWxvZ0NvbHVtbkNob29zZS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
+[D:/Visual Studio/Blazor/report-machine-dashboard/RealtimeTable/Shared/DialogTableChoose.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXERpYWxvZ1RhYmxlQ2hvb3NlLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
 [D:/Visual Studio/Blazor/report-machine-dashboard/RealtimeTable/Shared/FilterDateTimeButton.razor]
 build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXEZpbHRlckRhdGVUaW1lQnV0dG9uLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 

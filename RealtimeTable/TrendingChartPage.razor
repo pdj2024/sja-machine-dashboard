@@ -9,7 +9,7 @@
 		<div class="card border shadow-xs mb-4">
 			@* Header Table *@
 			<div class="card-header border-bottom pb-0">
-				<div class="d-sm-flex align-items-center">
+				<div class="d-flex flex-wrap align-items-center">
 					<div>
 						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Trending Chart</h6>
 						<p class="text-sm">Lihat semua data tabel dalam tampilan diagram yang interaktif.</p>
@@ -164,7 +164,7 @@
 	public class ChartItem
 	{
 		public string Category { get; set; } = "";
-		public double Value { get; set; }
+		public double? Value { get; set; }
 	}
 
 	private Dictionary<string, List<TableMachine>> machineTable = new();
@@ -184,8 +184,8 @@
 	private List<string> FilterModes = new() { "Column" };
 	private string SelectedFilterMode = "Column";
 
-	private DateTime? StartDate = DateTime.Now;
-	private DateTime? EndDate = DateTime.Now;
+	private DateTime? StartDate = DateTime.Now.ToLocalTime().Date;
+	private DateTime? EndDate = DateTime.Now.ToLocalTime();
 
 	private bool isUpdateChart = false;
 	private bool isLoading = false;
@@ -251,7 +251,8 @@
 			{
 				if (SelectedColumns == null || !SelectedColumns.Any())
 				{
-					NotificationService.Notify(NotificationSeverity.Warning, "Kolom Tabel Belum Dipilih", "Silahkan pilih kolom terlebih dahulu!");
+					await OpenColumnSelectorPopup();
+					// NotificationService.Notify(NotificationSeverity.Warning, "Kolom Tabel Belum Dipilih", "Silahkan pilih kolom terlebih dahulu!");
 					return;
 				}
 
@@ -261,7 +262,6 @@
 					tgl_finish = EndDate,
 					request_data = SelectedColumns.ToArray()
 				};
-
 				var result = await MachineService.GetChart(body);
 
 				if (result == null || result.Count == 0)
@@ -274,6 +274,7 @@
 				foreach (var kvp in result)
 				{
 					var colDisplay = kvp.Key;
+
 					foreach (var t in Tables)
 					{
 						var f = t.Columns.FirstOrDefault(c => c.FullName == kvp.Key);
@@ -290,10 +291,12 @@
 							Category = DateTime.TryParse(x.Timestamp, out var dt)
 								? dt.ToString("dd-MM-yyyy HH:mm")
 								: x.Timestamp,
-							Value = x.Value
+
+							Value = (x == null) ? 0.0 : x.Value
 						})
 						.ToList();
 				}
+
 			}
 		}
 		finally

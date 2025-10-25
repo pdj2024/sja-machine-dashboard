@@ -74,7 +74,8 @@ builder.Services.AddScoped<ContextMenuService>();
 // Razor Class Library
 builder.Services.AddHttpClient<RealtimeTable.Interfaces.IApiService, RealtimeTable.Services.ApiService>(client =>
 {
-    client.BaseAddress = new Uri("https://kopi.padajaya.biz.id/");
+    //client.BaseAddress = new Uri("https://kopi.padajaya.biz.id/");
+    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"]);
 });
 builder.Services.AddScoped<RealtimeTable.Interfaces.IMachineService, RealtimeTable.Services.MachineService>();
 builder.Services.AddScoped<RealtimeTable.Interfaces.IUserService, RealtimeTable.Services.UserService>();

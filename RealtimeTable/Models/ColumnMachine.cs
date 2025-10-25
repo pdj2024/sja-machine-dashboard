@@ -9,5 +9,8 @@ namespace RealtimeTable.Models
 
         [JsonPropertyName("deskripsi")]
         public string Deskripsi { get; set; }
+
+        [JsonPropertyName("alias_pendek")]
+        public string AliasPendek { get; set; }
     }
 }

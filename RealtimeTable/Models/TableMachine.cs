@@ -4,6 +4,7 @@
     {
         //public DateTime Timestamp { get; set; }
         public string Timestamp { get; set; }
-        public double Value { get; set; }
+        //public double? Value { get; set; }
+        public string? Value { get; set; }
     }
 }

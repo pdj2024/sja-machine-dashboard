@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using DocumentFormat.OpenXml;
 using RealtimeTable.Interfaces;
 using RealtimeTable.Models;
 
@@ -21,12 +22,11 @@ namespace RealtimeTable.Services
             return response?.Data ?? new Dictionary<string, List<ColumnMachine>>();
         }
 
-        public async Task<Dictionary<string, List<TableMachine>>> GetTableBy(object data, string type, bool latestData = false)
+        public async Task<Dictionary<string, List<TableMachine>>> GetTableBy(object data, string type)
         {
             var queryParams = new Dictionary<string, string>
             {
-                { "request_by", type },
-                { "latest_data_only", Convert.ToString(latestData) }
+                { "request_by", type }
             };
 
             var response = await _apiService.Post<ApiTableResponse>(Endpoint + "/table", data, queryParams);
@@ -47,15 +47,27 @@ namespace RealtimeTable.Services
                     if (!result.ContainsKey(property.Name))
                         result[property.Name] = new List<TableMachine>();
 
-                    double value = 0;
-                    if (property.Value.ValueKind == JsonValueKind.Number)
-                        value = property.Value.GetDouble();
+                    string? value;
+                    double? valueNumber;
 
-                    result[property.Name].Add(new TableMachine
+                    if (property.Value.ValueKind == JsonValueKind.Number)
                     {
-                        Timestamp = timestamp,
-                        Value = value
-                    });
+                        valueNumber = property.Value.GetDouble();
+                        result[property.Name].Add(new TableMachine
+                        {
+                            Timestamp = timestamp,
+                            Value = valueNumber.ToString()
+                        });
+                    }
+                    else
+                    {
+                        value = property.Value.GetString();
+                        result[property.Name].Add(new TableMachine
+                        {
+                            Timestamp = timestamp,
+                            Value = value
+                        });
+                    }
                 }
             }
 
