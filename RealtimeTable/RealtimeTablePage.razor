@@ -1,10 +1,15 @@
-﻿@implements IDisposable
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Configuration
+
+@implements IAsyncDisposable
 
 @inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
 @inject DialogService DialogService
 @inject NotificationService NotificationService
 
 @inject IMachineService MachineService
+@inject IConfiguration Configuration
 
 <RadzenRow>
 	<RadzenColumn SizeMD="12">
@@ -13,15 +18,31 @@
 			<div class="card-header border-bottom pb-0">
 				<div class="d-sm-flex align-items-center">
 					<div>
-						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Realtime Table</h6>
+						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Realtime OPC Data</h6>
 						<p class="text-sm">Pantau data terkini hanya dalam satu tampilan! Semua tabel, selalu update setiap saat.</p>
-						<p class="text-muted mt-2">
-							@{
+						@if (_data != null && _data.TryGetValue("timestamp", out var ts) && ts != null)
+						{
+							DateTime lastUpdated;
+							if (DateTime.TryParse(ts.ToString(), out lastUpdated))
+							{
 								var culture = new System.Globalization.CultureInfo("id-ID");
 								string hari = culture.DateTimeFormat.GetDayName(lastUpdated.DayOfWeek);
 								string tanggal = lastUpdated.ToString("dd MMMM yyyy HH.mm.ss", culture);
+
+								<p class="text-muted">
+									Terakhir update: <b>@hari, @tanggal</b>
+								</p>
 							}
-							Terakhir update: <b>@hari, @tanggal</b>
+						}
+						else
+						{
+							<p class="text-muted">
+								Terakhir update: <b>Menunggu pembaruan data...</b>
+							</p>
+						}
+						@* Interval Fetch Data *@
+						<p class="text-muted">
+							Fetch Data setiap: <b>5 detik</b>
 						</p>
 					</div>
 					<div class="ms-auto d-flex"></div>
@@ -30,150 +51,32 @@
 
 			@* Body Table *@
 			<div class="card-body px-0 py-0">
-				<div class="border-bottom py-3 px-3">
-					@* Interval Fetch Data *@
-					<p class="text-muted mt-2">
-						@* Fetch Data setiap: <b>5 detik</b> *@
-						Fetch Data setiap:
-						<select class="form-select d-inline-block w-auto ms-2" @onchange="OnIntervalChange">
-							@foreach (var option in IntervalOptions)
-							{
-								<option value="@option.Value" selected="@(updateInterval == option.Value)">
-									@option.Label
-								</option>
-							}
-						</select>
-					</p>
-
-					@* Filter Mode: Table || Column *@
-					<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
-						<RadzenFormField AllowFloatingLabel="false" Text="Mode Filter">
-							<RadzenDropDown @bind-Value="SelectedFilterMode"
-											Data="@FilterModes"
-											Change="@OnFilterModeChanged"
-											Style="width:200px"
-											Placeholder="Pilih mode filter..." />
-						</RadzenFormField>
-
-						@if (SelectedFilterMode == "Table")
-						{
-							<RadzenFormField AllowFloatingLabel="false" Text="Pilih Tabel">
-								<RadzenDropDown @bind-Value="SelectedTable"
-												Data="tablesForUI.Select(t => t.Name).ToList()"
-												Change="@OnTableSelectionChanged"
-												Style="width:200px" />
-							</RadzenFormField>
-						}
-						else if (SelectedFilterMode == "Column")
-						{
-							<RadzenButton Text="Pilih Kolom" Icon="checklist" Click="OpenColumnSelectorPopup" />
-						}
-
-						<RadzenButton Click="@ClickUpdateTable" Text="Update Table" IsBusy="@isUpdateTable" Icon="refresh" Class="w-auto" />
-					</RadzenStack>
-
-					@if (SelectedFilterMode == "Column" && SelectedColumns.Any())
-					{
-						<div class="mb-3">
-							<div class="border rounded p-3 mb-3 bg-light">
-								<h6 class="fw-semibold mb-3">
-									List Kolom yang dipilih
-								</h6>
-
-								@foreach (var column in SelectedColumns.Select(GetColumnDisplayName))
-								{
-									<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
-										<span class="ms-1">@column</span>
-									</div>
-								}
-							</div>
-						</div>
-					}
-
-					@if (SelectedFilterMode == "Table")
-					{
-						<div class="mb-3">
-							@if (!string.IsNullOrEmpty(SelectedTable))
-							{
-								var sel = tablesForUI.FirstOrDefault(t => t.Name == SelectedTable);
-								if (sel != null)
-								{
-									<div class="border rounded p-3 mb-3 bg-light">
-										<h6 class="fw-semibold mb-3">
-											List Kolom dari tabel <b>@sel.Name</b>
-										</h6>
-
-										@foreach (var column in sel.Columns)
-										{
-											<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
-												<span class="ms-1">@column.DisplayName</span>
-											</div>
-										}
-									</div>
-								}
-							}
-							else
-							{
-								<div class="text-muted fst-italic">Pilih tabel dari dropdown untuk melihat kolomnya.</div>
-							}
-						</div>
-					}
-				</div>
+				<div class="border-bottom py-3 px-3"></div>
 
 				<div class="table-responsive p-0">
 					@* Table Realtime *@
-					@* <RadzenDataGrid @ref="Grid"
-										Data="@measurementList"
-										TItem="MeasurementData"
+					@if (_data != null && machineTags.Any())
+					{
+						<RadzenDataGrid Data="@GetAllTableData(machineTags)"
+										TItem="TableRealtime"
 										AllowSorting="true"
-										AllowPaging="false"
-										AllowVirtualization="true">
+										AllowVirtualization="true" 
+										AllowGrouping="true"
+										AllGroupsExpanded="true"
+										HideGroupedColumn="true"
+										Render="@OnRender"
+										Style="margin-bottom: 5rem; max-height: 500px">
 							<Columns>
-								<RadzenDataGridColumn TItem="MeasurementData" Property="Measurement" Title="Measurement" Width="200px" />
-								<RadzenDataGridColumn TItem="MeasurementData" Property="Value" Title="Value" Width="200px">
-									<Template Context="data">
-										<span class="@GetValueClass1(data)">
-											@data.Value
-										</span>
-									</Template>
-								</RadzenDataGridColumn>
-								<RadzenDataGridColumn TItem="MeasurementData" Property="Units" Title="Units" Width="100px" TextAlign="TextAlign.Center" />
+								<RadzenDataGridColumn TItem="TableRealtime" Property="TableName" Title="Tabel" />
+								<RadzenDataGridColumn TItem="TableRealtime" Property="Column" Title="Kolom" />
+								<RadzenDataGridColumn TItem="TableRealtime" Property="Value" Title="Nilai" />
 							</Columns>
-						</RadzenDataGrid> *@
-
-					<RadzenDataGrid Data="@HistoryData"
-									TItem="TableRealtime"
-									ColumnWidth="200px"
-									AllowSorting="true"
-									AllowPaging="true"
-									PageSize="10"
-									PageSizeOptions="@(new int[] { 10, 20, 50 })"
-									PagerHorizontalAlign="HorizontalAlign.Right"
-									ShowPagingSummary="true"
-									Style="margin-bottom: 5rem;">
-						<Columns>
-							<RadzenDataGridColumn TItem="TableRealtime" Property="Timestamp" Title="Timestamp">
-								<Template Context="data">
-									@data.Timestamp.ToString("dd-MM-yyyy HH.mm.ss")
-								</Template>
-							</RadzenDataGridColumn>
-
-							<RadzenDataGridColumn TItem="TableRealtime" Property="Measurement" Title="Measurement" />
-
-							<RadzenDataGridColumn TItem="TableRealtime" Property="Value" Title="Value">
-								<Template Context="data">
-									<span class="@GetValueClass(data)">
-										@data.Value
-									</span>
-								</Template>
-							</RadzenDataGridColumn>
-						</Columns>
-
-						<PagingSummaryTemplate>
-							<RadzenIcon Icon="database" Style="color: var(--rz-primary); font-size: var(--rz-pager-summary-font-size);" />
-							Total page @context.CurrentPage of @context.NumberOfPages <b>(total @context.TotalCount data)</b>
-						</PagingSummaryTemplate>
-					</RadzenDataGrid>
+						</RadzenDataGrid>
+					}
+					else
+					{
+						<p class="text-muted fst-italic">Menunggu OPC Data...</p>
+					}
 				</div>
 			</div>
 		</div>
@@ -183,314 +86,94 @@
 
 
 @code {
-	private Dictionary<string, List<TableMachine>> machineTable = new();
 	private Dictionary<string, List<ColumnMachine>> machineTags = new();
 
-	private List<TableModal> Tables = new();
-	private List<TableModal> tablesForUI = new List<TableModal>();
-	private List<TableRealtime> HistoryData = new();
+	// Konfigurasi SignalR
+	private HubConnection? _hubConnection;
+	private Dictionary<string, object>? _data;
 
-	private string SelectedTable = "";
-	private HashSet<string> SelectedColumns = new();
-	private HashSet<string> CollapsedTables = new();
-	private bool isColumnSelectorVisible = false;
-
-	// Timer Auto Fetch
-	private Timer updateTimer;
-	private double updateInterval = 5000;
-	private DateTime lastUpdated = DateTime.Now;
-	private HashSet<string> animatedRows = new();
-
-	// Filter mode
-	private List<string> FilterModes = new() { "Column", "Table" };
-	private string SelectedFilterMode = "Table";
-
-	private DateTime? StartDate = DateTime.Now.AddDays(-1);
-	private DateTime? EndDate = DateTime.Now;
-
-	private bool isLoading = false;
-	private bool isUpdateTable = false;
-
-	private List<(string Label, double Value)> IntervalOptions = new()
-	{
-		("5 detik", 5000),
-		("1 menit", 60000),
-		("5 menit", 300000),
-		("1 jam", 3600000)
-	};
-
-	private void SetupTimer(double interval)
-	{
-		updateTimer?.Dispose();
-		updateTimer = new System.Timers.Timer(interval);
-		updateTimer.Elapsed += async (s, e) => await UpdateDataAsync();
-		updateTimer.AutoReset = true;
-		updateTimer.Enabled = true;
-	}
-
-	private void OnIntervalChange(ChangeEventArgs e)
-	{
-		if (double.TryParse(e.Value?.ToString(), out double newInterval))
-		{
-			updateInterval = newInterval;
-			SetupTimer(updateInterval);
-			StateHasChanged();
-		}
-	}
-
-	private async Task UpdateDataAsync()
-	{
-		await InvokeAsync(async () =>
-		{
-			await OnUpdateChartClicked();
-			StateHasChanged();
-		});
-	}
-
-	public void Dispose()
-	{
-		updateTimer?.Dispose();
-	}
+	private bool isLoadingTable = false;
 
 	protected override async Task OnInitializedAsync()
 	{
-		// GenerateDummyData();
-		await LoadData();
+		machineTags = await MachineService.Browse();
+		await LoadDataRealtime();
 
 		base.OnInitialized();
 	}
 
-	private async Task LoadData()
+	private async Task LoadDataRealtime()
 	{
-		try
+		isLoadingTable = true;
+		StateHasChanged();
+
+		string hubUrl = $"{Configuration.GetValue<string>("ApiSettings:BaseUrl")?.TrimEnd('/')}/realtimehub";
+
+		_hubConnection = new HubConnectionBuilder()
+			// .WithUrl(Navigation.ToAbsoluteUri("/realtimehub"))
+			.WithUrl(hubUrl)
+			.WithAutomaticReconnect()
+			.Build();
+
+		_hubConnection.On<Dictionary<string, object>>("ReceiveRealTimeData", data =>
 		{
-			isLoading = true;
+			_data = data;
+			InvokeAsync(StateHasChanged);
+		});
 
-			machineTags = await MachineService.Browse();
+		await _hubConnection.StartAsync();
 
-			// Konversi ke modal baru
-			tablesForUI = machineTags.Select(kvp => new TableModal
+		isLoadingTable = false;
+		StateHasChanged();
+	}
+
+	private List<TableRealtime> GetAllTableData(Dictionary<string, List<ColumnMachine>> machineTags)
+	{
+		var allData = new List<TableRealtime>();
+
+		foreach (var table in machineTags)
+		{
+			var tableName = table.Key;
+			var columns = table.Value;
+
+			foreach (var col in columns)
 			{
-				Name = kvp.Key,
-				Columns = kvp.Value.Select(tag => new ColumnModal
+				string key = $"{col.NamaTag}";
+				object? value = null;
+
+				if (_data != null)
+					_data.TryGetValue(key, out value);
+
+				allData.Add(new TableRealtime
 				{
-					FullName = $"{kvp.Key}.{tag.NamaTag}",
-					DisplayName = tag.NamaTag,
-					Description = tag.Deskripsi
-				}).ToList() ?? new List<ColumnModal>()
-			}).ToList();
-
-			if (tablesForUI.Any())
-			{
-				CollapsedTables = tablesForUI.Skip(1).Select(t => t.Name).ToHashSet();
-
-				SelectedTable = tablesForUI.Select(t => t.Name).First();
-				OnTableSelectionChanged(SelectedTable);
-			}
-		}
-		catch (Exception ex)
-		{
-			tablesForUI = new List<TableModal>();
-		}
-		finally
-		{
-			isLoading = false;
-			StateHasChanged();
-		}
-	}
-
-	private async Task ClickUpdateTable()
-	{
-		isUpdateTable = true;
-		StateHasChanged();
-
-		await UpdateTable();
-
-		isUpdateTable = false;
-		StateHasChanged();
-	}
-
-	private async Task UpdateTable()
-	{
-		HistoryData.Clear();
-
-		// Column Mode
-		if (SelectedFilterMode == "Column")
-		{
-			if (SelectedColumns == null || !SelectedColumns.Any())
-			{
-				await OpenColumnSelectorPopup();
-				// NotificationService.Notify(NotificationSeverity.Warning, "Kolom Tabel Belum Dipilih", "Silahkan pilih kolom terlebih dahulu!");
-				return;
-			}
-
-			var body = new
-			{
-				request_data = SelectedColumns.ToArray()
-			};
-			machineTable = await MachineService.GetTableBy(body, "tag");
-
-			if (machineTable == null || machineTable.Count == 0)
-			{
-				HistoryData = new List<TableRealtime>();
-				StateHasChanged();
-				return;
-			}
-
-			HistoryData = machineTable
-				.SelectMany(kvp => kvp.Value.Select(v => new TableRealtime
-				{
-					Measurement = kvp.Key,
-					Value = Convert.ToDouble(v.Value),
-					Timestamp = Convert.ToDateTime(v.Timestamp)
-				}))
-				.OrderBy(x => x.Timestamp)
-				.ToList();
-		}
-		// Table Mode
-		else
-		{
-			if (string.IsNullOrEmpty(SelectedTable)) return;
-
-			var sel = tablesForUI.FirstOrDefault(t => t.Name == SelectedTable);
-
-			if (sel == null) return;
-
-			var body = new
-			{
-				request_data = new[] { SelectedTable }
-			};
-			machineTable = await MachineService.GetTableBy(body, "table");
-
-			if (machineTable == null || machineTable.Count == 0)
-			{
-				HistoryData = new List<TableRealtime>();
-				StateHasChanged();
-				return;
-			}
-
-			HistoryData = machineTable
-				.SelectMany(kvp => kvp.Value.Select(v => new TableRealtime
-				{
-					Measurement = kvp.Key,
-					Value = Convert.ToDouble(v.Value),
-					Timestamp = Convert.ToDateTime(v.Timestamp)
-				}))
-				.OrderBy(x => x.Timestamp)
-				.ToList();
-		}
-		
-		lastUpdated = DateTime.Now;
-		SetupTimer(updateInterval);
-		StateHasChanged();
-	}
-
-	// Pilih Mode Filter
-	private void OnFilterModeChanged(object value)
-	{
-		StateHasChanged();
-	}
-
-	// Pilih Tabel di Mode Filter "Table"
-	private void OnTableSelectionChanged(object value)
-	{
-		if (SelectedFilterMode == "Table" && value is string tableName)
-		{
-			var selectedTableInfo = Tables.FirstOrDefault(t => t.Name == tableName);
-			if (selectedTableInfo?.Columns != null)
-			{
-				SelectedColumns = selectedTableInfo.Columns.Select(c => c.FullName).ToHashSet();
-			}
-			else
-			{
-				SelectedColumns.Clear();
-			}
-		}
-		StateHasChanged();
-	}
-
-	// Modal Pilih Kolom untuk Mode Filter "Column"
-	private async Task OpenColumnSelectorPopup()
-	{
-		var result = await DialogService.OpenAsync<DialogColumnChoose>("Pilih Kolom Filter",
-			new Dictionary<string, object>
-			{
-				{ "MachineTags", machineTags },
-				{ "SelectedColumns", SelectedColumns },
-				{ "OnUpdate", EventCallback.Factory.Create<HashSet<string>>(this, async (cols) =>
+					TableName = tableName,
+					Column = col.NamaTag ?? "null",
+					Value = value switch
 					{
-						SelectedColumns = cols;
-						await UpdateTable();
-					})
-				}
-			},
-			new DialogOptions
-			{
-				Width = "650px",
-				Resizable = true,
-				Draggable = true
-			});
+						null => "null",
+						double d => d.ToString("N2"),
+						DateTime dt => dt.ToString("dd-MM-yyyy HH:mm:ss"),
+						_ => value.ToString() ?? "null"
+					}
+				});
+			}
+		}
 
-		if (result is HashSet<string> selected)
+		return allData;
+	}
+
+	private void OnRender(DataGridRenderEventArgs<TableRealtime> args)
+	{
+		if (args.FirstRender)
 		{
-			SelectedColumns = selected;
+			args.Grid.Groups.Add(new GroupDescriptor() { Property = "TableName" });
 			StateHasChanged();
 		}
 	}
 
-	// Menampilkan Kolom yang dipilih untuk Mode Filter "Column"
-	private string GetColumnDisplayName(string fullName)
+	public async ValueTask DisposeAsync()
 	{
-		return Tables.SelectMany(t => t.Columns).FirstOrDefault(c => c.FullName == fullName)?.DisplayName ?? fullName;
+		if (_hubConnection != null)
+			await _hubConnection.DisposeAsync();
 	}
-
-	// Animasi perubahan data
-	private string GetValueClass(TableRealtime data)
-	{
-		return animatedRows.Contains(data.Measurement) ? "value-changed" : "";
-	}
-
-	private async Task OnUpdateChartClicked()
-	{
-		await InvokeAsync(UpdateTable);
-		animatedRows = new HashSet<string>(HistoryData.Select(d => d.Measurement));
-		StateHasChanged();
-		await Task.Delay(1000);
-		animatedRows.Clear();
-		StateHasChanged();
-	}
-
-	// public class MeasurementData
-	// {
-	// 	public string Measurement { get; set; }
-	// 	public double Value { get; set; }
-	// 	public string Units { get; set; }
-	// }
-	// private RadzenDataGrid<MeasurementData> Grid;
-	// private List<MeasurementData> measurementList = new();
-	// private Random rand = new();
-	// private HashSet<double> animatedRows1 = new();
-	// private void GenerateDummyData()
-	// {
-	// 	measurementList = new List<MeasurementData>
-	// 	{
-	// 		new MeasurementData { Measurement = "Temperature", Value = Math.Round(35 + rand.NextDouble() * 5, 2), Units = "°C" },
-	// 		new MeasurementData { Measurement = "Pressure", Value = Math.Round(3 + rand.NextDouble(), 2), Units = "Pa" },
-	// 		new MeasurementData { Measurement = "Flowrate", Value = Math.Round(50 + rand.NextDouble() * 15, 2), Units = "L/s" },
-	// 		new MeasurementData { Measurement = "Energy Consumption", Value = Math.Round(8 + rand.NextDouble() * 5, 2), Units = "kWh" }
-	// 	};
-	// }
-	// private string GetValueClass1(MeasurementData data)
-	// {
-	// 	return animatedRows1.Contains(data.Value) ? "value-changed" : "";
-	// }
-	// private async Task OnUpdateChartClicked1()
-	// {
-	// 	await InvokeAsync(GenerateDummyData);
-	// 	animatedRows1 = new HashSet<double>(measurementList.Select(d => d.Value));
-	// 	StateHasChanged();
-	// 	await Task.Delay(1000);
-	// 	animatedRows1.Clear();
-	// 	StateHasChanged();
-	// }
 }

@@ -78,27 +78,28 @@
 				<div class="table-responsive p-0">
 					@* Line Chart *@
 					<div id="chartArea" style="margin-bottom: 3rem;">
-						<RadzenChart Style="height:400px">
+						<RadzenChart Style="height:400px; width: 1200px;">
+							<RadzenLegend Position="LegendPosition.Top" />
+
 							<RadzenChartTooltipOptions Shared="true" />
 
 							@if (ChartData.Any())
 							{
 								@foreach (var dataset in ChartData)
 								{
-									<RadzenLineSeries Smooth="true"
-													  Data="@dataset.Value"
-													  CategoryProperty="Category"
+									<RadzenLineSeries Data="@dataset.Value"
 													  Title="@dataset.Key"
-													  ValueProperty="Value">
+													  CategoryProperty="Category"
+													  ValueProperty="Value"
+													  LineType="LineType.Solid"
+													  Smooth="true">
 										<RadzenMarkers Visible="true" MarkerType="MarkerType.Circle" />
+										<RadzenSeriesDataLabels Visible="false" />
 									</RadzenLineSeries>
 								}
 
-								<RadzenCategoryAxis Padding="20" Visible="false" />
-								<RadzenValueAxis>
-									<RadzenGridLines Visible="true" />
-									<RadzenAxisTitle Text="Value" />
-								</RadzenValueAxis>
+								<RadzenCategoryAxis Padding="10" TickDistance="200" LabelAutoRotation="90" Formatter="@FormatAsTime" />
+								<RadzenValueAxis TickDistance="30" Formatter="@FormatAsValue" />
 							}
 							else
 							{
@@ -214,7 +215,8 @@
 				{
 					FullName = $"{kvp.Key}.{tag.NamaTag}",
 					DisplayName = tag.NamaTag,
-					Description = tag.Deskripsi
+					Description = tag.Deskripsi,
+					AliasPendek = tag.AliasPendek
 				}).ToList() ?? new List<ColumnModal>()
 			}).ToList();
 
@@ -246,13 +248,11 @@
 
 		try
 		{
-			// Column Mode
 			if (SelectedFilterMode == "Column")
 			{
 				if (SelectedColumns == null || !SelectedColumns.Any())
 				{
 					await OpenColumnSelectorPopup();
-					// NotificationService.Notify(NotificationSeverity.Warning, "Kolom Tabel Belum Dipilih", "Silahkan pilih kolom terlebih dahulu!");
 					return;
 				}
 
@@ -274,6 +274,7 @@
 				foreach (var kvp in result)
 				{
 					var colDisplay = kvp.Key;
+					string legendText = GetLegendText(colDisplay);
 
 					foreach (var t in Tables)
 					{
@@ -285,18 +286,17 @@
 						}
 					}
 
-					ChartData[colDisplay] = kvp.Value
+					ChartData[legendText] = kvp.Value
 						.Select(x => new ChartItem
 						{
 							Category = DateTime.TryParse(x.Timestamp, out var dt)
 								? dt.ToString("dd-MM-yyyy HH:mm")
 								: x.Timestamp,
 
-							Value = (x == null) ? 0.0 : x.Value
+							Value = x.Value ?? 0.0
 						})
 						.ToList();
 				}
-
 			}
 		}
 		finally
@@ -304,6 +304,24 @@
 			isUpdateChart = false;
 			StateHasChanged();
 		}
+	}
+
+	private string GetLegendText(string fullName)
+	{
+		if (tablesForUI == null) return fullName;
+
+		foreach (var table in tablesForUI)
+		{
+			var column = table.Columns?.FirstOrDefault(c => c.DisplayName == fullName);
+
+			if (column != null)
+			{
+				return !string.IsNullOrEmpty(column.AliasPendek) ? column.AliasPendek
+					 : !string.IsNullOrEmpty(column.DisplayName) ? column.DisplayName
+					 : fullName;
+			}
+		}
+		return fullName;
 	}
 
 	// Filter DateTime
@@ -441,5 +459,33 @@
 			StateHasChanged();
 			await Task.Delay(100);
 		}
+	}
+
+	private string FormatAsValue(object value)
+	{
+		if (value == null)
+			return "-";
+
+		if (value is double d)
+			return d.ToString("N1");
+
+		if (value is IConvertible conv)
+			return Convert.ToDouble(conv).ToString("N1");
+
+		return value.ToString();
+	}
+
+	private string FormatAsTime(object value)
+	{
+		if (value == null)
+			return "-";
+
+		if (value is DateTime dt)
+			return dt.ToString("dd-MM-yyyy HH:mm");
+
+		if (DateTime.TryParse(value.ToString(), out var parsed))
+			return parsed.ToString("dd-MM-yyyy HH:mm");
+
+		return value.ToString();
 	}
 }

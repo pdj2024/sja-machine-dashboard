@@ -156,7 +156,7 @@
 
 							<PagingSummaryTemplate>
 								<RadzenIcon Icon="database" Style="color: var(--rz-primary); font-size: var(--rz-pager-summary-font-size);" />
-								Total page @context.CurrentPage of @context.NumberOfPages <b>(total @context.TotalCount data)</b>
+								Page @context.CurrentPage of @context.NumberOfPages <b>(total @context.TotalCount data)</b>
 							</PagingSummaryTemplate>
 						</RadzenDataGrid>
 					}
@@ -202,7 +202,7 @@
 
 									<PagingSummaryTemplate>
 										<RadzenIcon Icon="database" Style="color: var(--rz-primary); font-size: var(--rz-pager-summary-font-size);" />
-										Total page @context.CurrentPage of @context.NumberOfPages <b>(total @context.TotalCount data)</b>
+										Page @context.CurrentPage of @context.NumberOfPages <b>(total @context.TotalCount data)</b>
 									</PagingSummaryTemplate>
 								</RadzenDataGrid>
 							}
@@ -335,13 +335,31 @@
 						v.Value
 					}))
 					.GroupBy(x => x.Timestamp)
-					.Select(g => new TableColumn
+					.Select(g =>
 					{
-						Timestamp = Convert.ToDateTime(g.Key),
-						Tags = g.ToDictionary(
-							x => x.Tag,
-							x => x.Value != null ? x.Value.ToString() : "null"
-						)
+						DateTime ts;
+						if (!DateTime.TryParse(g.Key, out ts))
+						{
+							ts = DateTime.MinValue;
+						}
+
+						var tagsDict = g
+							.GroupBy(x => x.Tag)
+							.ToDictionary(
+								grp => grp.Key,
+								grp =>
+								{
+									var last = grp.LastOrDefault();
+									if (last == null || last.Value == null)
+										return "null";
+									return last.Value.ToString();
+								});
+
+						return new TableColumn
+						{
+							Timestamp = ts,
+							Tags = tagsDict
+						};
 					})
 					.OrderBy(x => x.Timestamp)
 					.ToList();
@@ -407,15 +425,40 @@
 				var historyData = result
 					.SelectMany(kvp => kvp.Value.Select(v => new { Tag = kvp.Key, v.Timestamp, v.Value }))
 					.GroupBy(x => x.Timestamp)
-					.Select(g => new TableColumn
+					.Select(g =>
 					{
-						Timestamp = Convert.ToDateTime(g.Key),
-						Tags = g.ToDictionary(x => x.Tag, x => x.Value == null ? "null" : x.Value.ToString())
+						DateTime ts;
+						if (!DateTime.TryParse(g.Key, out ts))
+						{
+							ts = DateTime.MinValue;
+						}
+
+						var tagsDict = g
+							.GroupBy(x => x.Tag)
+							.ToDictionary(
+								grp => grp.Key,
+								grp =>
+								{
+									var last = grp.LastOrDefault();
+									if (last == null || last.Value == null)
+										return "null";
+									return last.Value.ToString();
+								});
+
+						return new TableColumn
+						{
+							Timestamp = ts,
+							Tags = tagsDict
+						};
 					})
 					.OrderBy(x => x.Timestamp)
 					.ToList();
 
 				MultiTableData[tableName] = historyData;
+			}
+			else
+			{
+				MultiTableData[tableName] = new List<TableColumn>();
 			}
 		}
 

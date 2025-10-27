@@ -2,8 +2,9 @@
 {
     public class TableRealtime
     {
-        public string Measurement { get; set; } = string.Empty;
-        public double? Value { get; set; }
+        public string? TableName { get; set; }
+        public string? Column { get; set; }
+        public object? Value { get; set; }
         public DateTime Timestamp { get; set; }
     }
 }

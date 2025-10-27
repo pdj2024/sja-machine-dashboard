@@ -20,9 +20,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddBlazorBootstrap();
 builder.Services.AddRazorPages();
 
+
 // Add services to the container.
-builder.Services.AddRazorComponents()
-      .AddInteractiveServerComponents().AddHubOptions(options => options.MaximumReceiveMessageSize = 10 * 1024 * 1024);
+//builder.Services.AddRazorComponents()
+//      .AddInteractiveServerComponents().AddHubOptions(options => options.MaximumReceiveMessageSize = 10 * 1024 * 1024);
+builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 
 
 
@@ -151,7 +153,6 @@ app.MapBlazorHub(config =>
 {
     config.CloseOnAuthenticationExpiration = true;
 }).WithOrder(-1);
-
 
 
 app.Run();
