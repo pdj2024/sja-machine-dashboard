@@ -11,9 +11,41 @@
     </RadzenColumn>
     <RadzenColumn Size="7">
         <RadzenStack AlignItems="AlignItems.Center" Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.End">
-            <a href="/logout"><RadzenButton Icon="exit_to_app" Style="background-color: transparent; color: #1e3a6a;   text-align: center !important;" Text="Logout" /></a>
+            <RadzenProfileMenu>
+                <Template>
+                    <img src="images/default-avatar.jpg" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; margin-right: 5px;" />
+
+                    @if (!string.IsNullOrEmpty(username))
+                    {
+                        <span style="font-weight: 600; color: #1e3a6a;">@username</span>
+                    }
+                    else
+                    {
+                        <span style="font-weight: 600; color: #1e3a6a;">Username</span>
+                    }
+                </Template>
+                <ChildContent>
+                    <RadzenProfileMenuItem Text="Logout" Path="logout" Icon="logout"></RadzenProfileMenuItem>
+                </ChildContent>
+            </RadzenProfileMenu>
+
+            @* <a href="/logout"><RadzenButton Icon="exit_to_app" Style="background-color: transparent; color: #1e3a6a;   text-align: center !important;" Text="Logout" /></a> *@
            
         </RadzenStack>
     </RadzenColumn>
 </RadzenRow>
 
+@code {
+    [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; }
+    private string? username;
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            username = user.Identity?.Name;
+        }
+    }
+}

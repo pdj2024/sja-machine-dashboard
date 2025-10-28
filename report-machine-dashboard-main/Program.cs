@@ -1,13 +1,18 @@
-using PacificWeb.Components;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Services;
-using Models;
+using Microsoft.JSInterop;
+using PacificWeb.Components;
 using Radzen;
+
+using Models;
+using Services;
+
+//using RealtimeTable.Interfaces;
+//using RealtimeTable.Services;
 
 
 
@@ -15,9 +20,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddBlazorBootstrap();
 builder.Services.AddRazorPages();
 
+
 // Add services to the container.
-builder.Services.AddRazorComponents()
-      .AddInteractiveServerComponents().AddHubOptions(options => options.MaximumReceiveMessageSize = 10 * 1024 * 1024);
+//builder.Services.AddRazorComponents()
+//      .AddInteractiveServerComponents().AddHubOptions(options => options.MaximumReceiveMessageSize = 10 * 1024 * 1024);
+builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 
 
 
@@ -46,14 +53,6 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 builder.Services.AddCascadingAuthenticationState();
 
-builder.Services.AddDevExpressBlazor();
-builder.Services.AddMvc();
-//builder.Services.AddDevExpressServerSideBlazorReportViewer();
-// If you use Bootstrap 5, specify the Bootstrap version explicitly
-builder.Services.Configure<DevExpress.Blazor.Configuration.GlobalOptions>(options => {
-    options.BootstrapVersion = DevExpress.Blazor.BootstrapVersion.v5;
-});
-
 
 builder.WebHost.UseWebRoot("wwwroot");
 builder.WebHost.UseStaticWebAssets();
@@ -63,6 +62,33 @@ builder.Services.AddScoped<DialogService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<TooltipService>();
 builder.Services.AddScoped<ContextMenuService>();
+
+
+// Interface & Service
+// Default base url
+//builder.Services.AddHttpClient<IApiService, ApiService>(client =>
+//{
+//    client.BaseAddress = new Uri("https://kopi.padajaya.biz.id/");
+//});
+
+//builder.Services.AddScoped<IMachineService, MachineService>();
+
+// Razor Class Library
+builder.Services.AddHttpClient<RealtimeTable.Interfaces.IApiService, RealtimeTable.Services.ApiService>(client =>
+{
+    //client.BaseAddress = new Uri("https://kopi.padajaya.biz.id/");
+    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"]);
+});
+builder.Services.AddScoped<RealtimeTable.Interfaces.IMachineService, RealtimeTable.Services.MachineService>();
+builder.Services.AddScoped<RealtimeTable.Interfaces.IUserService, RealtimeTable.Services.UserService>();
+builder.Services.AddScoped<RealtimeTable.Interfaces.ISettingService, RealtimeTable.Services.SettingService>();
+builder.Services.AddScoped<RealtimeTable.Interfaces.IPushDataService, RealtimeTable.Services.PushDataService>();
+
+// Add Policy for Admin
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
+});
 
 
 
@@ -129,7 +155,6 @@ app.MapBlazorHub(config =>
 {
     config.CloseOnAuthenticationExpiration = true;
 }).WithOrder(-1);
-
 
 
 app.Run();

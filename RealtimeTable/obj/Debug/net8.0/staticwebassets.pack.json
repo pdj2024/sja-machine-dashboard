@@ -13,6 +13,10 @@
       "PackagePath": "staticwebassets\\exampleJsInterop.js"
     },
     {
+      "Id": "D:\\Visual Studio\\Blazor\\report-machine-dashboard\\RealtimeTable\\wwwroot\\style.css",
+      "PackagePath": "staticwebassets\\style.css"
+    },
+    {
       "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.RealtimeTable.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
       "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
     },

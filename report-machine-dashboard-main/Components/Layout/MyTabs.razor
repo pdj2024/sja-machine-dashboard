@@ -40,9 +40,9 @@ else
                     <ChildContent>
                         @switch (tab.Id)
                         {
-                            case "dashboard":
+                            @* case "dashboard":
                                 <DashboardOuter />
-                                break;
+                                break; *@
                             case "realtime":
                                 <RealtimeOuter />
                                 break;
@@ -52,16 +52,24 @@ else
                             case "chart":
                                 <ChartOuter />
                                 break;
+                            case "user":
+                                <UserOuter />
+                                break;
+                            case "setting":
+                                <SettingOuter />
+                                break;
+                            case "push-data":
+                                <PushDataOuter />
+                                break;
 
-                            case "barang":
+                            @* case "barang":
                                 <BarangOuter />
                                 break;
                             case "pelanggan":
                                 <PelangganOuter />
                                 break;
                             case "register order penjualan":
-
-                                break;
+                                break; *@
                                 // Add more cases for other tabs
                         }
                         @*@<button @onclick="() => CloseTab(tab.Id)">Close Tab</button>*@

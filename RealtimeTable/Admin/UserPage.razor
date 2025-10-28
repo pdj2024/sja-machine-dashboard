@@ -1,0 +1,247 @@
+﻿@attribute [Authorize(Policy = "AdminOnly")]
+
+@using Microsoft.AspNetCore.Authorization
+
+@inject IJSRuntime jsRuntime
+@inject NavigationManager navigation
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+@inject IUserService UserService
+
+<RadzenRow>
+	<RadzenColumn SizeMD="12">
+		<div class="card border shadow-xs mb-4">
+			@* Header Table *@
+			<div class="card-header border-bottom pb-0">
+				<div class="d-flex flex-wrap align-items-center">
+					<div>
+						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Table User</h6>
+						<p class="text-sm">Menampilkan seluruh data dari setiap tabel yang tersedia dengan lengkap dan terstruktur.</p>
+					</div>
+					<div class="ms-auto d-flex gap-2">
+						@* Refresh Button *@
+						<RadzenButton Text="Refresh" Icon="refresh" Click="RefreshData" IsBusy="isRefresh" class="mb-3" />
+
+						@* Add Button *@
+						<RadzenButton Text="Tambah User" Icon="add_circle" Click="AddUser" ButtonStyle="ButtonStyle.Success" class="mb-3" />
+					</div>
+				</div>
+			</div>
+
+			@* Body Table *@
+			<div class="card-body px-0 py-0">
+				<div class="border-bottom py-3 px-3">
+					@* Filtering Data *@
+					<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
+						<RadzenFormField AllowFloatingLabel="false" Text="Status">
+							<RadzenDropDown TValue="string"
+											Data="@StatusDropdown"
+											@bind-Value="filterStatus"
+											TextProperty="Text"
+											ValueProperty="Value"
+											AllowClear="true"
+											AllowFiltering="true"
+											FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+											Change="LoadData" />
+						</RadzenFormField>
+						<RadzenFormField AllowFloatingLabel="false" Text="Role">
+							<RadzenDropDown TValue="string"
+											Data="@RoleDropdown"
+											@bind-Value="filterRole"
+											TextProperty="Text"
+											ValueProperty="Value"
+											AllowClear="true"
+											AllowFiltering="true"
+											FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+											Change="LoadData" />
+						</RadzenFormField>
+						@* <RadzenFormField AllowFloatingLabel="false" Text="Cari Username">
+								<RadzenTextBox @bind-Value="searchName"
+											   class="search-name"
+											   @onfocus="@(e => SelectAll(e))"
+											   Change="LoadData" />
+							</RadzenFormField> *@
+
+						<ButtonSearchFilter OnSearch="LoadData" OnClear="ClearFilter" ShowClearButton="@(!string.IsNullOrEmpty(searchName) || !string.IsNullOrEmpty(filterStatus) || !string.IsNullOrEmpty(filterRole))" />
+					</RadzenStack>
+				</div>
+
+				<div class="table-responsive p-0">
+					@* Table User *@
+					<RadzenDataGrid Data="@userList"
+									TItem="User"
+									ColumnWidth="200px"
+									AllowSorting="true"
+									AllowPaging="true"
+									AllowRowSelectOnRowClick="true"
+									SelectionMode="DataGridSelectionMode.Single"
+									RowSelect="@EditUser"
+									PageSize="10"
+									Style="margin-bottom: 5rem;">
+						<Columns>
+							<RadzenDataGridColumn TItem="User" Property="Username" Title="Username" />
+							<RadzenDataGridColumn TItem="User" Property="Role" Title="Role" />
+							<RadzenDataGridColumn TItem="User" Property="Status" Title="Status" />
+							<RadzenDataGridColumn TItem="User" Title="Aksi">
+								<Template Context="data">
+									<RadzenButton Icon="edit"
+												  ButtonStyle="ButtonStyle.Primary"
+												  Size="ButtonSize.Small"
+												  Click="@(args => EditUser(data))"
+												  @onclick:stopPropagation="true"
+												  Text="Edit" />
+								</Template>
+							</RadzenDataGridColumn>
+						</Columns>
+					</RadzenDataGrid>
+				</div>
+			</div>
+		</div>
+
+	</RadzenColumn>
+</RadzenRow>
+
+
+@code {
+	private IEnumerable<User> user;
+	private List<User> userList = new();
+	private User? selectedUser;
+
+	private string? searchName;
+	private string? filterStatus;
+	private string? filterRole;
+
+	private bool isRefresh = false;
+
+	record StatusFilter(string CriteriaText, string Text, string? Value);
+
+	static readonly IReadOnlyList<StatusFilter> StatusDropdown = new StatusFilter[] {
+		new("[Status] = aktif", "Aktif", "aktif"),
+		new("[Status] = nonaktif", "Non Aktif", "nonaktif")
+	};
+
+	static readonly IReadOnlyList<StatusFilter> RoleDropdown = new StatusFilter[] {
+		new("[Status] = admin", "Admin", "admin"),
+		new("[Status] = user", "User", "user")
+	};
+
+	protected override async Task OnInitializedAsync()
+	{
+		await LoadData();
+		base.OnInitialized();
+	}
+
+	private async Task LoadData()
+	{
+		try
+		{
+			user = await UserService.GetAll();
+			userList = user.ToList();
+			ApplyFilter();
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
+		finally
+		{
+			StateHasChanged();
+		}
+	}
+
+	private void ApplyFilter()
+	{
+		IEnumerable<User> filtered = user;
+
+		// Search Username
+		if (!string.IsNullOrWhiteSpace(searchName))
+		{
+			filtered = filtered.Where(u =>
+				(u.Username?.Contains(searchName, StringComparison.OrdinalIgnoreCase) ?? false));
+		}
+
+		// Filter Status
+		if (!string.IsNullOrWhiteSpace(filterStatus))
+		{
+			filtered = filtered.Where(u =>
+				string.Equals(u.Status, filterStatus, StringComparison.OrdinalIgnoreCase));
+		}
+
+		// Filter Role
+		if (!string.IsNullOrWhiteSpace(filterRole))
+		{
+			filtered = filtered.Where(u =>
+				string.Equals(u.Role, filterRole, StringComparison.OrdinalIgnoreCase));
+		}
+
+		userList = filtered.ToList();
+	}
+
+	private async void RefreshData()
+	{
+		isRefresh = true;
+		StateHasChanged();
+
+		await LoadData();
+
+		isRefresh = false;
+		StateHasChanged();
+	}
+
+	private async Task AddUser()
+	{
+		var result = await DialogService.OpenAsync<AddEditUser>(
+			"Tambah User",
+			new Dictionary<string, object>(),
+			new DialogOptions { Width = "600px", Resizable = true, Draggable = true }
+		);
+
+		try
+		{
+			if (result is bool saved && saved)
+			{
+				await LoadData();
+			}
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
+	}
+
+	private async Task EditUser(User user)
+	{
+		var result = await DialogService.OpenAsync<AddEditUser>(
+			"Ubah User",
+			new Dictionary<string, object> { { "NoId", user.No_Id } },
+			new DialogOptions { Width = "600px", Resizable = true, Draggable = true }
+		);
+
+		try
+		{
+			if (result is bool saved && saved)
+			{
+				await LoadData();
+			}
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
+	}
+
+	private async Task ClearFilter()
+	{
+		searchName = "";
+		filterStatus = "";
+		filterRole = "";
+
+		await LoadData();
+	}
+
+	private async Task SelectAll(FocusEventArgs e)
+	{
+		await jsRuntime.InvokeVoidAsync("eval", "document.activeElement.select()");
+	}
+}

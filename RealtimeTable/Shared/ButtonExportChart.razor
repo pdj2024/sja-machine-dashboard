@@ -1,0 +1,39 @@
+﻿<div class="d-flex flex-wrap gap-2 mb-3">
+    <button type="button"
+            class="btn btn-sm bg-success text-white"
+            @onclick="@(() => OnExportPdf.InvokeAsync(TargetId))"
+            disabled="@IsExporting">
+        @if (IsExporting)
+        {
+            <span>Export Data...</span>
+        }
+        else
+        {
+            <span>Export to PDF</span>
+        }
+    </button>
+
+    <button type="button"
+            class="btn btn-sm bg-success text-white"
+            @onclick="@(() => OnExportImage.InvokeAsync((TargetId, FormatImage)))"
+            disabled="@IsExporting">
+        @if (IsExporting)
+        {
+            <span>Export Data...</span>
+        }
+        else
+        {
+            <span>Export to Image</span>
+        }
+    </button>
+</div>
+
+@code {
+    [Parameter] public bool IsExporting { get; set; } = false;
+    [Parameter] public string TargetId { get; set; } = "chartArea";
+    [Parameter] public string FormatImage { get; set; } = "png";
+
+    [Parameter] public EventCallback<string> OnExportPdf { get; set; }
+
+    [Parameter] public EventCallback<(string targetId, string format)> OnExportImage { get; set; }
+}

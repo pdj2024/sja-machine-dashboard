@@ -1,0 +1,77 @@
+﻿<div class="d-flex gap-2 justify-content-between">
+	<div>
+		<button type="submit" class="btn @(IsEdit ? "bg-gradient-warning" : "bg-gradient-success") text-white">
+			@if (IsSaving)
+			{
+				<span>Menyimpan...</span>
+			}
+			else
+			{
+				<i class="material-symbols-rounded">save</i>
+				@if (IsEdit)
+				{
+					<span>Perbarui</span>
+				}
+				else
+				{
+					<span>Simpan</span>
+				}
+			}
+		</button>
+
+		<button type="button" class="btn bg-gradient-dark text-white" @onclick="OnCancel">
+			<span>Batal</span>
+		</button>
+	</div>
+
+	<div>
+		@if (ShowDelete)
+		{
+			<button type="button" class="btn bg-gradient-danger" @onclick="DeleteClick">
+				@if (IsDeleting)
+				{
+					<span>Menghapus...</span>
+				}
+				else
+				{
+					<i class="material-symbols-rounded">delete</i>
+					<span>Hapus Item</span>
+				}
+			</button>
+		}
+	</div>
+</div>
+
+@code {
+	[Parameter]
+	public bool IsEdit { get; set; }
+
+	[Parameter]
+	public bool IsSaving { get; set; }
+	
+	[Parameter]
+	public bool IsDeleting { get; set; }
+
+	[Parameter]
+	public EventCallback OnCancel { get; set; }
+
+	[Parameter]
+	public bool ShowDelete { get; set; } = false;
+
+	[Parameter]
+	public string? DeleteId { get; set; }
+
+	[Parameter]
+	public string? DeleteMediaId { get; set; }
+
+	[Parameter]
+	public EventCallback<string?> OnDelete { get; set; }
+
+	private async Task DeleteClick()
+	{
+		if (OnDelete.HasDelegate)
+		{
+			await OnDelete.InvokeAsync(DeleteId);
+		}
+	}
+}

@@ -45,6 +45,7 @@ namespace PacificWeb.Components.Pages
         [Inject]
         public pdjService pdjService { get; set; }
 
+
         IList<MasterCustomer> selectedFromGrid;
         IList<MasterCustomer> selectedCustomer;
         // protected RadzenDataGrid<Models.MasterCustomer> grid0;

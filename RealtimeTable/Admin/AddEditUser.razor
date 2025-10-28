@@ -1,0 +1,153 @@
+﻿@inject NotificationService NotificationService
+@inject DialogService DialogService
+@inject IUserService UserService
+@inject IJSRuntime jsRuntime
+
+<RadzenTemplateForm TItem="User" Data="@userForm" Submit="@HandleValidSubmit">
+	<div class="px-3 pb-3 pt-1">
+
+		@if (!string.IsNullOrEmpty(NoId))
+		{
+			<div class="mb-3">
+				@* <RadzenLabel Text="Nomor ID" /> *@
+				<RadzenFormField AllowFloatingLabel="true" Text="Nomor ID" Style="width:100%">
+					<RadzenTextBox @bind-Value="userForm.No_Id" Name="No_Id" Disabled="true" />
+				</RadzenFormField>
+			</div>
+		}
+
+		<div class="mb-3">
+			@* <RadzenLabel Text="Username" /> *@
+			<RadzenFormField AllowFloatingLabel="true" Text="Username" Style="width:100%">
+				<RadzenTextBox @bind-Value="userForm.Username" Name="Username" @onfocus="@(e => SelectAll(e))" />
+			</RadzenFormField>
+			<RadzenRequiredValidator Component="Username" Text="Username wajib diisi!" />
+		</div>
+
+		<div class="mb-3">
+			@* <RadzenLabel Text="Password" /> *@
+			<RadzenFormField AllowFloatingLabel="true" Text="Password" Style="width:100%">
+				<RadzenPassword @bind-Value="userForm.Password" Name="Password" @onfocus="@(e => SelectAll(e))" />
+			</RadzenFormField>
+			<RadzenRequiredValidator Component="Password" Text="Password wajib diisi!" />
+		</div>
+
+		<div class="mb-3">
+			@* <RadzenLabel Text="Role User" /> *@
+			<RadzenFormField AllowFloatingLabel="true" Text="Role User" Style="width:100%">
+				<RadzenDropDown @bind-Value="userForm.Role" Data="@roleOptions" Name="Role" />
+			</RadzenFormField>
+			<RadzenRequiredValidator Component="Role" Text="Role wajib diisi!" />
+		</div>
+
+		<div class="mb-3">
+			@* <RadzenLabel Text="Status" /> *@
+			<RadzenFormField AllowFloatingLabel="true" Text="Role User" Style="width:100%">
+				<RadzenDropDown @bind-Value="userForm.Status" Data="@statusOptions" Name="Status" />
+			</RadzenFormField>
+			<RadzenRequiredValidator Component="Status" Text="Status wajib diisi!" />
+		</div>
+
+		@* <div class="text-end mt-4"> *@
+		<div class="mt-4 d-flex justify-content-between">
+			<div>
+				<RadzenButton Text="Simpan" ButtonStyle="ButtonStyle.Primary" ButtonType="ButtonType.Submit" />
+				<RadzenButton Text="Batal" ButtonStyle="ButtonStyle.Light" Click="CloseDialog" Class="me-2" />
+			</div>
+
+			<div>
+				@if (isEdit)
+				{
+					<RadzenButton Text="Hapus" class="bg-danger text-white" Click="@(async args => await DeleteData(userForm.No_Id))" />
+				}
+			</div>
+		</div>
+	</div>
+</RadzenTemplateForm>
+
+@code {
+	[Parameter] public string? NoId { get; set; }
+
+	[Parameter] public EventCallback<bool> OnDataChanged { get; set; }
+
+	private User userForm = new();
+	private bool isEdit => !string.IsNullOrEmpty(NoId);
+
+	private List<string> roleOptions = new() { "admin", "user" };
+	private List<string> statusOptions = new() { "aktif", "nonaktif" };
+
+	protected override async Task OnInitializedAsync()
+	{
+		if (isEdit)
+		{
+			var allUsers = await UserService.GetAll();
+			userForm = allUsers.FirstOrDefault(x => x.No_Id == NoId) ?? new User();
+		}
+		else
+		{
+			userForm = new User
+			{
+				Role = "user",
+				Status = "aktif"
+			};
+		}
+	}
+
+	private async Task HandleValidSubmit()
+	{
+		try
+		{
+			userForm.Username = userForm.Username?.Trim();
+			if (isEdit)
+				await UserService.Update(NoId!, userForm);
+			else
+				await UserService.Create(userForm);
+
+			NotificationService.Notify(NotificationSeverity.Success, "Sukses", "Data berhasil disimpan!");
+			DialogService.Close(true);
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", ex.Message);
+		}
+	}
+
+	void ShowNotification(NotificationMessage message)
+	{
+		NotificationService.Notify(message);
+	}
+
+	private async Task DeleteData(string noId)
+	{
+		var confirmed = await DialogService.Confirm(
+			"Apakah yakin ingin menghapus data ini?",
+			"Hapus User",
+			new ConfirmOptions() { OkButtonText = "Hapus", CancelButtonText = "Batal" }
+		);
+
+		if (confirmed == true)
+		{
+			try
+			{
+				await UserService.Delete(noId);
+				NotificationService.Notify(NotificationSeverity.Info, "Sukses", "User berhasil dihapus!");
+				await OnDataChanged.InvokeAsync(true);
+				DialogService.Close(true);
+			}
+			catch (Exception ex)
+			{
+				NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+			}
+		}
+	}
+
+	private void CloseDialog()
+	{
+		DialogService.Close(false);
+	}
+
+	private async Task SelectAll(FocusEventArgs e)
+	{
+		await jsRuntime.InvokeVoidAsync("eval", "document.activeElement.select()");
+	}
+}

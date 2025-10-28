@@ -1,77 +1,202 @@
-﻿@implements IDisposable
-@using Radzen
-@using Radzen.Blazor
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Configuration
+
+@implements IAsyncDisposable
+
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+@inject IConfiguration Configuration
+@inject IMachineService MachineService
+@inject ISettingService SettingService
 
 <RadzenRow>
 	<RadzenColumn SizeMD="12">
-		<div class="d-flex flex-column gap-2">
-			<h4>Live Measurement Table</h4>
-			<p class="text-muted mt-2">
-				Terakhir update: <b>@lastUpdated.ToString("HH:mm:ss")</b>
-			</p>
+		<div class="card border shadow-xs mb-4">
+			@* Header Table *@
+			<div class="card-header border-bottom pb-0">
+				<div class="d-sm-flex align-items-center">
+					<div>
+						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Realtime OPC Data</h6>
+						<p class="text-sm">Pantau data terkini hanya dalam satu tampilan! Semua tabel, selalu update setiap saat.</p>
+						@if (_data != null && _data.TryGetValue("timestamp", out var ts) && ts != null)
+						{
+							DateTime lastUpdated;
+							if (DateTime.TryParse(ts.ToString(), out lastUpdated))
+							{
+								var culture = new System.Globalization.CultureInfo("id-ID");
+								string hari = culture.DateTimeFormat.GetDayName(lastUpdated.DayOfWeek);
+								string tanggal = lastUpdated.ToString("dd MMMM yyyy HH.mm.ss", culture);
+
+								<p class="text-muted">
+									Terakhir update: <b>@hari, @tanggal</b>
+								</p>
+							}
+						}
+						else
+						{
+							<p class="text-muted">
+								Terakhir update: <b>Menunggu pembaruan data...</b>
+							</p>
+						}
+						@* Interval Fetch Data *@
+						<p class="text-muted">
+							Fetch Data setiap: <b>@settingData.RealTimeFreq detik</b>
+						</p>
+					</div>
+					<div class="ms-auto d-flex"></div>
+				</div>
+			</div>
+
+			@* Body Table *@
+			<div class="card-body px-0 py-0">
+				<div class="border-bottom py-3 px-3"></div>
+
+				<div class="table-responsive p-0">
+					@* Table Realtime *@
+					@if (_data != null && machineTags.Any())
+					{
+						<RadzenDataGrid Data="@GetAllTableData(machineTags)"
+										TItem="TableRealtime"
+										AllowSorting="true"
+										AllowVirtualization="true"
+										AllowGrouping="true"
+										AllGroupsExpanded="true"
+										HideGroupedColumn="true"
+										Render="@OnRender"
+										Style="margin-bottom: 5rem; max-height: 500px">
+							<Columns>
+								<RadzenDataGridColumn TItem="TableRealtime" Property="TableName" Title="Tabel" />
+								<RadzenDataGridColumn TItem="TableRealtime" Property="Column" Title="Kolom" />
+								<RadzenDataGridColumn TItem="TableRealtime" Property="Value" Title="Nilai" />
+							</Columns>
+						</RadzenDataGrid>
+					}
+					else
+					{
+						<p class="text-muted fst-italic">Menunggu OPC Data...</p>
+					}
+				</div>
+			</div>
 		</div>
 
-		<RadzenDataGrid @ref="Grid"
-						Data="@measurementList"
-						TItem="MeasurementData"
-						AllowSorting="true"
-						AllowPaging="false"
-						AllowVirtualization="true">
-			<Columns>
-				<RadzenDataGridColumn TItem="MeasurementData" Property="Measurement" Title="Measurement" Width="200px" TextAlign="TextAlign.Left" />
-				<RadzenDataGridColumn TItem="MeasurementData" Property="Value" Title="Value" Width="200px" TextAlign="TextAlign.Center" />
-				<RadzenDataGridColumn TItem="MeasurementData" Property="Units" Title="Units" Width="100px" TextAlign="TextAlign.Center" />
-			</Columns>
-		</RadzenDataGrid>
 	</RadzenColumn>
 </RadzenRow>
 
+
 @code {
-	private RadzenDataGrid<MeasurementData> Grid;
-	private List<MeasurementData> measurementList = new();
-	private System.Timers.Timer updateTimer;
-	private DateTime lastUpdated = DateTime.Now;
-	private Random rand = new();
+	private Dictionary<string, List<ColumnMachine>> machineTags = new();
+	private Settings settingData = new();
 
-	protected override void OnInitialized()
+	// Konfigurasi SignalR
+	private HubConnection? _hubConnection;
+	private Dictionary<string, object>? _data;
+
+	private bool isLoadingTable = false;
+
+	protected override async Task OnInitializedAsync()
 	{
-		GenerateDummyData();
-		updateTimer = new System.Timers.Timer(5000);
-		updateTimer.Elapsed += async (s, e) => await UpdateDataAsync();
-		updateTimer.AutoReset = true;
-		updateTimer.Enabled = true;
+		settingData = (await SettingService.GetAll()).FirstOrDefault() ?? new Settings();
+
+		machineTags = await MachineService.Browse();
+		await LoadDataRealtime();
+		base.OnInitialized();
 	}
 
-	public class MeasurementData
+	private async Task LoadDataRealtime()
 	{
-		public string Measurement { get; set; }
-		public double Value { get; set; }
-		public string Units { get; set; }
-	}
-
-	private async Task UpdateDataAsync()
-	{
-		await InvokeAsync(() =>
+		try
 		{
-			GenerateDummyData();
-			lastUpdated = DateTime.Now;
+			isLoadingTable = true;
 			StateHasChanged();
-		});
-	}
 
-	private void GenerateDummyData()
-	{
-		measurementList = new List<MeasurementData>
+			string hubUrl = $"{Configuration.GetValue<string>("ApiSettings:BaseUrl")?.TrimEnd('/')}/realtimehub";
+
+			_hubConnection = new HubConnectionBuilder()
+				// .WithUrl(Navigation.ToAbsoluteUri("/realtimehub"))
+				.WithUrl(hubUrl)
+				.WithAutomaticReconnect()
+				.Build();
+
+			_hubConnection.On<Dictionary<string, object>>("ReceiveRealTimeData", data =>
+			{
+				_data = data;
+				InvokeAsync(StateHasChanged);
+			});
+
+			await _hubConnection.StartAsync();
+		}
+		catch (Exception ex)
 		{
-			new MeasurementData { Measurement = "Temperature", Value = Math.Round(35 + rand.NextDouble() * 5, 2), Units = "°C" },
-			new MeasurementData { Measurement = "Pressure", Value = Math.Round(3 + rand.NextDouble(), 2), Units = "Pa" },
-			new MeasurementData { Measurement = "Flowrate", Value = Math.Round(50 + rand.NextDouble() * 15, 2), Units = "L/s" },
-			new MeasurementData { Measurement = "Energy Consumption", Value = Math.Round(8 + rand.NextDouble() * 5, 2), Units = "kWh" }
-		};
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
+		finally
+		{
+			isLoadingTable = false;
+			StateHasChanged();
+		}
 	}
 
-	public void Dispose()
+	private List<TableRealtime> GetAllTableData(Dictionary<string, List<ColumnMachine>> machineTags)
 	{
-		updateTimer?.Dispose();
+		try
+		{
+			var allData = new List<TableRealtime>();
+
+			foreach (var table in machineTags)
+			{
+				var tableName = table.Key;
+				var columns = table.Value;
+
+				foreach (var col in columns)
+				{
+					string key = $"{col.NamaTag}";
+					object? value = null;
+
+					if (_data != null)
+						_data.TryGetValue(key, out value);
+
+					allData.Add(new TableRealtime
+					{
+						TableName = tableName,
+						Column = col.NamaTag ?? "null",
+						Value = value switch
+						{
+							null => "null",
+							double d => d.ToString("N2"),
+							DateTime dt => dt.ToString("dd-MM-yyyy HH:mm:ss"),
+							_ => value.ToString() ?? "null"
+						}
+					});
+				}
+			}
+
+			return allData;
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
+
+		return new List<TableRealtime>();
+	}
+
+	private void OnRender(DataGridRenderEventArgs<TableRealtime> args)
+	{
+		if (args.FirstRender)
+		{
+			args.Grid.Groups.Add(new GroupDescriptor() { Property = "TableName" });
+			StateHasChanged();
+		}
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		if (_hubConnection != null)
+		{
+			await _hubConnection.DisposeAsync();
+		}
 	}
 }

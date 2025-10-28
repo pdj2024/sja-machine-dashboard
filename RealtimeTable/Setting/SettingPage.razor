@@ -1,0 +1,167 @@
+﻿@attribute [Authorize(Policy = "AdminOnly")]
+
+@using Microsoft.AspNetCore.Authorization
+
+@inject IJSRuntime jsRuntime
+@inject NavigationManager navigation
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+@inject ISettingService SettingService
+
+<RadzenRow>
+	<RadzenColumn SizeMD="12">
+		<div class="card border shadow-xs mb-4">
+			@* Header Table *@
+			<div class="card-header border-bottom pb-0">
+				<div class="d-flex flex-wrap align-items-center">
+					<div>
+						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Setting</h6>
+						<p class="text-sm">Sesuaikan sistem sesuai gaya kerja Anda.</p>
+						@{
+							var init = Convert.ToDateTime(settingData.UpdatedAt);
+							var culture = new System.Globalization.CultureInfo("id-ID");
+							string hari = culture.DateTimeFormat.GetDayName(init.DayOfWeek);
+							string tanggal = init.ToString("dd MMMM yyyy HH.mm.ss", culture);
+						}
+						<p class="text-muted">
+							Terakhir update: <b>@hari, @tanggal</b>
+						</p>
+					</div>
+					<div class="ms-auto d-flex gap-2">
+						@* Refresh Button *@
+						<RadzenButton Text="Refresh" Icon="refresh" Click="RefreshData" IsBusy="isRefresh" class="mb-3" />
+					</div>
+				</div>
+			</div>
+
+			@* Body Table *@
+			<div class="card-body px-0 py-0">
+				<div class="table-responsive p-0 ms-3">
+					<RadzenTemplateForm TItem="Settings" Data="@settingData" Submit="@HandleValidSubmit" class="my-3 me-3">
+						<RadzenStack class="form-size-custom" Gap="1rem">
+							<RadzenRow AlignItems="AlignItems.Center">
+								<RadzenColumn Size="12" SizeMD="4">
+									<RadzenLabel Text="Realtime Fetch (detik):" />
+								</RadzenColumn>
+								<RadzenColumn Size="12" SizeMD="8">
+									<RadzenNumeric Min="1" Step="1" ShowUpDown="false" @bind-Value="settingData.RealTimeFreq" Name="RealTimeFreq" Format="N0" Style="width: 100%;" @onfocusin="@(e => SelectAll(e))" />
+									<RadzenNumericRangeValidator Component="RealTimeFreq" Min="1" Text="Realtime Fetch minimal bernilai 1" />
+								</RadzenColumn>
+							</RadzenRow>
+
+							<RadzenRow AlignItems="AlignItems.Center">
+								<RadzenColumn Size="12" SizeMD="4">
+									<RadzenLabel Text="Push Freq.  (detik):" />
+								</RadzenColumn>
+								<RadzenColumn Size="12" SizeMD="8">
+									<RadzenNumeric Min="1" Step="1" ShowUpDown="false" @bind-Value="settingData.PushFreq" Name="PushFreq" Format="N0" Style="width: 100%;" @onfocusin="@(e => SelectAll(e))" />
+									<RadzenNumericRangeValidator Component="PushFreq" Min="1" Text="Push Freq. minimal bernilai 1" />
+								</RadzenColumn>
+							</RadzenRow>
+
+							<div class="d-flex justify-content-end">
+								<div>
+									<RadzenButton Text="Simpan" ButtonStyle="ButtonStyle.Primary" ButtonType="ButtonType.Submit" />
+								</div>
+							</div>
+						</RadzenStack>
+					</RadzenTemplateForm>
+				</div>
+			</div>
+		</div>
+
+	</RadzenColumn>
+</RadzenRow>
+
+
+@code {
+	private IEnumerable<Settings> setting;
+	private Settings settingData = new();
+
+	private bool isRefresh = false;
+	private bool isSaving = false;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await LoadData();
+		base.OnInitialized();
+	}
+
+	private async Task LoadData()
+	{
+		try
+		{
+			setting = await SettingService.GetAll();
+			settingData = setting.FirstOrDefault() ?? new Settings();
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
+		finally
+		{
+			StateHasChanged();
+		}
+	}
+
+	private async void RefreshData()
+	{
+		isRefresh = true;
+		StateHasChanged();
+
+		await LoadData();
+
+		isRefresh = false;
+		StateHasChanged();
+	}
+
+	private async Task HandleValidSubmit(Settings modelToSave)
+	{
+		var confirmed = await DialogService.Confirm(
+			"Apakah Anda yakin ingin memperbarui data ini?",
+			"Perbarui Setting",
+			new ConfirmOptions() { OkButtonText = "Perbarui", CancelButtonText = "Batal" }
+		);
+
+		try
+		{
+			if (confirmed == true)
+			{
+				await PerformUpdateAsync(modelToSave);
+				await LoadData();
+			}
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
+	}
+
+	private async Task PerformUpdateAsync(Settings dataToUpdate)
+	{
+		isSaving = true;
+		StateHasChanged();
+
+		try
+		{
+			await SettingService.Update(dataToUpdate);
+			NotificationService.Notify(NotificationSeverity.Success, "Sukses", "Data berhasil diperbarui!");
+			DialogService.Close(true);
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Gagal menyimpan: {ex.Message}");
+		}
+		finally
+		{
+			isSaving = false;
+			StateHasChanged();
+		}
+	}
+
+	private async Task SelectAll(FocusEventArgs e)
+	{
+		await jsRuntime.InvokeVoidAsync("eval", "document.activeElement.select()");
+	}
+}

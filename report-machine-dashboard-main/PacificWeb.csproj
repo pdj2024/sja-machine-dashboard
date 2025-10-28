@@ -26,6 +26,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\RealtimeTable\RealtimeTable.csproj" />
+		<ProjectReference Include="..\RealtimeTable\RealtimeTable.csproj" />
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 </Project>
