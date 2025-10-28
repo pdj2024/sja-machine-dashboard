@@ -7,6 +7,7 @@
 
         Task<T> PostUser<T>(string baseUrl, object data);
         Task<T> Put<T>(string baseUrl, string id, object data);
+        Task<T> PutSetting<T>(string baseUrl, object data);
         Task Delete(string baseUrl, string id);
     }
 }

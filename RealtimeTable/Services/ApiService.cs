@@ -136,6 +136,22 @@ namespace RealtimeTable.Services
             return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         }
 
+        public async Task<T> PutSetting<T>(string endpoint, object data)
+        {
+            await AddAuthHeader();
+
+            var jsonContent = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
+
+            var url = $"{endpoint}";
+
+            var response = await _httpClient.PutAsync(url, jsonContent);
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync();
+
+            return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+
         public async Task Delete(string endpoint, string id)
         {
             await AddAuthHeader();

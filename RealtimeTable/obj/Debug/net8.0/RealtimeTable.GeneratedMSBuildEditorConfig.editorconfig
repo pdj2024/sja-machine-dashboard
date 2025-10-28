@@ -32,6 +32,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UHVzaERhdGFcUHVzaERhdGFQYWdlLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
+[D:/Visual Studio/Blazor/report-machine-dashboard/RealtimeTable/Setting/SettingPage.razor]
+build_metadata.AdditionalFiles.TargetPath = U2V0dGluZ1xTZXR0aW5nUGFnZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
 [D:/Visual Studio/Blazor/report-machine-dashboard/RealtimeTable/Shared/ButtonExportChart.razor]
 build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXEJ1dHRvbkV4cG9ydENoYXJ0LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 

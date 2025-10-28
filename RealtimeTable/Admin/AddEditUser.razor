@@ -19,7 +19,7 @@
 		<div class="mb-3">
 			@* <RadzenLabel Text="Username" /> *@
 			<RadzenFormField AllowFloatingLabel="true" Text="Username" Style="width:100%">
-				<RadzenTextBox @bind-Value="userForm.Username" Name="Username" />
+				<RadzenTextBox @bind-Value="userForm.Username" Name="Username" @onfocus="@(e => SelectAll(e))" />
 			</RadzenFormField>
 			<RadzenRequiredValidator Component="Username" Text="Username wajib diisi!" />
 		</div>
@@ -27,7 +27,7 @@
 		<div class="mb-3">
 			@* <RadzenLabel Text="Password" /> *@
 			<RadzenFormField AllowFloatingLabel="true" Text="Password" Style="width:100%">
-				<RadzenPassword @bind-Value="userForm.Password" Name="Password" />
+				<RadzenPassword @bind-Value="userForm.Password" Name="Password" @onfocus="@(e => SelectAll(e))" />
 			</RadzenFormField>
 			<RadzenRequiredValidator Component="Password" Text="Password wajib diisi!" />
 		</div>
@@ -144,5 +144,10 @@
 	private void CloseDialog()
 	{
 		DialogService.Close(false);
+	}
+
+	private async Task SelectAll(FocusEventArgs e)
+	{
+		await jsRuntime.InvokeVoidAsync("eval", "document.activeElement.select()");
 	}
 }

@@ -16,7 +16,7 @@
 			<div class="card-header border-bottom pb-0">
 				<div class="d-flex flex-wrap align-items-center">
 					<div>
-						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Table History</h6>
+						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Table User</h6>
 						<p class="text-sm">Menampilkan seluruh data dari setiap tabel yang tersedia dengan lengkap dan terstruktur.</p>
 					</div>
 					<div class="ms-auto d-flex gap-2">
@@ -134,10 +134,20 @@
 
 	private async Task LoadData()
 	{
-		user = await UserService.GetAll();
-		userList = user.ToList();
-		ApplyFilter();
-		StateHasChanged();
+		try
+		{
+			user = await UserService.GetAll();
+			userList = user.ToList();
+			ApplyFilter();
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
+		finally
+		{
+			StateHasChanged();
+		}
 	}
 
 	private void ApplyFilter()
@@ -187,8 +197,17 @@
 			new DialogOptions { Width = "600px", Resizable = true, Draggable = true }
 		);
 
-		if (result is bool saved && saved)
-			await LoadData();
+		try
+		{
+			if (result is bool saved && saved)
+			{
+				await LoadData();
+			}
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
 	}
 
 	private async Task EditUser(User user)
@@ -199,8 +218,17 @@
 			new DialogOptions { Width = "600px", Resizable = true, Draggable = true }
 		);
 
-		if (result is bool saved && saved)
-			await LoadData();
+		try
+		{
+			if (result is bool saved && saved)
+			{
+				await LoadData();
+			}
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
 	}
 
 	private async Task ClearFilter()

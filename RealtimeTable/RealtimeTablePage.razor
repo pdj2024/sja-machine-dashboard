@@ -8,8 +8,9 @@
 @inject DialogService DialogService
 @inject NotificationService NotificationService
 
-@inject IMachineService MachineService
 @inject IConfiguration Configuration
+@inject IMachineService MachineService
+@inject ISettingService SettingService
 
 <RadzenRow>
 	<RadzenColumn SizeMD="12">
@@ -42,7 +43,7 @@
 						}
 						@* Interval Fetch Data *@
 						<p class="text-muted">
-							Fetch Data setiap: <b>5 detik</b>
+							Fetch Data setiap: <b>@settingData.RealTimeFreq detik</b>
 						</p>
 					</div>
 					<div class="ms-auto d-flex"></div>
@@ -60,7 +61,7 @@
 						<RadzenDataGrid Data="@GetAllTableData(machineTags)"
 										TItem="TableRealtime"
 										AllowSorting="true"
-										AllowVirtualization="true" 
+										AllowVirtualization="true"
 										AllowGrouping="true"
 										AllGroupsExpanded="true"
 										HideGroupedColumn="true"
@@ -87,6 +88,7 @@
 
 @code {
 	private Dictionary<string, List<ColumnMachine>> machineTags = new();
+	private Settings settingData = new();
 
 	// Konfigurasi SignalR
 	private HubConnection? _hubConnection;
@@ -96,70 +98,89 @@
 
 	protected override async Task OnInitializedAsync()
 	{
+		settingData = (await SettingService.GetAll()).FirstOrDefault() ?? new Settings();
+
 		machineTags = await MachineService.Browse();
 		await LoadDataRealtime();
-
 		base.OnInitialized();
 	}
 
 	private async Task LoadDataRealtime()
 	{
-		isLoadingTable = true;
-		StateHasChanged();
-
-		string hubUrl = $"{Configuration.GetValue<string>("ApiSettings:BaseUrl")?.TrimEnd('/')}/realtimehub";
-
-		_hubConnection = new HubConnectionBuilder()
-			// .WithUrl(Navigation.ToAbsoluteUri("/realtimehub"))
-			.WithUrl(hubUrl)
-			.WithAutomaticReconnect()
-			.Build();
-
-		_hubConnection.On<Dictionary<string, object>>("ReceiveRealTimeData", data =>
+		try
 		{
-			_data = data;
-			InvokeAsync(StateHasChanged);
-		});
+			isLoadingTable = true;
+			StateHasChanged();
 
-		await _hubConnection.StartAsync();
+			string hubUrl = $"{Configuration.GetValue<string>("ApiSettings:BaseUrl")?.TrimEnd('/')}/realtimehub";
 
-		isLoadingTable = false;
-		StateHasChanged();
+			_hubConnection = new HubConnectionBuilder()
+				// .WithUrl(Navigation.ToAbsoluteUri("/realtimehub"))
+				.WithUrl(hubUrl)
+				.WithAutomaticReconnect()
+				.Build();
+
+			_hubConnection.On<Dictionary<string, object>>("ReceiveRealTimeData", data =>
+			{
+				_data = data;
+				InvokeAsync(StateHasChanged);
+			});
+
+			await _hubConnection.StartAsync();
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
+		finally
+		{
+			isLoadingTable = false;
+			StateHasChanged();
+		}
 	}
 
 	private List<TableRealtime> GetAllTableData(Dictionary<string, List<ColumnMachine>> machineTags)
 	{
-		var allData = new List<TableRealtime>();
-
-		foreach (var table in machineTags)
+		try
 		{
-			var tableName = table.Key;
-			var columns = table.Value;
+			var allData = new List<TableRealtime>();
 
-			foreach (var col in columns)
+			foreach (var table in machineTags)
 			{
-				string key = $"{col.NamaTag}";
-				object? value = null;
+				var tableName = table.Key;
+				var columns = table.Value;
 
-				if (_data != null)
-					_data.TryGetValue(key, out value);
-
-				allData.Add(new TableRealtime
+				foreach (var col in columns)
 				{
-					TableName = tableName,
-					Column = col.NamaTag ?? "null",
-					Value = value switch
+					string key = $"{col.NamaTag}";
+					object? value = null;
+
+					if (_data != null)
+						_data.TryGetValue(key, out value);
+
+					allData.Add(new TableRealtime
 					{
-						null => "null",
-						double d => d.ToString("N2"),
-						DateTime dt => dt.ToString("dd-MM-yyyy HH:mm:ss"),
-						_ => value.ToString() ?? "null"
-					}
-				});
+						TableName = tableName,
+						Column = col.NamaTag ?? "null",
+						Value = value switch
+						{
+							null => "null",
+							double d => d.ToString("N2"),
+							DateTime dt => dt.ToString("dd-MM-yyyy HH:mm:ss"),
+							_ => value.ToString() ?? "null"
+						}
+					});
+				}
 			}
+
+			return allData;
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
 		}
 
-		return allData;
+		return new List<TableRealtime>();
 	}
 
 	private void OnRender(DataGridRenderEventArgs<TableRealtime> args)
@@ -174,6 +195,8 @@
 	public async ValueTask DisposeAsync()
 	{
 		if (_hubConnection != null)
+		{
 			await _hubConnection.DisposeAsync();
+		}
 	}
 }

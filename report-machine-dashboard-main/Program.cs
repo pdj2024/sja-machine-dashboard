@@ -81,6 +81,8 @@ builder.Services.AddHttpClient<RealtimeTable.Interfaces.IApiService, RealtimeTab
 });
 builder.Services.AddScoped<RealtimeTable.Interfaces.IMachineService, RealtimeTable.Services.MachineService>();
 builder.Services.AddScoped<RealtimeTable.Interfaces.IUserService, RealtimeTable.Services.UserService>();
+builder.Services.AddScoped<RealtimeTable.Interfaces.ISettingService, RealtimeTable.Services.SettingService>();
+builder.Services.AddScoped<RealtimeTable.Interfaces.IPushDataService, RealtimeTable.Services.PushDataService>();
 
 // Add Policy for Admin
 builder.Services.AddAuthorization(options =>

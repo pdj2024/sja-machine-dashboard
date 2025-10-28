@@ -7,15 +7,147 @@
 @inject NotificationService NotificationService
 @inject DialogService DialogService
 
-@inject IUserService UserService
+@inject IPushDataService PushDataService
 
 <RadzenRow>
-	<RadzenColumn SizeMD="12" class="mt-1">
-		<p>@PageTitle</p>
+	<RadzenColumn SizeMD="12">
+		<div class="card border shadow-xs mb-4">
+			@* Header Table *@
+			<div class="card-header border-bottom pb-0">
+				<div class="d-flex flex-wrap align-items-center">
+					<div>
+						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Push Data</h6>
+						<p class="text-sm">Simple, cepat, dan selalu siap menjaga data kamu tetap sinkron.</p>
+					</div>
+					<div class="ms-auto d-flex gap-2">
+						@* Refresh Button *@
+						<RadzenButton Text="Refresh" Icon="refresh" Click="RefreshData" IsBusy="isRefresh" class="mb-3" />
+					</div>
+				</div>
+			</div>
+
+			@* Body Table *@
+			<div class="card-body px-0 py-0">
+				<div class="table-responsive p-0 ms-3">
+					<RadzenTemplateForm TItem="PushDataModel" Data="@pushData" Submit="@HandleValidSubmit" class="my-3 me-3">
+						<RadzenStack class="form-size-custom" Gap="1rem">
+							<RadzenRow AlignItems="AlignItems.Center">
+								<RadzenColumn Size="12" SizeMD="4">
+									<RadzenLabel Text="Running:" />
+								</RadzenColumn>
+								<RadzenColumn Size="12" SizeMD="8">
+									<RadzenTextBox Value="@(pushData.Running ? "true" : "false")" Name="Running" Disabled="true" Style="width: 100%;" />
+								</RadzenColumn>
+							</RadzenRow>
+
+							<RadzenRow AlignItems="AlignItems.Center">
+								<RadzenColumn Size="12" SizeMD="4">
+									<RadzenLabel Text="Last Push:" />
+								</RadzenColumn>
+								<RadzenColumn Size="12" SizeMD="8">
+									<RadzenDatePicker @bind-Value="pushData.LastPush" Name="LastPush" ShowButton="false" Disabled="true" Style="width: 100%;" />
+								</RadzenColumn>
+							</RadzenRow>
+
+							<RadzenRow AlignItems="AlignItems.Center">
+								<RadzenColumn Size="12" SizeMD="4">
+									<RadzenLabel Text="Last Error:" />
+								</RadzenColumn>
+								<RadzenColumn Size="12" SizeMD="8">
+									<RadzenDatePicker @bind-Value="pushData.LastError" Name="LastError" ShowButton="false" Disabled="true" Style="width: 100%;" />
+								</RadzenColumn>
+							</RadzenRow>
+
+							<RadzenRow AlignItems="AlignItems.Center">
+								<RadzenColumn Size="12" SizeMD="4">
+									<RadzenLabel Text="Aktivasi Push Data:" />
+								</RadzenColumn>
+								<RadzenColumn Size="12" SizeMD="8">
+									<RadzenButton Text="@(pushData.Running ? "Non Aktifkan" : "Aktifkan")"
+												  class="@(pushData.Running ? "bg-danger" : "")"
+												  ButtonStyle="ButtonStyle.Primary"
+												  ButtonType="ButtonType.Submit" />
+								</RadzenColumn>
+							</RadzenRow>
+						</RadzenStack>
+					</RadzenTemplateForm>
+				</div>
+			</div>
+		</div>
+
 	</RadzenColumn>
 </RadzenRow>
 
 
 @code {
-	private string PageTitle = "Push Data Page";
+	private PushDataModel pushData = new();
+
+	private bool isRefresh = false;
+	private bool isSaving = false;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await LoadData();
+		base.OnInitialized();
+	}
+
+	private async Task LoadData()
+	{
+		pushData = await PushDataService.GetStatus();
+		StateHasChanged();
+	}
+
+	private async void RefreshData()
+	{
+		isRefresh = true;
+		StateHasChanged();
+
+		await LoadData();
+
+		isRefresh = false;
+		StateHasChanged();
+	}
+
+	private async Task HandleValidSubmit(PushDataModel modelToSave)
+	{
+		var confirmed = await DialogService.Confirm(
+			"Apakah Anda yakin ingin memperbarui data ini?",
+			"Perbarui Setting",
+			new ConfirmOptions() { OkButtonText = "Perbarui", CancelButtonText = "Batal" });
+
+		try
+		{
+			if (confirmed == true)
+			{
+				await PerformUpdateAsync(modelToSave);
+				await LoadData();
+			}
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
+	}
+
+	private async Task PerformUpdateAsync(PushDataModel dataToUpdate)
+	{
+		isSaving = true;
+		StateHasChanged();
+
+		try
+		{
+			await PushDataService.Update(pushData.Running ? "stop" : "start");
+			NotificationService.Notify(NotificationSeverity.Success, "Sukses", "Data berhasil diperbarui!");
+			DialogService.Close(true);
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Gagal menyimpan: {ex.Message}");
+		}
+		finally
+		{
+			isSaving = false;
+			StateHasChanged();
+		}
+	}
 }

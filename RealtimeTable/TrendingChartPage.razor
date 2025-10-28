@@ -78,7 +78,7 @@
 				<div class="table-responsive p-0">
 					@* Line Chart *@
 					<div id="chartArea" style="margin-bottom: 3rem;">
-						<RadzenChart Style="height:400px; width: 1200px;">
+						<RadzenChart Style="height: 500px;">
 							<RadzenLegend Position="LegendPosition.Top" />
 
 							<RadzenChartTooltipOptions Shared="true" />
@@ -93,13 +93,21 @@
 													  ValueProperty="Value"
 													  LineType="LineType.Solid"
 													  Smooth="true">
-										<RadzenMarkers Visible="true" MarkerType="MarkerType.Circle" />
+										<RadzenMarkers Visible="false" MarkerType="MarkerType.Circle" />
 										<RadzenSeriesDataLabels Visible="false" />
 									</RadzenLineSeries>
 								}
 
-								<RadzenCategoryAxis Padding="10" TickDistance="200" LabelAutoRotation="90" Formatter="@FormatAsTime" />
-								<RadzenValueAxis TickDistance="30" Formatter="@FormatAsValue" />
+								@* X Axis *@
+								<RadzenCategoryAxis Padding="10" TickDistance="200" LabelAutoRotation="0" Formatter="@FormatAsTime">
+								@* <RadzenCategoryAxis Padding="10" LabelAutoRotation="90" Formatter="@(_ => "")"> *@
+									<RadzenGridLines Visible="false" />
+								</RadzenCategoryAxis>
+
+								@* Y Axis *@
+								<RadzenValueAxis TickDistance="30" Formatter="@FormatAsValue">
+									<RadzenGridLines Visible="false" />
+								</RadzenValueAxis>
 							}
 							else
 							{
@@ -187,6 +195,7 @@
 
 	private DateTime? StartDate = DateTime.Now.ToLocalTime().Date;
 	private DateTime? EndDate = DateTime.Now.ToLocalTime();
+	private int intervalChart = 60;
 
 	private bool isUpdateChart = false;
 	private bool isLoading = false;
@@ -363,25 +372,36 @@
 		var result = await DialogService.OpenAsync<DialogColumnChoose>("Pilih Kolom Filter",
 			new Dictionary<string, object>
 			{
-				{ "MachineTags", machineTags },
-				{ "SelectedColumns", SelectedColumns },
-				{ "OnUpdate", EventCallback.Factory.Create<HashSet<string>>(this, async (cols) =>
-					{
-						SelectedColumns = cols;
-						await UpdateChart();
-					})
-				}
+					{ "MachineTags", machineTags },
+					{ "SelectedColumns", SelectedColumns },
+					{ "OnUpdate", EventCallback.Factory.Create<HashSet<string>>(this, async (cols) =>
+						{
+							SelectedColumns = cols;
+							await UpdateChart();
+						})
+					}
 			},
 			new DialogOptions
 			{
 				Width = "650px",
 				Resizable = true,
 				Draggable = true
-			});
+			}
+		);
 
-		if (result is HashSet<string> selected)
+		try
 		{
-			SelectedColumns = selected;
+			if (result is HashSet<string> selected)
+			{
+				SelectedColumns = selected;
+			}
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
+		finally
+		{
 			StateHasChanged();
 		}
 	}
@@ -472,19 +492,46 @@
 		if (value is IConvertible conv)
 			return Convert.ToDouble(conv).ToString("N1");
 
-		return value.ToString();
+		return value.ToString() ?? "-";
 	}
+
+	// private string FormatAsTime(object value)
+	// {
+	// 	if (value == null)
+	// 		return "-";
+
+	// 	if (value is DateTime dt)
+	// 		return dt.ToString("dd-MM-yyyy HH:mm");
+
+	// 	if (DateTime.TryParse(value.ToString(), out var parsed))
+	// 		return parsed.ToString("dd-MM-yyyy HH:mm");
+
+	// 	return value.ToString() ?? "-";
+	// }
 
 	private string FormatAsTime(object value)
 	{
 		if (value == null)
-			return "-";
+			return "";
 
 		if (value is DateTime dt)
-			return dt.ToString("dd-MM-yyyy HH:mm");
+		{
+			// Hanya tampilkan label setiap 60 menit
+			if (dt.Minute % intervalChart == 0)
+			{
+				return dt.ToString("dd-MM-yyyy HH:mm");
+			}
+			return "";
+		}
 
 		if (DateTime.TryParse(value.ToString(), out var parsed))
-			return parsed.ToString("dd-MM-yyyy HH:mm");
+		{
+			if (parsed.Minute % intervalChart == 0)
+			{
+				return parsed.ToString("dd-MM-yyyy HH:mm");
+			}
+			return "";
+		}
 
 		return value.ToString();
 	}

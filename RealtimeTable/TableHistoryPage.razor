@@ -408,61 +408,70 @@
 	// Load Data Tables untuk Mode Filter "Table"
 	private async Task LoadMultipleTables()
 	{
-		MultiTableData.Clear();
-
-		foreach (var tableName in SelectedTables)
+		try
 		{
-			var body = new
-			{
-				tgl_start = StartDate,
-				tgl_finish = EndDate,
-				request_data = new[] { tableName }
-			};
+			MultiTableData.Clear();
 
-			var result = await MachineService.GetTableBy(body, "table");
-			if (result != null && result.Any())
+			foreach (var tableName in SelectedTables)
 			{
-				var historyData = result
-					.SelectMany(kvp => kvp.Value.Select(v => new { Tag = kvp.Key, v.Timestamp, v.Value }))
-					.GroupBy(x => x.Timestamp)
-					.Select(g =>
-					{
-						DateTime ts;
-						if (!DateTime.TryParse(g.Key, out ts))
+				var body = new
+				{
+					tgl_start = StartDate,
+					tgl_finish = EndDate,
+					request_data = new[] { tableName }
+				};
+
+				var result = await MachineService.GetTableBy(body, "table");
+				if (result != null && result.Any())
+				{
+					var historyData = result
+						.SelectMany(kvp => kvp.Value.Select(v => new { Tag = kvp.Key, v.Timestamp, v.Value }))
+						.GroupBy(x => x.Timestamp)
+						.Select(g =>
 						{
-							ts = DateTime.MinValue;
-						}
+							DateTime ts;
+							if (!DateTime.TryParse(g.Key, out ts))
+							{
+								ts = DateTime.MinValue;
+							}
 
-						var tagsDict = g
-							.GroupBy(x => x.Tag)
-							.ToDictionary(
-								grp => grp.Key,
-								grp =>
-								{
-									var last = grp.LastOrDefault();
-									if (last == null || last.Value == null)
-										return "null";
-									return last.Value.ToString();
-								});
+							var tagsDict = g
+								.GroupBy(x => x.Tag)
+								.ToDictionary(
+									grp => grp.Key,
+									grp =>
+									{
+										var last = grp.LastOrDefault();
+										if (last == null || last.Value == null)
+											return "null";
+										return last.Value.ToString();
+									});
 
-						return new TableColumn
-						{
-							Timestamp = ts,
-							Tags = tagsDict
-						};
-					})
-					.OrderBy(x => x.Timestamp)
-					.ToList();
+							return new TableColumn
+							{
+								Timestamp = ts,
+								Tags = tagsDict
+							};
+						})
+						.OrderBy(x => x.Timestamp)
+						.ToList();
 
-				MultiTableData[tableName] = historyData;
-			}
-			else
-			{
-				MultiTableData[tableName] = new List<TableColumn>();
+					MultiTableData[tableName] = historyData;
+				}
+				else
+				{
+					MultiTableData[tableName] = new List<TableColumn>();
+				}
 			}
 		}
-
-		StateHasChanged();
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
+		finally
+		{
+			StateHasChanged();
+		}
 	}
 
 	// Modal Pilih Kolom untuk Mode Filter "Table"
@@ -471,27 +480,39 @@
 		var result = await DialogService.OpenAsync<DialogTableChoose>("Pilih Tabel",
 			new Dictionary<string, object>
 			{
-			{ "AllTables", tablesForUI },
-			{ "SelectedTables", SelectedTables },
-			{ "OnUpdate", EventCallback.Factory.Create<HashSet<string>>(this, async (tables) =>
-				{
-					SelectedTables = tables;
-					await UpdateTable();
-				})
-			}
+				{ "AllTables", tablesForUI },
+				{ "SelectedTables", SelectedTables },
+				{ "OnUpdate", EventCallback.Factory.Create<HashSet<string>>(this, async (tables) =>
+					{
+						SelectedTables = tables;
+						await UpdateTable();
+					})
+				}
 			},
 			new DialogOptions
 			{
 				Width = "600px",
 				Resizable = true,
 				Draggable = true
-			});
+			}
+		);
 
-		if (result is HashSet<string> selected)
+		try
 		{
-			SelectedTables = selected;
+			if (result is HashSet<string> selected)
+			{
+				SelectedTables = selected;
+			}
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
+		finally
+		{
 			StateHasChanged();
 		}
+
 	}
 
 	// Modal Pilih Kolom untuk Mode Filter "Column"
@@ -500,26 +521,37 @@
 		var result = await DialogService.OpenAsync<DialogColumnChoose>("Pilih Kolom Filter",
 			new Dictionary<string, object>
 			{
-				{ "MachineTags", machineTags },
-				{ "SelectedColumns", SelectedColumns },
-				{ "OnUpdate", EventCallback.Factory.Create<HashSet<string>>(this, async (cols) =>
-					{
-						SelectedColumns = cols;
-						await UpdateTable();
-					})
-				},
-				{ "IsTable", true }
+					{ "MachineTags", machineTags },
+					{ "SelectedColumns", SelectedColumns },
+					{ "OnUpdate", EventCallback.Factory.Create<HashSet<string>>(this, async (cols) =>
+						{
+							SelectedColumns = cols;
+							await UpdateTable();
+						})
+					},
+					{ "IsTable", true }
 			},
 			new DialogOptions
 			{
 				Width = "650px",
 				Resizable = true,
 				Draggable = true
-			});
+			}
+		);
 
-		if (result is HashSet<string> selected)
+		try
 		{
-			SelectedColumns = selected;
+			if (result is HashSet<string> selected)
+			{
+				SelectedColumns = selected;
+			}
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
+		finally
+		{
 			StateHasChanged();
 		}
 	}
