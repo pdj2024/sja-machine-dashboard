@@ -5,6 +5,7 @@
         public string? TableName { get; set; }
         public string? Column { get; set; }
         public object? Value { get; set; }
+        public string? Deskripsi { get; set; }
         public DateTime Timestamp { get; set; }
     }
 }

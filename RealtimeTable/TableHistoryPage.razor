@@ -161,6 +161,7 @@
 						</RadzenDataGrid>
 					}
 
+					@* Multi Table *@
 					@if (SelectedFilterMode == "Table")
 					{
 						@if (MultiTableData.Any())
@@ -209,6 +210,54 @@
 						}
 					}
 
+					@* Merger Table *@
+					@* @if (SelectedFilterMode == "Table")
+					{
+						@if (MergedTableData != null && MergedTableData.Any())
+						{
+							<RadzenDataGrid Data="@MergedTableData"
+											TItem="TableColumn"
+											ColumnWidth="200px"
+											AllowSorting="true"
+											AllowPaging="true"
+											PageSize="10"
+											PageSizeOptions="@(new int[] { 10, 20, 50 })"
+											PagerHorizontalAlign="HorizontalAlign.Right"
+											ShowPagingSummary="true"
+											Style="margin-bottom: 5rem;">
+
+								<Columns>
+									<RadzenDataGridColumn TItem="TableColumn" Property="Timestamp" Title="Timestamp" Frozen="true">
+										<Template Context="data">
+											@data.Timestamp.ToString("dd-MM-yyyy HH:mm:ss")
+										</Template>
+									</RadzenDataGridColumn>
+
+									@foreach (var tag in AllMergedTags)
+									{
+										<RadzenDataGridColumn TItem="TableColumn" Title="@tag">
+											<Template Context="data">
+												@if (data.Tags.TryGetValue(tag, out var value))
+												{
+													@value
+												}
+												else
+												{
+													<span class="text-muted">-</span>
+												}
+											</Template>
+										</RadzenDataGridColumn>
+									}
+								</Columns>
+
+								<PagingSummaryTemplate>
+									<RadzenIcon Icon="database" Style="color: var(--rz-primary); font-size: var(--rz-pager-summary-font-size);" />
+									Page @context.CurrentPage of @context.NumberOfPages <b>(total @context.TotalCount data)</b>
+								</PagingSummaryTemplate>
+							</RadzenDataGrid>
+						}
+					} *@
+
 				</div>
 			</div>
 		</div>
@@ -226,6 +275,9 @@
 	private bool ExportSelectedRowsOnly { get; set; }
 
 	private Dictionary<string, List<TableColumn>> MultiTableData = new();
+	private List<TableColumn> MergedTableData = new();
+	private List<string> AllMergedTags = new();
+
 	private HashSet<string> SelectedTables = new();
 	private HashSet<string> SelectedColumns = new();
 	private HashSet<string> CollapsedTables = new();
@@ -297,7 +349,11 @@
 	private async Task UpdateTable()
 	{
 		HistoryData.Clear();
+
 		MultiTableData.Clear();
+		MergedTableData.Clear();
+		AllMergedTags.Clear();
+
 		isUpdateTable = true;
 		StateHasChanged();
 
@@ -373,6 +429,7 @@
 					return;
 				}
 				await LoadMultipleTables();
+				// await LoadMultipleTablesGrid();
 			}
 		}
 		finally
@@ -406,6 +463,7 @@
 	}
 
 	// Load Data Tables untuk Mode Filter "Table"
+	// Multi Table
 	private async Task LoadMultipleTables()
 	{
 		try
@@ -420,8 +478,8 @@
 					tgl_finish = EndDate,
 					request_data = new[] { tableName }
 				};
-
 				var result = await MachineService.GetTableBy(body, "table");
+
 				if (result != null && result.Any())
 				{
 					var historyData = result
@@ -467,6 +525,107 @@
 		catch (Exception ex)
 		{
 			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+			MultiTableData.Clear();
+		}
+		finally
+		{
+			StateHasChanged();
+		}
+	}
+
+	// Merger Table
+	private async Task LoadMultipleTablesGrid()
+	{
+		MultiTableData.Clear();
+		MergedTableData.Clear();
+		AllMergedTags.Clear();
+
+		try
+		{
+			var body = new
+			{
+				tgl_start = StartDate,
+				tgl_finish = EndDate,
+				request_data = SelectedTables.ToArray()
+			};
+			var result = await MachineService.GetTableBy(body, "table");
+
+			foreach (var tableName in SelectedTables)
+			{
+				if (result != null && result.Any())
+				{
+					var historyData = result
+						.SelectMany(kvp => kvp.Value.Select(v => new { Table = tableName, Tag = kvp.Key, v.Timestamp, v.Value }))
+						.GroupBy(x => x.Timestamp)
+						.Select(g =>
+						{
+							DateTime.TryParse(g.Key, out var ts);
+
+							var tagsDict = g
+								.GroupBy(x => x.Tag)
+								.ToDictionary(
+									// grp => $"{tableName}.{grp.Key}",
+									grp => $"{grp.Key}",
+									grp => grp.LastOrDefault()?.Value?.ToString() ?? "null"
+								);
+
+							return new TableColumn
+							{
+								Timestamp = ts,
+								Tags = tagsDict
+							};
+						})
+						.OrderBy(x => x.Timestamp)
+						.ToList();
+
+					MultiTableData[tableName] = historyData;
+				}
+			}
+
+			var allTimestamps = MultiTableData.Values
+				.SelectMany(x => x.Select(d => d.Timestamp))
+				.Distinct()
+				.OrderBy(x => x)
+				.ToList();
+
+			foreach (var ts in allTimestamps)
+			{
+				var combinedTags = new Dictionary<string, string>();
+
+				foreach (var kvp in MultiTableData)
+				{
+					var tableName = kvp.Key;
+					var tableData = kvp.Value.FirstOrDefault(d => d.Timestamp == ts);
+					if (tableData != null)
+					{
+						foreach (var tag in tableData.Tags)
+						{
+							// var key = $"{tableName}.{tag.Key}";
+							var key = $"{tag.Key}";
+							combinedTags[key] = tag.Value;
+						}
+					}
+				}
+
+				MergedTableData.Add(new TableColumn
+				{
+					Timestamp = ts,
+					Tags = combinedTags
+				});
+			}
+
+			AllMergedTags = MergedTableData
+				.SelectMany(x => x.Tags.Keys)
+				.Distinct()
+				.OrderBy(x => x)
+				.ToList();
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+			MultiTableData.Clear();
+			MergedTableData.Clear();
+			AllMergedTags.Clear();
 		}
 		finally
 		{
@@ -563,6 +722,7 @@
 	}
 
 	// --- Export function ---
+	// Multi Table
 	public async Task ExportTables(string type)
 	{
 		isExport = true;
@@ -634,9 +794,10 @@
 							}
 
 							rowIndex++;
-							exportProgress = 30 + Math.Round(((rowIndex - 1) / (double)total * 60 / MultiTableData.Count));
-							StateHasChanged();
 						}
+
+						exportProgress = 30 + Math.Round(((rowIndex - 1) / (double)total * 60 / MultiTableData.Count));
+						StateHasChanged();
 
 						worksheet.Columns().AdjustToContents();
 					}
@@ -690,11 +851,10 @@
 							csv.AppendLine();
 
 							count++;
-							exportProgress = 30 + Math.Round((count / (double)total * 60 / MultiTableData.Count));
-							StateHasChanged();
 						}
 
-						await SimulateProgress(exportProgress, 95);
+						exportProgress = 30 + Math.Round((count / (double)total * 60 / MultiTableData.Count));
+						StateHasChanged();
 
 						var bytes = Encoding.UTF8.GetBytes(csv.ToString());
 						var fileName = $"{tableName}_{DateTime.Now:ddMMyyyyHHmmss}.csv";
@@ -703,6 +863,7 @@
 						using var streamRef = new DotNetStreamReference(stream);
 						await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
 					}
+					await SimulateProgress(exportProgress, 95);
 				}
 			}
 
@@ -721,7 +882,6 @@
 			StateHasChanged();
 		}
 	}
-
 	private async Task ExportSingleTable(List<TableColumn> tableData, string sheetName, string type)
 	{
 		var allTags = tableData
@@ -805,6 +965,150 @@
 			await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
 		}
 	}
+
+	// Merged Table
+	public async Task ExportTablesGrid(string type)
+	{
+		isExport = true;
+		exportProgress = 0;
+		NotificationService.Notify(NotificationSeverity.Info, "Export Data", "Menyiapkan file untuk diekspor...");
+		StateHasChanged();
+
+		try
+		{
+			// Jika tidak ada data sama sekali
+			if ((HistoryData == null || !HistoryData.Any()) && (MultiTableData == null || !MultiTableData.Any()))
+			{
+				NotificationService.Notify(NotificationSeverity.Warning, "Export Gagal", "Tidak ada data untuk diekspor.");
+				isExport = false;
+				exportProgress = 0;
+				StateHasChanged();
+				return;
+			}
+
+			await SimulateProgress(0, 30);
+
+			if (SelectedFilterMode == "Column")
+			{
+				if (HistoryData != null && HistoryData.Any())
+				{
+					await ExportSingleTable(HistoryData, "HistoryData", type);
+				}
+			}
+			else
+			{
+				if (MergedTableData == null || !MergedTableData.Any())
+				{
+					NotificationService.Notify(NotificationSeverity.Warning, "Export Gagal", "Tidak ada data untuk diekspor.");
+					isExport = false;
+					exportProgress = 0;
+					StateHasChanged();
+					return;
+				}
+
+				// Ambil semua kolom unik
+				var allTags = MergedTableData
+					.SelectMany(h => h.Tags.Keys)
+					.Distinct()
+					.ToList();
+
+				// Export CSV
+				if (type.ToLower() == "csv")
+				{
+					var csv = new StringBuilder();
+					csv.Append("Timestamp");
+					foreach (var tag in allTags)
+						csv.Append($",{tag}");
+					csv.AppendLine();
+
+					int count = 0;
+					int total = MergedTableData.Count;
+
+					foreach (var row in MergedTableData)
+					{
+						csv.Append(row.Timestamp.ToString("dd-MM-yyyy HH.mm.ss"));
+						foreach (var tag in allTags)
+						{
+							if (row.Tags.TryGetValue(tag, out var value))
+								csv.Append($",{value}");
+							else
+								csv.Append(",");
+						}
+						csv.AppendLine();
+
+						count++;
+						exportProgress = 30 + Math.Round(count / (double)total * 60);
+						StateHasChanged();
+					}
+
+					await SimulateProgress(exportProgress, 95);
+
+					var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+					var fileName = $"MergedData_{DateTime.Now:ddMMyyyyHHmmss}.csv";
+
+					using var stream = new MemoryStream(bytes);
+					using var streamRef = new DotNetStreamReference(stream);
+					await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+				}
+				// Export Excel
+				else if (type.ToLower() == "excel")
+				{
+					using var workbook = new ClosedXML.Excel.XLWorkbook();
+					var worksheet = workbook.Worksheets.Add("MergedData");
+
+					worksheet.Cell(1, 1).Value = "Timestamp";
+					for (int i = 0; i < allTags.Count; i++)
+						worksheet.Cell(1, i + 2).Value = allTags[i];
+
+					int rowIndex = 2;
+					int total = MergedTableData.Count;
+
+					foreach (var row in MergedTableData)
+					{
+						worksheet.Cell(rowIndex, 1).Value = row.Timestamp;
+						worksheet.Cell(rowIndex, 1).Style.DateFormat.Format = "dd-MM-yyyy HH.mm.ss";
+
+						for (int i = 0; i < allTags.Count; i++)
+						{
+							if (row.Tags.TryGetValue(allTags[i], out var value))
+								worksheet.Cell(rowIndex, i + 2).Value = value;
+						}
+
+						rowIndex++;
+						exportProgress = 30 + Math.Round(((rowIndex - 1) / (double)total * 60));
+						StateHasChanged();
+					}
+
+					worksheet.Columns().AdjustToContents();
+
+					await SimulateProgress(exportProgress, 95);
+
+					using var stream = new MemoryStream();
+					workbook.SaveAs(stream);
+					stream.Position = 0;
+
+					var fileName = $"MergedData_{DateTime.Now:ddMMyyyyHHmmss}.xlsx";
+					using var streamRef = new DotNetStreamReference(stream);
+					await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+				}
+			}
+
+			await SimulateProgress(95, 100);
+			NotificationService.Notify(NotificationSeverity.Success, "Export Selesai", $"Data berhasil diekspor ke format {type.ToUpper()}!");
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Export Gagal", $"Terjadi kesalahan: {ex.Message}");
+		}
+		finally
+		{
+			await Task.Delay(500);
+			isExport = false;
+			exportProgress = 0;
+			StateHasChanged();
+		}
+	}
+
 
 	private async Task SimulateProgress(double from, double to)
 	{

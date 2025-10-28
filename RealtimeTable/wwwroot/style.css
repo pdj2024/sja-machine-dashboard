@@ -1,5 +1,5 @@
 ﻿.value-changed {
-    animation: smooth-blue 1.5s ease-in-out;
+    animation: smooth-blue 2.5s ease-in-out;
 }
 
 @keyframes smooth-blue {
@@ -80,28 +80,25 @@ ul.rz-profile-menu {
 }
 
 .form-size-custom {
-    width: 65% !important;
-    margin: auto;
+    width: 40% !important;
 }
 
 /* Screen xxl */
 @media (max-width: 1536px) {
     .form-size-custom {
-        width: 65% !important;
-        margin: auto;
+        width: 40% !important;
     }
 }
 /* Screen xl */
 @media (max-width: 1280px) {
     .form-size-custom {
-        width: 70% !important;
-        margin: auto;
+        width: 40% !important;
     }
 }
 /* Screen lg */
 @media (max-width: 1024px) {
     .form-size-custom {
-        width: 100% !important;
+        width: 40% !important;
     }
 }
 /* Screen md */

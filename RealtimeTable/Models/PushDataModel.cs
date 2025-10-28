@@ -8,7 +8,7 @@ namespace RealtimeTable.Models
         public bool Running { get; set; }
 
         [JsonPropertyName("lastPush")]
-        public string? LastPush { get; set; }
+        public DateTime? LastPush { get; set; }
 
         [JsonPropertyName("lastError")]
         public string? LastError { get; set; }

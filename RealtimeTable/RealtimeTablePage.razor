@@ -52,25 +52,59 @@
 
 			@* Body Table *@
 			<div class="card-body px-0 py-0">
-				<div class="border-bottom py-3 px-3"></div>
+				@* Filtering Data *@
+				@* <div class="border-bottom py-3 px-3">
+					<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
+						<RadzenFormField AllowFloatingLabel="false" Text="Pilih Tabel">
+							<RadzenDropDown Data="@machineTags.Keys"
+											@bind-Value="selectedTable"
+											Placeholder="Pilih tabel"
+											Style="width:220px"
+											AllowClear="true"
+											Change="@(args => { selectedColumn = null; StateHasChanged(); })" />
+						</RadzenFormField>
+
+						@if (!string.IsNullOrWhiteSpace(selectedTable) && machineTags.ContainsKey(selectedTable))
+						{
+							<RadzenFormField AllowFloatingLabel="false" Text="Pilih Kolom">
+								<RadzenDropDown Data="@machineTags[selectedTable].Select(c => c.NamaTag)"
+												@bind-Value="selectedColumn"
+												Placeholder="Pilih kolom"
+												Style="width:220px"
+												AllowClear="true"
+												Change="@(args => StateHasChanged())" />
+							</RadzenFormField>
+						}
+
+						<RadzenButton Text="Hapus Filter" Icon="close" Click="() => { selectedTable = selectedColumn = null; StateHasChanged(); }" class="w-auto" />
+					</RadzenStack>
+				</div> *@
 
 				<div class="table-responsive p-0">
 					@* Table Realtime *@
 					@if (_data != null && machineTags.Any())
 					{
-						<RadzenDataGrid Data="@GetAllTableData(machineTags)"
+						@* <RadzenDataGrid Data="@GetAllTableData(machineTags)" *@
+						<RadzenDataGrid Data="@GetFilteredTableData()"
 										TItem="TableRealtime"
 										AllowSorting="true"
 										AllowVirtualization="true"
 										AllowGrouping="true"
 										AllGroupsExpanded="true"
-										HideGroupedColumn="true"
+										HideGroupedColumn="false"
+										AllowFiltering="true"
+										FilterMode="FilterMode.Simple"
 										Render="@OnRender"
 										Style="margin-bottom: 5rem; max-height: 500px">
 							<Columns>
 								<RadzenDataGridColumn TItem="TableRealtime" Property="TableName" Title="Tabel" />
-								<RadzenDataGridColumn TItem="TableRealtime" Property="Column" Title="Kolom" />
-								<RadzenDataGridColumn TItem="TableRealtime" Property="Value" Title="Nilai" />
+								<RadzenDataGridColumn TItem="TableRealtime" Property="Column" Title="Tag Nama" />
+								<RadzenDataGridColumn TItem="TableRealtime" Property="Deskripsi" Title="Deskripsi" />
+								<RadzenDataGridColumn TItem="TableRealtime" Title="Nilai">
+									<Template Context="data">
+										<span class="@GetValueClass(data)">@data.Value</span>
+									</Template>
+								</RadzenDataGridColumn>
 							</Columns>
 						</RadzenDataGrid>
 					}
@@ -93,6 +127,15 @@
 	// Konfigurasi SignalR
 	private HubConnection? _hubConnection;
 	private Dictionary<string, object>? _data;
+
+	// Filtering
+	private string? selectedTable = null;
+	private string? selectedColumn = null;
+
+	// Animasi
+	private HashSet<string> animatedRows = new();
+	private Dictionary<string, string> previousValues = new();
+	private HashSet<string> animatedKeys = new();
 
 	private bool isLoadingTable = false;
 
@@ -123,6 +166,13 @@
 			_hubConnection.On<Dictionary<string, object>>("ReceiveRealTimeData", data =>
 			{
 				_data = data;
+
+				DetectValueChanges();
+				InvokeAsync(StateHasChanged);
+
+				Task.Delay(1000);
+				animatedKeys.Clear();
+
 				InvokeAsync(StateHasChanged);
 			});
 
@@ -139,6 +189,7 @@
 		}
 	}
 
+	// Fetch data
 	private List<TableRealtime> GetAllTableData(Dictionary<string, List<ColumnMachine>> machineTags)
 	{
 		try
@@ -162,6 +213,7 @@
 					{
 						TableName = tableName,
 						Column = col.NamaTag ?? "null",
+						Deskripsi = col.Deskripsi ?? "null",
 						Value = value switch
 						{
 							null => "null",
@@ -183,6 +235,28 @@
 		return new List<TableRealtime>();
 	}
 
+	// Filtering data
+	private IEnumerable<TableRealtime> GetFilteredTableData()
+	{
+		var allData = GetAllTableData(machineTags);
+
+		if (!string.IsNullOrWhiteSpace(selectedTable))
+		{
+			allData = allData
+				.Where(x => x.TableName.Equals(selectedTable, StringComparison.OrdinalIgnoreCase))
+				.ToList();
+		}
+
+		if (!string.IsNullOrWhiteSpace(selectedColumn))
+		{
+			allData = allData
+				.Where(x => x.Column.Equals(selectedColumn, StringComparison.OrdinalIgnoreCase))
+				.ToList();
+		}
+
+		return allData;
+	}
+
 	private void OnRender(DataGridRenderEventArgs<TableRealtime> args)
 	{
 		if (args.FirstRender)
@@ -197,6 +271,37 @@
 		if (_hubConnection != null)
 		{
 			await _hubConnection.DisposeAsync();
+		}
+	}
+
+	// Animasi perubahan data
+	private string GetValueClass(TableRealtime data)
+	{
+		string key = $"{data.TableName}_{data.Column}";
+		return animatedKeys.Contains(key) ? "value-changed" : "";
+	}
+
+	private void DetectValueChanges()
+	{
+		var newTableData = GetAllTableData(machineTags);
+
+		foreach (var item in newTableData)
+		{
+			string key = $"{item.TableName}_{item.Column}";
+			string newValue = item.Value?.ToString() ?? "";
+
+			if (previousValues.TryGetValue(key, out var oldValue))
+			{
+				if (newValue != oldValue)
+				{
+					animatedKeys.Add(key);
+					previousValues[key] = newValue;
+				}
+			}
+			else
+			{
+				previousValues[key] = newValue;
+			}
 		}
 	}
 }

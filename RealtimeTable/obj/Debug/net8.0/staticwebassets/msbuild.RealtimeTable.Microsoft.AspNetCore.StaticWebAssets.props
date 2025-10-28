@@ -57,7 +57,7 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <FileLength>638</FileLength>
-      <LastWriteTime>Mon, 27 Oct 2025 15:24:39 GMT</LastWriteTime>
+      <LastWriteTime>Tue, 28 Oct 2025 08:00:42 GMT</LastWriteTime>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\RealtimeTable.s5wp5sjnu0.bundle.scp.css'))</OriginalItemSpec>
     </StaticWebAsset>
     <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\style.css'))">
@@ -72,12 +72,12 @@
       <RelatedAsset></RelatedAsset>
       <AssetTraitName></AssetTraitName>
       <AssetTraitValue></AssetTraitValue>
-      <Fingerprint>sdwbbslipq</Fingerprint>
-      <Integrity>sCOq2EcM+Lss0hG6AYS03t15RCY7Wm+RBERhLraaed4=</Integrity>
+      <Fingerprint>msphndgxfs</Fingerprint>
+      <Integrity>1qe6D/Oe0tU1bHZi1nTMkp4XEIek71nrYQ6S5ONjCz8=</Integrity>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      <FileLength>2763</FileLength>
-      <LastWriteTime>Mon, 27 Oct 2025 16:03:39 GMT</LastWriteTime>
+      <FileLength>2697</FileLength>
+      <LastWriteTime>Tue, 28 Oct 2025 06:50:50 GMT</LastWriteTime>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\style.css'))</OriginalItemSpec>
     </StaticWebAsset>
   </ItemGroup>

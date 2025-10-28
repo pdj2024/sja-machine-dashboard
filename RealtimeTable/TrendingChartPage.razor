@@ -66,8 +66,15 @@
 
 								@foreach (var column in SelectedColumns.Select(GetColumnDisplayName))
 								{
-									<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
+									@* <div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
 										<span class="ms-1">@column</span>
+									</div> *@
+
+									var displayName = GetColumnDisplayName(column);
+
+									<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
+										<span class="ms-1">@displayName</span>
+										<button type="button" class="btn-close ms-2" aria-label="Close" style="font-size: 10px;" @onclick="() => RemoveColumn(column)"></button>
 									</div>
 								}
 							</div>
@@ -78,13 +85,13 @@
 				<div class="table-responsive p-0">
 					@* Line Chart *@
 					<div id="chartArea" style="margin-bottom: 3rem;">
-						<RadzenChart Style="height: 500px;">
-							<RadzenLegend Position="LegendPosition.Top" />
+						@if (ChartData.Any())
+						{
+							<RadzenChart Style="height: 500px;">
+								<RadzenLegend Position="LegendPosition.Top" />
 
-							<RadzenChartTooltipOptions Shared="true" />
+								<RadzenChartTooltipOptions Shared="true" />
 
-							@if (ChartData.Any())
-							{
 								@foreach (var dataset in ChartData)
 								{
 									<RadzenLineSeries Data="@dataset.Value"
@@ -100,7 +107,7 @@
 
 								@* X Axis *@
 								<RadzenCategoryAxis Padding="10" TickDistance="200" LabelAutoRotation="0" Formatter="@FormatAsTime">
-								@* <RadzenCategoryAxis Padding="10" LabelAutoRotation="90" Formatter="@(_ => "")"> *@
+									@* <RadzenCategoryAxis Padding="10" LabelAutoRotation="90" Formatter="@(_ => "")"> *@
 									<RadzenGridLines Visible="false" />
 								</RadzenCategoryAxis>
 
@@ -108,14 +115,14 @@
 								<RadzenValueAxis TickDistance="30" Formatter="@FormatAsValue">
 									<RadzenGridLines Visible="false" />
 								</RadzenValueAxis>
-							}
-							else
-							{
-								<div class="text-muted fst-italic text-center my-3">
-									Pilih tabel terlebih dahulu untuk menampilkan data chart.
-								</div>
-							}
-						</RadzenChart>
+							</RadzenChart>
+						}
+						else
+						{
+							<div class="text-muted fst-italic text-center my-3">
+								Pilih kolom tabel terlebih dahulu untuk menampilkan data chart.
+							</div>
+						}
 					</div>
 				</div>
 			</div>
@@ -195,7 +202,7 @@
 
 	private DateTime? StartDate = DateTime.Now.ToLocalTime().Date;
 	private DateTime? EndDate = DateTime.Now.ToLocalTime();
-	private int intervalChart = 60;
+	private int intervalChartInMinutes = 120;
 
 	private bool isUpdateChart = false;
 	private bool isLoading = false;
@@ -253,6 +260,7 @@
 		HistoryData.Clear();
 		ChartData.Clear();
 		isUpdateChart = true;
+		CalculateInterval();
 		StateHasChanged();
 
 		try
@@ -271,6 +279,7 @@
 					tgl_finish = EndDate,
 					request_data = SelectedColumns.ToArray()
 				};
+
 				var result = await MachineService.GetChart(body);
 
 				if (result == null || result.Count == 0)
@@ -283,8 +292,9 @@
 				foreach (var kvp in result)
 				{
 					var colDisplay = kvp.Key;
-					string legendText = GetLegendText(colDisplay);
+					// string legendText = GetLegendText(colDisplay);
 
+					// Cari display name dari tabel
 					foreach (var t in Tables)
 					{
 						var f = t.Columns.FirstOrDefault(c => c.FullName == kvp.Key);
@@ -295,13 +305,14 @@
 						}
 					}
 
-					ChartData[legendText] = kvp.Value
+					// Pastikan data diurutkan berdasarkan timestamp
+					ChartData[colDisplay] = kvp.Value
+						.OrderBy(x => DateTime.TryParse(x.Timestamp, out var dt) ? dt : DateTime.MinValue)
 						.Select(x => new ChartItem
 						{
 							Category = DateTime.TryParse(x.Timestamp, out var dt)
 								? dt.ToString("dd-MM-yyyy HH:mm")
 								: x.Timestamp,
-
 							Value = x.Value ?? 0.0
 						})
 						.ToList();
@@ -403,6 +414,16 @@
 		finally
 		{
 			StateHasChanged();
+		}
+	}
+
+	// Menghapus kolom yang dipilih
+	private async Task RemoveColumn(string column)
+	{
+		if (SelectedColumns.Contains(column))
+		{
+			SelectedColumns.Remove(column);
+			await UpdateChart();
 		}
 	}
 
@@ -517,7 +538,7 @@
 		if (value is DateTime dt)
 		{
 			// Hanya tampilkan label setiap 60 menit
-			if (dt.Minute % intervalChart == 0)
+			if (dt.Minute % intervalChartInMinutes == 0)
 			{
 				return dt.ToString("dd-MM-yyyy HH:mm");
 			}
@@ -526,7 +547,7 @@
 
 		if (DateTime.TryParse(value.ToString(), out var parsed))
 		{
-			if (parsed.Minute % intervalChart == 0)
+			if (parsed.Minute % intervalChartInMinutes == 0)
 			{
 				return parsed.ToString("dd-MM-yyyy HH:mm");
 			}
@@ -534,5 +555,23 @@
 		}
 
 		return value.ToString();
+	}
+
+	private void CalculateInterval()
+	{
+		TimeSpan totalDuration = EndDate.Value - StartDate.Value;
+
+		if (totalDuration.TotalHours > 5)
+		{
+			intervalChartInMinutes = 60; // Interval 60 menit
+		}
+		else if (totalDuration.TotalHours > 1)
+		{
+			intervalChartInMinutes = 30; // Interval 30 Menit
+		}
+		else
+		{
+			intervalChartInMinutes = 10; // Interval 10 Menit
+		}
 	}
 }

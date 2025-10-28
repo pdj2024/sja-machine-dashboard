@@ -36,7 +36,14 @@
 									<RadzenLabel Text="Running:" />
 								</RadzenColumn>
 								<RadzenColumn Size="12" SizeMD="8">
-									<RadzenTextBox Value="@(pushData.Running ? "true" : "false")" Name="Running" Disabled="true" Style="width: 100%;" />
+									@if (pushData.Running)
+									{
+										<span class="text-success fw-bold">🟢 Running</span>
+									}
+									else
+									{
+										<span class="text-danger fw-bold">🔴 Stopped</span>
+									}
 								</RadzenColumn>
 							</RadzenRow>
 
@@ -45,7 +52,7 @@
 									<RadzenLabel Text="Last Push:" />
 								</RadzenColumn>
 								<RadzenColumn Size="12" SizeMD="8">
-									<RadzenDatePicker @bind-Value="pushData.LastPush" Name="LastPush" ShowButton="false" Disabled="true" Style="width: 100%;" />
+									<span class="fw-bold">@(pushData.LastPush?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</span>
 								</RadzenColumn>
 							</RadzenRow>
 
@@ -54,16 +61,13 @@
 									<RadzenLabel Text="Last Error:" />
 								</RadzenColumn>
 								<RadzenColumn Size="12" SizeMD="8">
-									<RadzenDatePicker @bind-Value="pushData.LastError" Name="LastError" ShowButton="false" Disabled="true" Style="width: 100%;" />
+									<span class="fw-bold">@(pushData.LastError ?? "-")</span>
 								</RadzenColumn>
 							</RadzenRow>
 
 							<RadzenRow AlignItems="AlignItems.Center">
-								<RadzenColumn Size="12" SizeMD="4">
-									<RadzenLabel Text="Aktivasi Push Data:" />
-								</RadzenColumn>
 								<RadzenColumn Size="12" SizeMD="8">
-									<RadzenButton Text="@(pushData.Running ? "Non Aktifkan" : "Aktifkan")"
+									<RadzenButton Text="@(pushData.Running ? "Stop" : "Start")"
 												  class="@(pushData.Running ? "bg-danger" : "")"
 												  ButtonStyle="ButtonStyle.Primary"
 												  ButtonType="ButtonType.Submit" />
@@ -82,11 +86,14 @@
 @code {
 	private PushDataModel pushData = new();
 
+	private Timer? _timer;
+
 	private bool isRefresh = false;
 	private bool isSaving = false;
 
 	protected override async Task OnInitializedAsync()
 	{
+		_timer = new Timer(async _ => await LoadData(), null, 0, 5000);
 		await LoadData();
 		base.OnInitialized();
 	}
@@ -110,18 +117,21 @@
 
 	private async Task HandleValidSubmit(PushDataModel modelToSave)
 	{
-		var confirmed = await DialogService.Confirm(
-			"Apakah Anda yakin ingin memperbarui data ini?",
-			"Perbarui Setting",
-			new ConfirmOptions() { OkButtonText = "Perbarui", CancelButtonText = "Batal" });
+		// var confirmed = await DialogService.Confirm(
+		// 	"Apakah Anda yakin ingin memperbarui data ini?",
+		// 	"Perbarui Setting",
+		// 	new ConfirmOptions() { OkButtonText = "Perbarui", CancelButtonText = "Batal" });
 
 		try
 		{
-			if (confirmed == true)
-			{
-				await PerformUpdateAsync(modelToSave);
-				await LoadData();
-			}
+			// if (confirmed == true)
+			// {
+			// 	await PerformUpdateAsync(modelToSave);
+			// 	await LoadData();
+			// }
+
+			await PerformUpdateAsync(modelToSave);
+			await LoadData();
 		}
 		catch (Exception ex)
 		{

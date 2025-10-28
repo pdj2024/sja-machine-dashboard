@@ -52,10 +52,21 @@
 		}
 	</div>
 
-	<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" Class="mt-2">
-		@* <RadzenButton Text="Update" Click="CloseColumnSelectorPopup" ButtonStyle="ButtonStyle.Primary" /> *@
-		<RadzenButton Text="Update" Click="OnUpdateClick" IsBusy="@isUpdate" ButtonStyle="ButtonStyle.Primary" />
-		<RadzenButton Text="Clear" Click="ClearSelectedColumn" ButtonStyle="ButtonStyle.Light" />
+	<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" Gap="0.5rem" Class="mt-2">
+		<div>
+			<span class="fw-semibold">
+				Total kolom terpilih: <span class="text-primary ms-1">@SelectedColumns.Count</span>
+				@if (!IsTable)
+				{
+					<small class="text-muted ms-2">(maks. @MaxSelectedColumns)</small>
+				}
+			</span>
+		</div>
+
+		<div>
+			<RadzenButton Text="Update" Click="OnUpdateClick" IsBusy="@isUpdate" ButtonStyle="ButtonStyle.Primary" />
+			<RadzenButton Text="Clear" Click="ClearSelectedColumn" ButtonStyle="ButtonStyle.Light" />
+		</div>
 	</RadzenStack>
 </RadzenStack>
 
@@ -133,7 +144,7 @@
 	{
 		isUpdate = true;
 		StateHasChanged();
-		
+
 		await OnUpdate.InvokeAsync(SelectedColumns);
 
 		isUpdate = false;
