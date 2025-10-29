@@ -41,20 +41,20 @@
 					<RadzenTemplateForm TItem="Settings" Data="@settingData" Submit="@HandleValidSubmit" class="my-3 me-3">
 						<RadzenStack class="d-flex justify-content-start form-size-custom" Gap="1rem">
 							<RadzenRow AlignItems="AlignItems.Center">
-								<RadzenColumn Size="12" SizeMD="4">
+								<RadzenColumn Size="12" SizeMD="6">
 									<RadzenLabel Text="Realtime Fetch (detik):" />
 								</RadzenColumn>
-								<RadzenColumn Size="12" SizeMD="8">
+								<RadzenColumn Size="12" SizeMD="6">
 									<RadzenNumeric Min="1" Step="1" ShowUpDown="false" @bind-Value="settingData.RealTimeFreq" Name="RealTimeFreq" Format="N0" Style="width: 100%;" @onfocusin="@(e => SelectAll(e))" />
 									<RadzenNumericRangeValidator Component="RealTimeFreq" Min="1" Text="Realtime Fetch minimal bernilai 1" />
 								</RadzenColumn>
 							</RadzenRow>
 
 							<RadzenRow AlignItems="AlignItems.Center">
-								<RadzenColumn Size="12" SizeMD="4">
+								<RadzenColumn Size="12" SizeMD="6">
 									<RadzenLabel Text="Push Freq. History (detik):" />
 								</RadzenColumn>
-								<RadzenColumn Size="12" SizeMD="8">
+								<RadzenColumn Size="12" SizeMD="6">
 									<RadzenNumeric Min="1" Step="1" ShowUpDown="false" @bind-Value="settingData.PushFreq" Name="PushFreq" Format="N0" Style="width: 100%;" @onfocusin="@(e => SelectAll(e))" />
 									<RadzenNumericRangeValidator Component="PushFreq" Min="1" Text="Push Freq. minimal bernilai 1" />
 								</RadzenColumn>

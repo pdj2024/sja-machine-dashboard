@@ -2,7 +2,8 @@
     @foreach (var button in ExportOptions)
     {
         <button type="button"
-                class="btn btn-sm bg-success text-white"
+                class="btn btn-sm text-white"
+                style="background-color: #1D6F42;"
                 @onclick="@(() => OnExportClick.InvokeAsync(button.Type))"
                 disabled="@IsExporting">
             @if (IsExporting)

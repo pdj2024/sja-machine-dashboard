@@ -36,7 +36,7 @@
 								{
 									<div class="column-item mb-1 d-flex align-items-center">
 										<RadzenCheckBox TValue="bool"
-														Value="@SelectedColumns.Contains(column.FullName)"
+														Value="@SelectedTags.Contains(column.FullName)"
 														Change="(args) => ToggleColumnSelection(column.FullName, args)" />
 										<span class="ms-2">
 											@column.DisplayName
@@ -54,11 +54,11 @@
 
 	<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" Gap="0.5rem" Class="mt-2">
 		<div>
-			<span class="fw-semibold">
-				Total kolom terpilih: <span class="text-primary ms-1">@SelectedColumns.Count</span>
+			<span class="fw-semibold" style="font-size: 18px">
+				Total kolom terpilih: <span class="text-primary ms-1">@SelectedTags.Count</span>
 				@if (!IsTable)
 				{
-					<small class="text-muted ms-2">(maks. @MaxSelectedColumns)</small>
+					<small class="text-muted ms-2">(maks. @MaxSelectedTags)</small>
 				}
 			</span>
 		</div>
@@ -72,14 +72,14 @@
 
 @code {
 	[Parameter] public Dictionary<string, List<ColumnMachine>> MachineTags { get; set; } = new();
-	[Parameter] public HashSet<string> SelectedColumns { get; set; } = new();
+	[Parameter] public HashSet<string> SelectedTags { get; set; } = new();
 	[Parameter] public EventCallback<HashSet<string>> OnUpdate { get; set; }
 	[Parameter] public bool IsTable { get; set; } = false;
 
 	private List<TableModal> Tables { get; set; } = new();
 	private HashSet<string> CollapsedTables { get; set; } = new();
 
-	private const int MaxSelectedColumns = 8;
+	private const int MaxSelectedTags = 8;
 	private bool isUpdate = false;
 
 	protected override void OnInitialized()
@@ -120,23 +120,23 @@
 		if (isSelected == true)
 		{
 			// Pembatasan pemilihan kolom
-			if (SelectedColumns.Count >= MaxSelectedColumns && !IsTable)
+			if (SelectedTags.Count >= MaxSelectedTags && !IsTable)
 			{
 				NotificationService.Notify(new NotificationMessage
 				{
 					Severity = NotificationSeverity.Warning,
 					Summary = "Batas Maksimal Tercapai",
-					Detail = $"Maksimal hanya {MaxSelectedColumns} kolom yang dapat dipilih.",
+					Detail = $"Maksimal hanya {MaxSelectedTags} kolom yang dapat dipilih.",
 					Duration = 3000
 				});
 				return;
 			}
 
-			SelectedColumns.Add(columnName);
+			SelectedTags.Add(columnName);
 		}
 		else
 		{
-			SelectedColumns.Remove(columnName);
+			SelectedTags.Remove(columnName);
 		}
 	}
 
@@ -145,20 +145,20 @@
 		isUpdate = true;
 		StateHasChanged();
 
-		await OnUpdate.InvokeAsync(SelectedColumns);
+		await OnUpdate.InvokeAsync(SelectedTags);
 
 		isUpdate = false;
 		StateHasChanged();
-		DialogService.Close(SelectedColumns);
+		DialogService.Close(SelectedTags);
 	}
 
 	private void ClearSelectedColumn()
 	{
-		SelectedColumns.Clear();
+		SelectedTags.Clear();
 	}
 
 	private void CloseColumnSelectorPopup()
 	{
-		DialogService.Close(SelectedColumns);
+		DialogService.Close(SelectedTags);
 	}
 }

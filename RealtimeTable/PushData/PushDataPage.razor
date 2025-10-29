@@ -88,13 +88,17 @@
 
 	private Timer? _timer;
 
+	// Timer Auto Fetch
+	private Timer updateTimer;
+	private double updateInterval = 5000; // 5 detik
+
 	private bool isRefresh = false;
 	private bool isSaving = false;
 
 	protected override async Task OnInitializedAsync()
 	{
-		_timer = new Timer(async _ => await LoadData(), null, 0, 5000);
 		await LoadData();
+		SetupTimer(updateInterval);
 		base.OnInitialized();
 	}
 
@@ -159,5 +163,28 @@
 			isSaving = false;
 			StateHasChanged();
 		}
+	}
+
+	private void SetupTimer(double interval)
+	{
+		updateTimer?.Dispose();
+		updateTimer = new System.Timers.Timer(interval);
+		updateTimer.Elapsed += async (s, e) => await UpdateDataAsync();
+		updateTimer.AutoReset = true;
+		updateTimer.Enabled = true;
+	}
+
+	private async Task UpdateDataAsync()
+	{
+		await InvokeAsync(async () =>
+		{
+			await LoadData();
+			StateHasChanged();
+		});
+	}
+
+	public void Dispose()
+	{
+		updateTimer?.Dispose();
 	}
 }

@@ -54,26 +54,26 @@
 						{
 							<RadzenButton Text="Pilih Tabel" Icon="checklist" Click="OpenTableSelectorPopup" />
 						}
-						else if (SelectedFilterMode == "Column")
+						else if (SelectedFilterMode == "Tag")
 						{
-							<RadzenButton Text="Pilih Kolom" Icon="checklist" Click="OpenColumnSelectorPopup" />
+							<RadzenButton Text="Pilih Tag" Icon="checklist" Click="OpenColumnSelectorPopup" />
 						}
 
 						<RadzenButton Click="@UpdateTable" Text="Update Table" IsBusy="@isUpdateTable" Icon="refresh" Class="w-auto" />
 					</RadzenStack>
 
-					@if (SelectedFilterMode == "Column" && SelectedColumns.Any())
+					@if (SelectedFilterMode == "Tag" && SelectedTags.Any())
 					{
 						<div class="mb-3">
 							<div class="border rounded p-3 mb-3 bg-light">
 								<h6 class="fw-semibold mb-3">
-									List Kolom yang dipilih
+									List Tag yang dipilih
 								</h6>
 
-								@foreach (var column in SelectedColumns.Select(GetColumnDisplayName))
+								@foreach (var tag in SelectedTags.Select(GetColumnDisplayName))
 								{
 									<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
-										<span class="ms-1">@column</span>
+										<span class="ms-1">@tag</span>
 									</div>
 								}
 							</div>
@@ -92,7 +92,7 @@
 									{
 										<div class="border rounded p-3 mb-3 bg-light">
 											<h6 class="fw-semibold mb-3">
-												List Kolom dari tabel <b>@sel.Name</b>
+												List Tag dari tabel <b>@sel.Name</b>
 											</h6>
 
 											@if (sel.Columns != null && sel.Columns.Any())
@@ -108,7 +108,7 @@
 											else
 											{
 												<div class="text-muted fst-italic">
-													Tabel ini belum memiliki kolom.
+													Tabel ini belum memiliki Tag.
 												</div>
 											}
 										</div>
@@ -122,7 +122,7 @@
 
 				<div class="table-responsive p-0">
 					@* Table History *@
-					@if (SelectedFilterMode == "Column" && SelectedColumns.Any())
+					@if (SelectedFilterMode == "Tag" && SelectedTags.Any())
 					{
 						<RadzenDataGrid Data="@HistoryData"
 										TItem="TableColumn"
@@ -136,7 +136,7 @@
 										Style="margin-bottom: 5rem;">
 
 							<Columns>
-								<RadzenDataGridColumn TItem="TableColumn" Property="Timestamp" Title="Timestamp">
+								<RadzenDataGridColumn TItem="TableColumn" Property="Timestamp" Title="Timestamp" Frozen="true">
 									<Template Context="data">
 										@data.Timestamp.ToString("dd-MM-yyyy HH:mm:ss")
 									</Template>
@@ -182,7 +182,7 @@
 												Style="margin-bottom: 5rem;">
 
 									<Columns>
-										<RadzenDataGridColumn TItem="TableColumn" Property="Timestamp" Title="Timestamp">
+										<RadzenDataGridColumn TItem="TableColumn" Property="Timestamp" Title="Timestamp" Frozen="true">
 											<Template Context="data">
 												@data.Timestamp.ToString("dd-MM-yyyy HH:mm:ss")
 											</Template>
@@ -279,12 +279,12 @@
 	private List<string> AllMergedTags = new();
 
 	private HashSet<string> SelectedTables = new();
-	private HashSet<string> SelectedColumns = new();
+	private HashSet<string> SelectedTags = new();
 	private HashSet<string> CollapsedTables = new();
 	private bool isColumnSelectorVisible = false;
 
 	// Filter mode
-	private List<string> FilterModes = new() { "Column", "Table" };
+	private List<string> FilterModes = new() { "Tag", "Table" };
 	private string SelectedFilterMode = "Table";
 
 	private DateTime? StartDate = DateTime.Now.ToLocalTime().Date;
@@ -360,9 +360,9 @@
 		try
 		{
 			// Column Mode
-			if (SelectedFilterMode == "Column")
+			if (SelectedFilterMode == "Tag")
 			{
-				if (SelectedColumns == null || !SelectedColumns.Any())
+				if (SelectedTags == null || !SelectedTags.Any())
 				{
 					await OpenColumnSelectorPopup();
 					return;
@@ -372,7 +372,7 @@
 				{
 					tgl_start = StartDate,
 					tgl_finish = EndDate,
-					request_data = SelectedColumns.ToArray()
+					request_data = SelectedTags.ToArray()
 				};
 				machineTable = await MachineService.GetTableBy(body, "tag");
 
@@ -451,7 +451,7 @@
 	// Pilih Mode Filter
 	private void OnFilterModeChanged(object value)
 	{
-		if (SelectedFilterMode == "Column")
+		if (SelectedFilterMode == "Tag")
 		{
 			MultiTableData.Clear();
 		}
@@ -674,17 +674,17 @@
 
 	}
 
-	// Modal Pilih Kolom untuk Mode Filter "Column"
+	// Modal Pilih Kolom untuk Mode Filter "Tag"
 	private async Task OpenColumnSelectorPopup()
 	{
 		var result = await DialogService.OpenAsync<DialogColumnChoose>("Pilih Kolom Filter",
 			new Dictionary<string, object>
 			{
 					{ "MachineTags", machineTags },
-					{ "SelectedColumns", SelectedColumns },
+					{ "SelectedTags", SelectedTags },
 					{ "OnUpdate", EventCallback.Factory.Create<HashSet<string>>(this, async (cols) =>
 						{
-							SelectedColumns = cols;
+							SelectedTags = cols;
 							await UpdateTable();
 						})
 					},
@@ -702,7 +702,7 @@
 		{
 			if (result is HashSet<string> selected)
 			{
-				SelectedColumns = selected;
+				SelectedTags = selected;
 			}
 		}
 		catch (Exception ex)
@@ -715,7 +715,7 @@
 		}
 	}
 
-	// Menampilkan Kolom yang dipilih untuk Mode Filter "Column"
+	// Menampilkan Kolom yang dipilih untuk Mode Filter "Tag"
 	private string GetColumnDisplayName(string fullName)
 	{
 		return Tables.SelectMany(t => t.Columns).FirstOrDefault(c => c.FullName == fullName)?.DisplayName ?? fullName;
@@ -988,7 +988,7 @@
 
 			await SimulateProgress(0, 30);
 
-			if (SelectedFilterMode == "Column")
+			if (SelectedFilterMode == "Tag")
 			{
 				if (HistoryData != null && HistoryData.Any())
 				{

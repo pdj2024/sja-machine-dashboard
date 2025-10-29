@@ -51,20 +51,20 @@
 											Placeholder="Pilih mode filter..." />
 						</RadzenFormField> *@
 
-						<RadzenButton Text="Pilih Kolom" Icon="checklist" Click="OpenColumnSelectorPopup" />
+						<RadzenButton Text="Pilih Tag" Icon="checklist" Click="OpenColumnSelectorPopup" />
 
 						<RadzenButton Click="@UpdateChart" Text="Update Chart" IsBusy="@isUpdateChart" Icon="refresh" Class="w-auto" />
 					</RadzenStack>
 
-					@if (SelectedFilterMode == "Column" && SelectedColumns.Any())
+					@if (SelectedFilterMode == "Tag" && SelectedTags.Any())
 					{
 						<div class="mb-3">
 							<div class="border rounded p-3 mb-3 bg-light">
 								<h6 class="fw-semibold mb-3">
-									List Kolom yang dipilih
+									List Tag yang dipilih
 								</h6>
 
-								@foreach (var column in SelectedColumns.Select(GetColumnDisplayName))
+								@foreach (var column in SelectedTags.Select(GetColumnDisplayName))
 								{
 									@* <div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
 										<span class="ms-1">@column</span>
@@ -192,13 +192,13 @@
 	private Dictionary<string, List<ChartItem>> ChartData = new();
 
 	private string SelectedTable = "";
-	private HashSet<string> SelectedColumns = new();
+	private HashSet<string> SelectedTags = new();
 	private HashSet<string> CollapsedTables = new();
 	private bool isColumnSelectorVisible = false;
 
 	// Filter mode
-	private List<string> FilterModes = new() { "Column" };
-	private string SelectedFilterMode = "Column";
+	private List<string> FilterModes = new() { "Tag" };
+	private string SelectedFilterMode = "Tag";
 
 	private DateTime? StartDate = DateTime.Now.ToLocalTime().Date;
 	private DateTime? EndDate = DateTime.Now.ToLocalTime();
@@ -265,9 +265,9 @@
 
 		try
 		{
-			if (SelectedFilterMode == "Column")
+			if (SelectedFilterMode == "Tag")
 			{
-				if (SelectedColumns == null || !SelectedColumns.Any())
+				if (SelectedTags == null || !SelectedTags.Any())
 				{
 					await OpenColumnSelectorPopup();
 					return;
@@ -277,7 +277,7 @@
 				{
 					tgl_start = StartDate,
 					tgl_finish = EndDate,
-					request_data = SelectedColumns.ToArray()
+					request_data = SelectedTags.ToArray()
 				};
 
 				var result = await MachineService.GetChart(body);
@@ -292,21 +292,10 @@
 				foreach (var kvp in result)
 				{
 					var colDisplay = kvp.Key;
-					// string legendText = GetLegendText(colDisplay);
-
-					// Cari display name dari tabel
-					foreach (var t in Tables)
-					{
-						var f = t.Columns.FirstOrDefault(c => c.FullName == kvp.Key);
-						if (f != null)
-						{
-							colDisplay = f.DisplayName;
-							break;
-						}
-					}
+					string legendText = GetLegendText(colDisplay);
 
 					// Pastikan data diurutkan berdasarkan timestamp
-					ChartData[colDisplay] = kvp.Value
+					ChartData[legendText] = kvp.Value
 						.OrderBy(x => DateTime.TryParse(x.Timestamp, out var dt) ? dt : DateTime.MinValue)
 						.Select(x => new ChartItem
 						{
@@ -336,7 +325,8 @@
 
 			if (column != null)
 			{
-				return !string.IsNullOrEmpty(column.AliasPendek) ? column.AliasPendek
+				return !string.IsNullOrEmpty(column.FullName) ? column.FullName
+					 : !string.IsNullOrEmpty(column.AliasPendek) ? column.AliasPendek
 					 : !string.IsNullOrEmpty(column.DisplayName) ? column.DisplayName
 					 : fullName;
 			}
@@ -367,27 +357,27 @@
 			var selectedTableInfo = Tables.FirstOrDefault(t => t.Name == tableName);
 			if (selectedTableInfo?.Columns != null)
 			{
-				SelectedColumns = selectedTableInfo.Columns.Select(c => c.FullName).ToHashSet();
+				SelectedTags = selectedTableInfo.Columns.Select(c => c.FullName).ToHashSet();
 			}
 			else
 			{
-				SelectedColumns.Clear();
+				SelectedTags.Clear();
 			}
 		}
 		StateHasChanged();
 	}
 
-	// Modal Pilih Kolom untuk Mode Filter "Column"
+	// Modal Pilih Kolom untuk Mode Filter "Tag"
 	private async Task OpenColumnSelectorPopup()
 	{
 		var result = await DialogService.OpenAsync<DialogColumnChoose>("Pilih Kolom Filter",
 			new Dictionary<string, object>
 			{
 					{ "MachineTags", machineTags },
-					{ "SelectedColumns", SelectedColumns },
+					{ "SelectedTags", SelectedTags },
 					{ "OnUpdate", EventCallback.Factory.Create<HashSet<string>>(this, async (cols) =>
 						{
-							SelectedColumns = cols;
+							SelectedTags = cols;
 							await UpdateChart();
 						})
 					}
@@ -404,7 +394,7 @@
 		{
 			if (result is HashSet<string> selected)
 			{
-				SelectedColumns = selected;
+				SelectedTags = selected;
 			}
 		}
 		catch (Exception ex)
@@ -420,14 +410,14 @@
 	// Menghapus kolom yang dipilih
 	private async Task RemoveColumn(string column)
 	{
-		if (SelectedColumns.Contains(column))
+		if (SelectedTags.Contains(column))
 		{
-			SelectedColumns.Remove(column);
+			SelectedTags.Remove(column);
 			await UpdateChart();
 		}
 	}
 
-	// Menampilkan Kolom yang dipilih untuk Mode Filter "Column"
+	// Menampilkan Kolom yang dipilih untuk Mode Filter "Tag"
 	private string GetColumnDisplayName(string fullName)
 	{
 		return Tables.SelectMany(t => t.Columns).FirstOrDefault(c => c.FullName == fullName)?.DisplayName ?? fullName;

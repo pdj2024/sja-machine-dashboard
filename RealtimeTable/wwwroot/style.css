@@ -1,24 +1,26 @@
 ﻿.value-changed {
-    animation: smooth-blue 2.5s ease-in-out;
+    animation: smooth-blue 1s ease-in-out;
 }
 
 @keyframes smooth-blue {
     0% {
-        background-color: #1e3a6a;
+        /*background-color: #1e3a6a;
         color: #ffffff;
-        border-radius: 3px;
+        border-radius: 3px;*/
+        color: #198754;
     }
 
     40% {
-        background-color: #384a68;
+        /*background-color: #384a68;
         color: #ffffff;
-        border-radius: 3px;
+        border-radius: 3px;*/
+        color: #198754;
     }
 
     100% {
-        background-color: transparent;
+        /*background-color: transparent;
+        border-radius: 3px;*/
         color: inherit;
-        border-radius: 3px;
     }
 }
 
@@ -79,6 +81,35 @@ ul.rz-profile-menu {
     border-inline-start: 0;
 }
 
+/* Radzen Table Drag Column */
+.rz-column-drag {
+    color: #ffffff;
+}
+
+/* Radzen Grouping Table */
+.rz-group-header-item {
+    border-radius: 21px;
+}
+.rz-group-header-item-title {
+    color: #1e3a6a;
+    margin-inline: 0px 3px;
+    font-size: 15px;
+}
+.rz-dialog-titlebar-icon.rz-dialog-titlebar-close {
+/*    color: #FF627D;*/
+}
+
+/* Radzen Table Search */
+.rz-cell-filter {
+    padding: 0px 7px;
+}
+.rz-grid-table .rz-textbox {
+    height: 1.5rem;
+}
+
+
+
+/* Responsive Design */
 .form-size-custom {
     width: 40% !important;
 }

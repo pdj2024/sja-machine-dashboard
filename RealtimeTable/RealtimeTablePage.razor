@@ -53,38 +53,42 @@
 			@* Body Table *@
 			<div class="card-body px-0 py-0">
 				@* Filtering Data *@
-				@* <div class="border-bottom py-3 px-3">
+				@* <div class="border-bottom px-3">
 					<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
-						<RadzenFormField AllowFloatingLabel="false" Text="Pilih Tabel">
+						<RadzenFormField AllowFloatingLabel="true" Text="Pilih Tabel">
 							<RadzenDropDown Data="@machineTags.Keys"
 											@bind-Value="selectedTable"
-											Placeholder="Pilih tabel"
 											Style="width:220px"
 											AllowClear="true"
-											Change="@(args => { selectedColumn = null; StateHasChanged(); })" />
+											AllowFiltering="true"
+											FilterOperator="StringFilterOperator.StartsWith"
+											Change="@(args => { selectedTag = null; StateHasChanged(); })" />
 						</RadzenFormField>
 
 						@if (!string.IsNullOrWhiteSpace(selectedTable) && machineTags.ContainsKey(selectedTable))
 						{
-							<RadzenFormField AllowFloatingLabel="false" Text="Pilih Kolom">
+							<RadzenFormField AllowFloatingLabel="true" Text="Pilih Tag">
 								<RadzenDropDown Data="@machineTags[selectedTable].Select(c => c.NamaTag)"
-												@bind-Value="selectedColumn"
-												Placeholder="Pilih kolom"
+												@bind-Value="selectedTag"
 												Style="width:220px"
 												AllowClear="true"
+												AllowFiltering="true"
+												FilterOperator="StringFilterOperator.StartsWith"
 												Change="@(args => StateHasChanged())" />
 							</RadzenFormField>
 						}
 
-						<RadzenButton Text="Hapus Filter" Icon="close" Click="() => { selectedTable = selectedColumn = null; StateHasChanged(); }" class="w-auto" />
+						@if (!string.IsNullOrWhiteSpace(selectedTable))
+						{
+							<RadzenButton Text="Hapus Filter" Icon="close" Click="() => { selectedTable = selectedTag = null; StateHasChanged(); }" class="w-auto" />
+						}
 					</RadzenStack>
 				</div> *@
 
 				<div class="table-responsive p-0">
 					@* Table Realtime *@
-					@if (_data != null && machineTags.Any())
+					@* @if (_data != null && machineTags.Any())
 					{
-						@* <RadzenDataGrid Data="@GetAllTableData(machineTags)" *@
 						<RadzenDataGrid Data="@GetFilteredTableData()"
 										TItem="TableRealtime"
 										AllowSorting="true"
@@ -92,17 +96,15 @@
 										AllowGrouping="true"
 										AllGroupsExpanded="true"
 										HideGroupedColumn="false"
-										AllowFiltering="true"
-										FilterMode="FilterMode.Simple"
 										Render="@OnRender"
 										Style="margin-bottom: 5rem; max-height: 500px">
 							<Columns>
 								<RadzenDataGridColumn TItem="TableRealtime" Property="TableName" Title="Tabel" />
 								<RadzenDataGridColumn TItem="TableRealtime" Property="Column" Title="Tag Nama" />
-								<RadzenDataGridColumn TItem="TableRealtime" Property="Deskripsi" Title="Deskripsi" />
-								<RadzenDataGridColumn TItem="TableRealtime" Title="Nilai">
+								<RadzenDataGridColumn TItem="TableRealtime" Property="Deskripsi" Title="Deskripsi" Groupable="false" />
+								<RadzenDataGridColumn TItem="TableRealtime" Title="Nilai" Groupable="false">
 									<Template Context="data">
-										<span class="@GetValueClass(data)">@data.Value</span>
+										<span class="@valueAnimationClass">@data.Value</span>
 									</Template>
 								</RadzenDataGridColumn>
 							</Columns>
@@ -110,7 +112,54 @@
 					}
 					else
 					{
-						<p class="text-muted fst-italic">Menunggu OPC Data...</p>
+						<p class="text-muted fst-italic ms-3">Menunggu OPC Data...</p>
+					} *@
+
+
+					@if (isLoadingTable)
+					{
+						<p class="text-muted fst-italic ms-3">Memuat metadata...</p>
+					}
+					else if (!machineTags.Any())
+					{
+						<p class="text-muted fst-italic ms-3">Tidak ada tabel realtime ditemukan.</p>
+					}
+					else
+					{
+						@foreach (var tableEntry in machineTags.OrderBy(kv => kv.Key))
+						{
+							var tableName = tableEntry.Key;
+							var gridData = realtimeDataByTable.TryGetValue(tableName, out var data) ? data : new List<TableRealtime>();
+
+							<div class="mb-5">
+								<h5 class="ms-2 mt-4 mb-2 fw-bold" style="color: #1e3a6a;">Tabel: @tableName</h5>
+
+								<RadzenDataGrid Data="@gridData"
+												TItem="TableRealtime"
+												ColumnWidth="200px"
+												AllowSorting="true"
+												AllowVirtualization="true"
+												AllowFiltering="true"
+												FilterMode="FilterMode.Simple"
+												LogicalFilterOperator="LogicalFilterOperator.And"
+												FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+												ShowPagingSummary="true"
+												Style="margin-bottom: 0rem; max-height: 500px">
+
+									<Columns>
+										<RadzenDataGridColumn TItem="TableRealtime" Property="Column" Title="Tag Nama" Filterable="true" Frozen="true" Width="180px" />
+										<RadzenDataGridColumn TItem="TableRealtime" Property="Deskripsi" Title="Deskripsi" Filterable="true" Width="250px" />
+										<RadzenDataGridColumn TItem="TableRealtime" Property="Value" Title="Nilai" Filterable="false" Width="120px">
+											<Template Context="data">
+												<span class="@valueAnimationClass">
+													@data.Value
+												</span>
+											</Template>
+										</RadzenDataGridColumn>
+									</Columns>
+								</RadzenDataGrid>
+							</div>
+						}
 					}
 				</div>
 			</div>
@@ -124,18 +173,18 @@
 	private Dictionary<string, List<ColumnMachine>> machineTags = new();
 	private Settings settingData = new();
 
+	private Dictionary<string, List<TableRealtime>> realtimeDataByTable = new();
+
 	// Konfigurasi SignalR
 	private HubConnection? _hubConnection;
 	private Dictionary<string, object>? _data;
 
 	// Filtering
 	private string? selectedTable = null;
-	private string? selectedColumn = null;
+	private string? selectedTag = null;
 
 	// Animasi
-	private HashSet<string> animatedRows = new();
-	private Dictionary<string, string> previousValues = new();
-	private HashSet<string> animatedKeys = new();
+	private string valueAnimationClass = "";
 
 	private bool isLoadingTable = false;
 
@@ -167,11 +216,18 @@
 			{
 				_data = data;
 
-				DetectValueChanges();
-				InvokeAsync(StateHasChanged);
+				InvokeAsync(async () =>
+				{
+					// Class Animasi
+					valueAnimationClass = "value-changed";
+					await InvokeAsync(StateHasChanged);
 
-				Task.Delay(1000);
-				animatedKeys.Clear();
+					await Task.Delay(1000);
+					valueAnimationClass = "";
+					await InvokeAsync(StateHasChanged);
+				});
+
+				UpdateTable();
 
 				InvokeAsync(StateHasChanged);
 			});
@@ -186,6 +242,63 @@
 		{
 			isLoadingTable = false;
 			StateHasChanged();
+		}
+	}
+
+	private void UpdateTable()
+	{
+		if (machineTags == null || _data == null) return;
+
+		try
+		{
+			foreach (var tableEntry in machineTags)
+			{
+				var tableName = tableEntry.Key;
+				var columns = tableEntry.Value;
+
+				// Jika tabel belum ada, buat baru
+				if (!realtimeDataByTable.ContainsKey(tableName))
+					realtimeDataByTable[tableName] = new List<TableRealtime>();
+
+				var tableData = realtimeDataByTable[tableName];
+
+				foreach (var col in columns)
+				{
+					string key = col.NamaTag;
+					_data.TryGetValue(key, out var rawValue);
+
+					var existing = tableData.FirstOrDefault(x => x.Column == key);
+
+					if (existing != null)
+					{
+						existing.Value = rawValue;
+					}
+					else
+					{
+						tableData.Add(new TableRealtime
+						{
+							Column = key ?? "null",
+							Deskripsi = col.Deskripsi ?? "null",
+							Value = rawValue
+						});
+					}
+				}
+			}
+
+			InvokeAsync(StateHasChanged);
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Gagal memproses data: {ex.Message}");
+		}
+	}
+
+
+	public async ValueTask DisposeAsync()
+	{
+		if (_hubConnection != null)
+		{
+			await _hubConnection.DisposeAsync();
 		}
 	}
 
@@ -247,10 +360,10 @@
 				.ToList();
 		}
 
-		if (!string.IsNullOrWhiteSpace(selectedColumn))
+		if (!string.IsNullOrWhiteSpace(selectedTag))
 		{
 			allData = allData
-				.Where(x => x.Column.Equals(selectedColumn, StringComparison.OrdinalIgnoreCase))
+				.Where(x => x.Column.Equals(selectedTag, StringComparison.OrdinalIgnoreCase))
 				.ToList();
 		}
 
@@ -261,47 +374,8 @@
 	{
 		if (args.FirstRender)
 		{
-			args.Grid.Groups.Add(new GroupDescriptor() { Property = "TableName" });
+			args.Grid.Groups.Add(new GroupDescriptor() { Property = "TableName", Title = "Tabel" });
 			StateHasChanged();
-		}
-	}
-
-	public async ValueTask DisposeAsync()
-	{
-		if (_hubConnection != null)
-		{
-			await _hubConnection.DisposeAsync();
-		}
-	}
-
-	// Animasi perubahan data
-	private string GetValueClass(TableRealtime data)
-	{
-		string key = $"{data.TableName}_{data.Column}";
-		return animatedKeys.Contains(key) ? "value-changed" : "";
-	}
-
-	private void DetectValueChanges()
-	{
-		var newTableData = GetAllTableData(machineTags);
-
-		foreach (var item in newTableData)
-		{
-			string key = $"{item.TableName}_{item.Column}";
-			string newValue = item.Value?.ToString() ?? "";
-
-			if (previousValues.TryGetValue(key, out var oldValue))
-			{
-				if (newValue != oldValue)
-				{
-					animatedKeys.Add(key);
-					previousValues[key] = newValue;
-				}
-			}
-			else
-			{
-				previousValues[key] = newValue;
-			}
 		}
 	}
 }
