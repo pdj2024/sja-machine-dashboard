@@ -12,7 +12,7 @@
 				<div class="d-flex flex-wrap align-items-center">
 					<div>
 						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Trending Chart</h6>
-						<p class="text-sm">Lihat semua data tabel dalam tampilan diagram yang interaktif.</p>
+						<p class="text-sm"></p>
 						@if (isExport)
 						{
 							<div style="margin-bottom: 10px;">
@@ -106,7 +106,7 @@
 								}
 
 								@* X Axis *@
-								<RadzenCategoryAxis Padding="10" TickDistance="200" LabelAutoRotation="0" Formatter="@FormatAsTime">
+								<RadzenCategoryAxis Padding="10" LabelAutoRotation="0" Formatter="@FormatAsTime">
 									@* <RadzenCategoryAxis Padding="10" LabelAutoRotation="90" Formatter="@(_ => "")"> *@
 									<RadzenGridLines Visible="false" />
 								</RadzenCategoryAxis>
@@ -202,7 +202,7 @@
 
 	private DateTime? StartDate = DateTime.Now.ToLocalTime().Date;
 	private DateTime? EndDate = DateTime.Now.ToLocalTime();
-	private int intervalChartInMinutes = 120;
+	private int intervalChartInMinutes = 10;
 
 	private bool isUpdateChart = false;
 	private bool isLoading = false;
@@ -326,9 +326,9 @@
 			if (column != null)
 			{
 				return !string.IsNullOrEmpty(column.FullName) ? column.FullName
-					 : !string.IsNullOrEmpty(column.AliasPendek) ? column.AliasPendek
-					 : !string.IsNullOrEmpty(column.DisplayName) ? column.DisplayName
-					 : fullName;
+						: !string.IsNullOrEmpty(column.AliasPendek) ? column.AliasPendek
+						: !string.IsNullOrEmpty(column.DisplayName) ? column.DisplayName
+						: fullName;
 			}
 		}
 		return fullName;

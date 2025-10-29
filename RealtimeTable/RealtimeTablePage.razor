@@ -20,7 +20,7 @@
 				<div class="d-sm-flex align-items-center">
 					<div>
 						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Realtime OPC Data</h6>
-						<p class="text-sm">Pantau data terkini hanya dalam satu tampilan! Semua tabel, selalu update setiap saat.</p>
+						<p class="text-sm"></p>
 						@if (_data != null && _data.TryGetValue("timestamp", out var ts) && ts != null)
 						{
 							DateTime lastUpdated;
@@ -144,6 +144,7 @@
 												LogicalFilterOperator="LogicalFilterOperator.And"
 												FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
 												ShowPagingSummary="true"
+												EmptyText="Loading..."
 												Style="margin-bottom: 0rem; max-height: 500px">
 
 									<Columns>
