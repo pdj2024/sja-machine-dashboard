@@ -28,7 +28,7 @@
 						<div class="p-2 ps-4 bg-light border-top">
 							@if (table.Columns == null || !table.Columns.Any())
 							{
-								<span class="text-muted fst-italic">Tidak ada kolom di tabel ini.</span>
+								<span class="text-muted fst-italic">Tidak ada tag di tabel ini.</span>
 							}
 							else
 							{
@@ -55,7 +55,7 @@
 	<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" Gap="0.5rem" Class="mt-2">
 		<div>
 			<span class="fw-semibold" style="font-size: 18px">
-				Total kolom terpilih: <span class="text-primary ms-1">@SelectedTags.Count</span>
+				Total Tag terpilih: <span class="text-primary ms-1">@SelectedTags.Count</span>
 				@if (!IsTable)
 				{
 					<small class="text-muted ms-2">(maks. @MaxSelectedTags)</small>

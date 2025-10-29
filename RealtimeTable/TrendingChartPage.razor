@@ -370,7 +370,7 @@
 	// Modal Pilih Kolom untuk Mode Filter "Tag"
 	private async Task OpenColumnSelectorPopup()
 	{
-		var result = await DialogService.OpenAsync<DialogColumnChoose>("Pilih Kolom Filter",
+		var result = await DialogService.OpenAsync<DialogColumnChoose>("Pilih Tag",
 			new Dictionary<string, object>
 			{
 					{ "MachineTags", machineTags },

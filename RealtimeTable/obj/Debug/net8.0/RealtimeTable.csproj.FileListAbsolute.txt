@@ -35,4 +35,3 @@ D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\RealtimeTable.pdb
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\RealtimeTable.genruntimeconfig.cache
 D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\ref\RealtimeTable.dll
-D:\Visual Studio\Blazor\report-machine-dashboard\RealtimeTable\obj\Debug\net8.0\scopedcss\RealtimeTablePage - Copy.razor.rz.scp.css

@@ -677,7 +677,7 @@
 	// Modal Pilih Kolom untuk Mode Filter "Tag"
 	private async Task OpenColumnSelectorPopup()
 	{
-		var result = await DialogService.OpenAsync<DialogColumnChoose>("Pilih Kolom Filter",
+		var result = await DialogService.OpenAsync<DialogColumnChoose>("Pilih Tag",
 			new Dictionary<string, object>
 			{
 					{ "MachineTags", machineTags },
@@ -814,7 +814,7 @@
 				}
 				else if (type.ToLower() == "csv")
 				{
-					// CSV dibuat per tabel (karena CSV tidak mendukung multi-sheet)
+					// CSV dibuat per File
 					foreach (var tablePair in MultiTableData)
 					{
 						var tableName = tablePair.Key;
