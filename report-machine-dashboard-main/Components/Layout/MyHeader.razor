@@ -7,16 +7,16 @@
 @using System.Timers
 
 <RadzenRow JustifyContent="JustifyContent.Start" AlignItems="AlignItems.Center" Gap="0" Style="height: 100%!important; ">
-	<RadzenColumn Size="5" Style="height: 100%!important; ">
-
-
+	<RadzenColumn Size="3" Style="height: 100%!important; ">
 		<Button @onclick="TabService.SidebarToggleClick" style="height: 100%!important; width: auto !important; aspect-ratio: 1 / 1 !important; display: flex; align-items: center; justify-content: center;  border: none; border-right: 1px solid #ebeef2; border-radius: 0; box-shadow: none; background-color: transparent;">
 			<Icon Name="IconName.List" Size="IconSize.x3" />
 		</Button>
 	</RadzenColumn>
-	<RadzenColumn Size="7">
+
+	<RadzenColumn Size="9">
 		<RadzenStack AlignItems="AlignItems.Center" Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.End">
-			<div>
+			<div class="d-flex flex-wrap align-items-center gap-1">
+				<div>Push History: </div>
 				@if (pushData.Running)
 				{
 					<RadzenText
@@ -50,20 +50,17 @@
 
 					@if (!string.IsNullOrEmpty(username))
 					{
-						<span style="font-weight: 600; color: #1e3a6a;">@username</span>
+						<span class="text-wrap fw-bold" style="color: #1e3a6a;">@username</span>
 					}
 					else
 					{
-						<span style="font-weight: 600; color: #1e3a6a;">Username</span>
+						<span class="text-wrap fw-bold" style="color: #1e3a6a;">Username</span>
 					}
 				</Template>
 				<ChildContent>
 					<RadzenProfileMenuItem Text="Logout" Path="logout" Icon="logout"></RadzenProfileMenuItem>
 				</ChildContent>
 			</RadzenProfileMenu>
-
-			@* <a href="/logout"><RadzenButton Icon="exit_to_app" Style="background-color: transparent; color: #1e3a6a;   text-align: center !important;" Text="Logout" /></a> *@
-
 		</RadzenStack>
 	</RadzenColumn>
 </RadzenRow>
@@ -78,7 +75,7 @@
 
 	// Timer Auto Fetch
 	private Timer updateTimer;
-	private double updateInterval = 10000; // 10 detik
+	private double updateInterval = 60000; // 60 detik
 
 	protected override async Task OnInitializedAsync()
 	{

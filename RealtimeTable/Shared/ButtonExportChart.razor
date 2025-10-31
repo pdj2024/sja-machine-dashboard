@@ -1,7 +1,7 @@
 ﻿<div class="d-flex flex-wrap gap-2">
     <button type="button"
             class="btn btn-sm text-white"
-            style="background-color: #22bb33;"
+            style="background-color: #1d6f42;"
             @onclick="@(() => OnExportPdf.InvokeAsync(TargetId))"
             disabled="@IsExporting">
         @if (IsExporting)
@@ -16,7 +16,7 @@
 
     <button type="button"
             class="btn btn-sm text-white"
-            style="background-color: #22bb33;"
+            style="background-color: #1d6f42;"
             @onclick="@(() => OnExportImage.InvokeAsync((TargetId, FormatImage)))"
             disabled="@IsExporting">
         @if (IsExporting)

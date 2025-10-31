@@ -210,8 +210,8 @@
 
 	private List<ButtonExportTable.ExportOption> ExportOptions = new()
 	{
-		new ButtonExportTable.ExportOption { Type = "csv", Text = "Ekspor CSV", LoadingText = "Export Data..." },
-		new ButtonExportTable.ExportOption { Type = "excel", Text = "Ekspor Excel", LoadingText = "Export Data..." },
+		new ButtonExportTable.ExportOption { Type = "csv", Text = "Export CSV", LoadingText = "Export Data..." },
+		new ButtonExportTable.ExportOption { Type = "excel", Text = "Export Excel", LoadingText = "Export Data..." },
 	};
 
 	protected override async Task OnInitializedAsync()
@@ -524,7 +524,11 @@
 				// Header
 				csv.Append("Timestamp");
 				foreach (var tag in allTags)
-					csv.Append($";{tag}");
+				{
+					// ubah header tanpa nama tabel
+					var tagName = tag.Contains('.') ? tag.Split('.').Last() : tag;
+					csv.Append($";{tagName}");
+				}
 				csv.AppendLine();
 
 				// Data
@@ -561,7 +565,12 @@
 				// Header
 				worksheet.Cell(1, 1).Value = "Timestamp";
 				for (int i = 0; i < allTags.Count; i++)
-					worksheet.Cell(1, i + 2).Value = allTags[i];
+				{
+					// ubah header tanpa nama tabel
+					var tagName = allTags[i].Contains('.') ? allTags[i].Split('.').Last() : allTags[i];
+					worksheet.Cell(1, i + 2).Value = tagName;
+					// worksheet.Cell(1, i + 2).Value = allTags[i];
+				}
 
 				// Data
 				int rowIndex = 2;
