@@ -1,0 +1,609 @@
+﻿@inject IJSRuntime JSRuntime
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+@inject IMachineService MachineService
+
+<RadzenRow>
+	<RadzenColumn SizeMD="12">
+		<div class="card border shadow-xs mb-4">
+			@* Header Table *@
+			<div class="card-header border-bottom pb-0">
+				<div class="d-flex flex-wrap align-items-center">
+					<div>
+						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Trending Chart</h6>
+						<p class="text-sm"></p>
+						@if (isExport)
+						{
+							<div style="margin-bottom: 10px;">
+								<RadzenProgressBar Value="@exportProgress"
+												   Mode="ProgressBarMode.Determinate"
+												   ShowValue="true"
+												   ValueTextFormat="{0}%"
+												   Style="height: 10px; width: 100%;" />
+							</div>
+						}
+					</div>
+					<div class="ms-auto d-flex">
+						@* Export Button *@
+						<ButtonExportChart IsExporting="@isExport" TargetId="chartArea" OnExportPdf="Export" OnExportImage="ExportImage" FormatImage="png" />
+					</div>
+				</div>
+			</div>
+
+			@* Body Table *@
+			<div class="card-body px-0 py-0">
+				<div class="border-bottom py-3 px-3">
+					@* Filter DateTime *@
+					<FilterDateTimeButton InitialStartDate="@StartDate"
+										  InitialEndDate="@EndDate"
+										  IsLoading="@isLoading"
+										  OnFilter="ApplyDateFilter" />
+
+					@* Filter Mode: Table || Column *@
+					<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
+						@* <RadzenFormField AllowFloatingLabel="false" Text="Mode Filter">
+							<RadzenDropDown @bind-Value="SelectedFilterMode"
+											Data="@FilterModes"
+											Change="@OnFilterModeChanged"
+											Style="width:200px"
+											Disabled="true"
+											Placeholder="Pilih mode filter..." />
+						</RadzenFormField> *@
+
+						<RadzenButton Text="Pilih Tag" Icon="checklist" Click="OpenColumnSelectorPopup" />
+
+						<RadzenButton Click="@UpdateChart" Text="Update Chart" IsBusy="@isUpdateChart" Icon="refresh" Class="w-auto" />
+					</RadzenStack>
+
+					@if (SelectedFilterMode == "Tag" && SelectedTags.Any())
+					{
+						<div class="mb-3">
+							<div class="border rounded p-3 mb-3 bg-light">
+								<h6 class="fw-semibold mb-3">
+									List Tag yang dipilih
+								</h6>
+
+								@foreach (var column in SelectedTags.Select(GetColumnDisplayName))
+								{
+									@* <div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
+										<span class="ms-1">@column</span>
+									</div> *@
+
+									var displayName = GetColumnDisplayName(column);
+
+									<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
+										<span class="ms-1">@displayName</span>
+										<button type="button" class="btn-close ms-2" aria-label="Close" style="font-size: 10px;" @onclick="() => RemoveColumn(column)"></button>
+									</div>
+								}
+							</div>
+						</div>
+					}
+				</div>
+
+				<div class="table-responsive p-0">
+					@* Line Chart *@
+					<div id="chartArea" style="margin-bottom: 3rem;">
+						@if (ChartData.Any())
+						{
+							<RadzenChart Style="height: 500px;">
+								<RadzenLegend Position="LegendPosition.Top" />
+
+								<RadzenChartTooltipOptions Shared="true" />
+
+								@foreach (var dataset in ChartData)
+								{
+									<RadzenLineSeries Data="@dataset.Value"
+													  Title="@dataset.Key"
+													  CategoryProperty="Category"
+													  ValueProperty="Value"
+													  LineType="LineType.Solid"
+													  Smooth="true">
+										<RadzenMarkers Visible="false" MarkerType="MarkerType.Circle" />
+										<RadzenSeriesDataLabels Visible="false" />
+									</RadzenLineSeries>
+								}
+
+								@* X Axis *@
+								<RadzenCategoryAxis Padding="10" LabelAutoRotation="0" Formatter="@FormatAsTime">
+									@* <RadzenCategoryAxis Padding="10" LabelAutoRotation="90" Formatter="@(_ => "")"> *@
+									<RadzenGridLines Visible="false" />
+								</RadzenCategoryAxis>
+
+								@* Y Axis *@
+								<RadzenValueAxis TickDistance="30" Formatter="@FormatAsValue">
+									<RadzenGridLines Visible="false" />
+								</RadzenValueAxis>
+							</RadzenChart>
+						}
+						else
+						{
+							<div class="text-muted fst-italic text-center my-3">
+								Pilih kolom tabel terlebih dahulu untuk menampilkan data chart.
+							</div>
+						}
+					</div>
+				</div>
+			</div>
+		</div>
+
+	</RadzenColumn>
+</RadzenRow>
+
+<script>
+	function exportChart(id) {
+		const element = document.getElementById(id);
+
+		html2canvas(element, { allowTaint: true, useCORS: true }).then(canvas => {
+			const A4_WIDTH = 595.28;
+			const width = A4_WIDTH;
+			const height = (width / canvas.width) * canvas.height;
+			const image = canvas.toDataURL('image/png');
+			const doc = new jspdf.jsPDF('p', 'pt', 'a4');
+			doc.addImage(image, 'PNG', 0, 0, width, height);
+			doc.save('chart-pdf.pdf');
+		});
+	}
+
+	async function exportChartImage(id, format = 'png') {
+		const element = document.getElementById(id);
+
+		const canvas = await html2canvas(element, { allowTaint: true, useCORS: true });
+		const mimeType = format === 'jpg' || format === 'jpeg'
+			? 'image/jpeg'
+			: 'image/png';
+
+		const image = canvas.toDataURL(mimeType);
+		const link = document.createElement('a');
+		link.href = image;
+		link.download = `chart-image.${format}`;
+		link.click();
+	}
+
+	async function downloadFileFromStream(fileName, contentStreamReference) {
+		const arrayBuffer = await contentStreamReference.arrayBuffer();
+		const blob = new Blob([arrayBuffer]);
+		const url = URL.createObjectURL(blob);
+
+		const anchorElement = document.createElement('a');
+		anchorElement.href = url;
+		anchorElement.download = fileName ?? 'download';
+		anchorElement.click();
+		anchorElement.remove();
+
+		URL.revokeObjectURL(url);
+	}
+</script>
+
+@code {
+	public class ChartItem
+	{
+		public string Category { get; set; } = "";
+		public double? Value { get; set; }
+	}
+
+	private Dictionary<string, List<TableMachine>> machineTable = new();
+	private Dictionary<string, List<ColumnMachine>> machineTags = new();
+
+	private List<TableModal> Tables = new();
+	private List<TableModal> tablesForUI = new List<TableModal>();
+	private List<TableColumn> HistoryData = new();
+	private Dictionary<string, List<ChartItem>> ChartData = new();
+
+	private string SelectedTable = "";
+	private HashSet<string> SelectedTags = new();
+	private HashSet<string> CollapsedTables = new();
+	private bool isColumnSelectorVisible = false;
+
+	// Filter mode
+	private List<string> FilterModes = new() { "Tag" };
+	private string SelectedFilterMode = "Tag";
+
+	private DateTime? StartDate = DateTime.Now.ToLocalTime().Date;
+	private DateTime? EndDate = DateTime.Now.ToLocalTime();
+	private int intervalChartInMinutes = 10;
+
+	private bool isUpdateChart = false;
+	private bool isLoading = false;
+	private bool isExport = false;
+	private double exportProgress = 0;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await LoadData();
+		base.OnInitialized();
+	}
+
+	private async Task LoadData()
+	{
+		try
+		{
+			isLoading = true;
+
+			machineTags = await MachineService.Browse();
+
+			// Konversi ke modal baru
+			tablesForUI = machineTags.Select(kvp => new TableModal
+			{
+				Name = kvp.Key,
+				Columns = kvp.Value.Select(tag => new ColumnModal
+				{
+					FullName = $"{kvp.Key}.{tag.NamaTag}",
+					DisplayName = tag.NamaTag,
+					Description = tag.Deskripsi,
+					AliasPendek = tag.AliasPendek
+				}).ToList() ?? new List<ColumnModal>()
+			}).ToList();
+
+			if (tablesForUI.Any())
+			{
+				CollapsedTables = tablesForUI.Skip(1).Select(t => t.Name).ToHashSet();
+
+				SelectedTable = tablesForUI.Select(t => t.Name).First();
+				OnTableSelectionChanged(SelectedTable);
+			}
+		}
+		catch (Exception ex)
+		{
+			tablesForUI = new List<TableModal>();
+		}
+		finally
+		{
+			isLoading = false;
+			StateHasChanged();
+		}
+	}
+
+	private async Task UpdateChart()
+	{
+		HistoryData.Clear();
+		ChartData.Clear();
+		isUpdateChart = true;
+		CalculateInterval();
+		StateHasChanged();
+
+		try
+		{
+			if (SelectedFilterMode == "Tag")
+			{
+				if (SelectedTags == null || !SelectedTags.Any())
+				{
+					await OpenColumnSelectorPopup();
+					return;
+				}
+
+				var body = new
+				{
+					tgl_start = StartDate,
+					tgl_finish = EndDate,
+					request_data = SelectedTags.ToArray()
+				};
+
+				var result = await MachineService.GetChart(body);
+
+				if (result == null || result.Count == 0)
+				{
+					ChartData.Clear();
+					StateHasChanged();
+					return;
+				}
+
+				foreach (var kvp in result)
+				{
+					var colDisplay = kvp.Key;
+					string legendText = GetLegendText(colDisplay);
+
+					// Pastikan data diurutkan berdasarkan timestamp
+					ChartData[legendText] = kvp.Value
+						.OrderBy(x => DateTime.TryParse(x.Timestamp, out var dt) ? dt : DateTime.MinValue)
+						.Select(x => new ChartItem
+						{
+							Category = DateTime.TryParse(x.Timestamp, out var dt)
+								? dt.ToString("dd-MM-yyyy HH:mm")
+								: x.Timestamp,
+							Value = x.Value ?? 0.0
+						})
+						.ToList();
+				}
+			}
+		}
+		finally
+		{
+			isUpdateChart = false;
+			StateHasChanged();
+		}
+	}
+
+	private string GetLegendText(string fullName)
+	{
+		if (tablesForUI == null) return fullName;
+
+		foreach (var table in tablesForUI)
+		{
+			var column = table.Columns?.FirstOrDefault(c => c.DisplayName == fullName);
+
+			if (column != null)
+			{
+				return !string.IsNullOrEmpty(column.FullName) ? column.FullName
+						: !string.IsNullOrEmpty(column.AliasPendek) ? column.AliasPendek
+						: !string.IsNullOrEmpty(column.DisplayName) ? column.DisplayName
+						: fullName;
+			}
+		}
+		return fullName;
+	}
+
+	// Filter DateTime
+	private void ApplyDateFilter((DateTime? Start, DateTime? End) range)
+	{
+		StartDate = range.Start;
+		EndDate = range.End;
+
+		StateHasChanged();
+	}
+
+	// Pilih Mode Filter
+	private void OnFilterModeChanged(object value)
+	{
+		StateHasChanged();
+	}
+
+	// Pilih Tabel di Mode Filter "Table"
+	private void OnTableSelectionChanged(object value)
+	{
+		if (SelectedFilterMode == "Table" && value is string tableName)
+		{
+			var selectedTableInfo = Tables.FirstOrDefault(t => t.Name == tableName);
+			if (selectedTableInfo?.Columns != null)
+			{
+				SelectedTags = selectedTableInfo.Columns.Select(c => c.FullName).ToHashSet();
+			}
+			else
+			{
+				SelectedTags.Clear();
+			}
+		}
+		StateHasChanged();
+	}
+
+	// Modal Pilih Kolom untuk Mode Filter "Tag"
+	private async Task OpenColumnSelectorPopup()
+	{
+		var result = await DialogService.OpenAsync<DialogColumnChoose>("Pilih Tag",
+			new Dictionary<string, object>
+			{
+					{ "MachineTags", machineTags },
+					{ "SelectedTags", SelectedTags },
+					{ "OnUpdate", EventCallback.Factory.Create<HashSet<string>>(this, async (cols) =>
+						{
+							SelectedTags = cols;
+							await UpdateChart();
+						})
+					}
+			},
+			new DialogOptions
+			{
+				Width = "650px",
+				Resizable = true,
+				Draggable = true
+			}
+		);
+
+		try
+		{
+			if (result is HashSet<string> selected)
+			{
+				SelectedTags = selected;
+			}
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+		}
+		finally
+		{
+			StateHasChanged();
+		}
+	}
+
+	// Menghapus kolom yang dipilih
+	private async Task RemoveColumn(string column)
+	{
+		if (SelectedTags.Contains(column))
+		{
+			SelectedTags.Remove(column);
+			await UpdateChart();
+		}
+	}
+
+	// Menampilkan Kolom yang dipilih untuk Mode Filter "Tag"
+	private string GetColumnDisplayName(string fullName)
+	{
+		return Tables.SelectMany(t => t.Columns).FirstOrDefault(c => c.FullName == fullName)?.DisplayName ?? fullName;
+	}
+
+	// --- Export function ---
+	private async Task Export(string idChart)
+	{
+		isExport = true;
+		exportProgress = 0;
+		NotificationService.Notify(NotificationSeverity.Info, "Export Data", "Menyiapkan file untuk diekspor...");
+		StateHasChanged();
+
+		try
+		{
+			await SimulateProgress(0, 30);
+
+			await JSRuntime.InvokeVoidAsync("exportChart", idChart);
+
+			await SimulateProgress(95, 100);
+			NotificationService.Notify(NotificationSeverity.Success, "Export Selesai", $"Data berhasil diekspor ke format PDF!");
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Export Gagal", $"Terjadi kesalahan: {ex.Message}");
+		}
+		finally
+		{
+			await Task.Delay(500);
+			isExport = false;
+			exportProgress = 0;
+			StateHasChanged();
+		}
+	}
+
+	private async Task ExportImage((string idChart, string format) args)
+	{
+		isExport = true;
+		exportProgress = 0;
+		NotificationService.Notify(NotificationSeverity.Info, "Export Data", "Menyiapkan file untuk diekspor...");
+		StateHasChanged();
+
+		try
+		{
+			await SimulateProgress(0, 30);
+
+			await JSRuntime.InvokeVoidAsync("exportChartImage", args.idChart, args.format);
+
+			await SimulateProgress(95, 100);
+			NotificationService.Notify(NotificationSeverity.Success, "Export Selesai", $"Data berhasil diekspor ke format PDF!");
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Export Gagal", $"Terjadi kesalahan: {ex.Message}");
+		}
+		finally
+		{
+			await Task.Delay(500);
+			isExport = false;
+			exportProgress = 0;
+			StateHasChanged();
+		}
+	}
+
+	private async Task SimulateProgress(double from, double to)
+	{
+		for (double i = from; i <= to; i += 5)
+		{
+			exportProgress = i;
+			StateHasChanged();
+			await Task.Delay(100);
+		}
+	}
+
+	private string FormatAsValue(object value)
+	{
+		if (value == null)
+			return "-";
+
+		if (value is double d)
+			return d.ToString("N1");
+
+		if (value is IConvertible conv)
+			return Convert.ToDouble(conv).ToString("N1");
+
+		return value.ToString() ?? "-";
+	}
+
+	// private string FormatAsTime(object value)
+	// {
+	// 	if (value == null)
+	// 		return "-";
+
+	// 	if (value is DateTime dt)
+	// 		return dt.ToString("dd-MM-yyyy HH:mm");
+
+	// 	if (DateTime.TryParse(value.ToString(), out var parsed))
+	// 		return parsed.ToString("dd-MM-yyyy HH:mm");
+
+	// 	return value.ToString() ?? "-";
+	// }
+
+	private string FormatAsTime2(object value)
+	{
+		if (value == null)
+			return "";
+
+		if (value is DateTime dt)
+		{
+			// Hanya tampilkan label setiap 60 menit
+			if (dt.Minute % intervalChartInMinutes == 0)
+			{
+				return dt.ToString("dd-MM-yyyy HH:mm");
+			}
+			return "";
+		}
+
+		if (DateTime.TryParse(value.ToString(), out var parsed))
+		{
+			if (parsed.Minute % intervalChartInMinutes == 0)
+			{
+				return parsed.ToString("dd-MM-yyyy HH:mm");
+			}
+			return "";
+		}
+
+		return value.ToString();
+	}
+
+	private string FormatAsTime(object value)
+	{
+		if (value == null)
+			return "";
+
+		if (!(value is DateTime dt))
+		{
+			if (!DateTime.TryParse(value.ToString(), out dt))
+				return value.ToString();
+		}
+
+		// Tentukan total durasi berdasarkan StartDate & EndDate
+		TimeSpan totalDuration = EndDate.Value - StartDate.Value;
+
+		string format;
+
+		// 🔹 Format waktu sesuai rentang:
+		// < 1 jam  → tampilkan jam:menit:detik
+		// ≤ 1 hari → tampilkan jam:menit
+		// > 1 hari → tampilkan tanggal saja
+		if (totalDuration.TotalHours < 2)
+		{
+			format = "HH:mm:ss";
+		}
+		else if (totalDuration.TotalDays <= 1)
+		{
+			format = "HH:mm";
+		}
+		else
+		{
+			format = "dd-MM-yyyy";
+		}
+
+		// 🔹 Tampilkan label hanya pada interval tertentu (biar tidak terlalu padat)
+		if (dt.Minute % intervalChartInMinutes == 0 || totalDuration.TotalHours < 1)
+		{
+			return dt.ToString(format);
+		}
+
+		return "";
+	}
+
+	private void CalculateInterval()
+	{
+		TimeSpan totalDuration = EndDate.Value - StartDate.Value;
+
+		if (totalDuration.TotalHours > 5)
+		{
+			intervalChartInMinutes = 60; // Interval 60 menit
+		}
+		else if (totalDuration.TotalHours > 1)
+		{
+			intervalChartInMinutes = 30; // Interval 30 Menit
+		}
+		else
+		{
+			intervalChartInMinutes = 10; // Interval 10 Menit
+		}
+	}
+}

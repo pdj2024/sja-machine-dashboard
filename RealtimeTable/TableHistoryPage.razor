@@ -24,7 +24,7 @@
 							</div>
 						}
 					</div>
-					<div class="ms-auto d-flex">
+					<div class="ms-auto d-flex mb-3">
 						@* Export Button *@
 						<ButtonExportTable IsExporting="@isExport" OnExportClick="ExportTables" ExportOptions="@ExportOptions" />
 					</div>
@@ -832,7 +832,7 @@
 
 						csv.Append("Timestamp");
 						foreach (var tag in allTags)
-							csv.Append($",{tag}");
+							csv.Append($";{tag}");
 						csv.AppendLine();
 
 						int count = 0;
@@ -844,9 +844,9 @@
 							foreach (var tag in allTags)
 							{
 								if (row.Tags.TryGetValue(tag, out var value))
-									csv.Append($",{value}");
+									csv.Append($";{value}");
 								else
-									csv.Append(",");
+									csv.Append(";");
 							}
 							csv.AppendLine();
 
@@ -894,7 +894,7 @@
 			var csv = new StringBuilder();
 			csv.Append("Timestamp");
 			foreach (var tag in allTags)
-				csv.Append($",{tag}");
+				csv.Append($";{tag}");
 			csv.AppendLine();
 
 			int count = 0;
@@ -906,9 +906,9 @@
 				foreach (var tag in allTags)
 				{
 					if (row.Tags.TryGetValue(tag, out var value))
-						csv.Append($",{value}");
+						csv.Append($";{value}");
 					else
-						csv.Append(",");
+						csv.Append(";");
 				}
 				csv.AppendLine();
 

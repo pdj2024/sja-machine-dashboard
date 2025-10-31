@@ -40,25 +40,25 @@
       <LastWriteTime>Fri, 17 Oct 2025 08:39:07 GMT</LastWriteTime>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\exampleJsInterop.js'))</OriginalItemSpec>
     </StaticWebAsset>
-    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\RealtimeTable.s5wp5sjnu0.bundle.scp.css'))">
+    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\RealtimeTable.kba2tvo31b.bundle.scp.css'))">
       <SourceType>Package</SourceType>
       <SourceId>RealtimeTable</SourceId>
       <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
       <BasePath>_content/RealtimeTable</BasePath>
-      <RelativePath>RealtimeTable.s5wp5sjnu0.bundle.scp.css</RelativePath>
+      <RelativePath>RealtimeTable.kba2tvo31b.bundle.scp.css</RelativePath>
       <AssetKind>All</AssetKind>
       <AssetMode>Reference</AssetMode>
       <AssetRole>Primary</AssetRole>
       <RelatedAsset></RelatedAsset>
       <AssetTraitName>ScopedCss</AssetTraitName>
       <AssetTraitValue>ProjectBundle</AssetTraitValue>
-      <Fingerprint>s5wp5sjnu0</Fingerprint>
-      <Integrity>EHTAWalkhDVGPasmR6RtRtuIZMSEhqFenmkX5nJwUTE=</Integrity>
+      <Fingerprint>kba2tvo31b</Fingerprint>
+      <Integrity>wPkT7WonkFdRaysx3u9uFm6QNp10mzuQkhggR+UWRoE=</Integrity>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      <FileLength>638</FileLength>
-      <LastWriteTime>Wed, 29 Oct 2025 07:01:34 GMT</LastWriteTime>
-      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\RealtimeTable.s5wp5sjnu0.bundle.scp.css'))</OriginalItemSpec>
+      <FileLength>858</FileLength>
+      <LastWriteTime>Fri, 31 Oct 2025 02:54:49 GMT</LastWriteTime>
+      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\RealtimeTable.kba2tvo31b.bundle.scp.css'))</OriginalItemSpec>
     </StaticWebAsset>
     <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\style.css'))">
       <SourceType>Package</SourceType>
@@ -72,12 +72,12 @@
       <RelatedAsset></RelatedAsset>
       <AssetTraitName></AssetTraitName>
       <AssetTraitValue></AssetTraitValue>
-      <Fingerprint>7p4wvthb76</Fingerprint>
-      <Integrity>NT0OSPFj5qC64gNXDyPdEVM05E2Mb+jNAVNqcDdqhBM=</Integrity>
+      <Fingerprint>p22e38y31h</Fingerprint>
+      <Integrity>/xp0c/eLwM3BQhbBNSarEmI5gFqPGDA99euBQQ1QqOI=</Integrity>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      <FileLength>3522</FileLength>
-      <LastWriteTime>Wed, 29 Oct 2025 10:17:05 GMT</LastWriteTime>
+      <FileLength>3669</FileLength>
+      <LastWriteTime>Wed, 29 Oct 2025 10:24:52 GMT</LastWriteTime>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\style.css'))</OriginalItemSpec>
     </StaticWebAsset>
   </ItemGroup>

@@ -24,9 +24,12 @@
 							</div>
 						}
 					</div>
-					<div class="ms-auto d-flex">
-						@* Export Button *@
+					<div class="ms-auto d-flex gap-2 flex-wrap mb-3">
+						@* Export PDF & Img Button *@
 						<ButtonExportChart IsExporting="@isExport" TargetId="chartArea" OnExportPdf="Export" OnExportImage="ExportImage" FormatImage="png" />
+
+						@* Export CSV & Excel Button *@
+						<ButtonExportTable IsExporting="@isExport" OnExportClick="ExportChartData" ExportOptions="@ExportOptions" />
 					</div>
 				</div>
 			</div>
@@ -89,7 +92,6 @@
 						{
 							<RadzenChart Style="height: 500px;">
 								<RadzenLegend Position="LegendPosition.Top" />
-
 								<RadzenChartTooltipOptions Shared="true" />
 
 								@foreach (var dataset in ChartData)
@@ -105,17 +107,14 @@
 									</RadzenLineSeries>
 								}
 
-								@* X Axis *@
-								<RadzenCategoryAxis Padding="10" LabelAutoRotation="0" Formatter="@FormatAsTime">
-									@* <RadzenCategoryAxis Padding="10" LabelAutoRotation="90" Formatter="@(_ => "")"> *@
-									<RadzenGridLines Visible="false" />
-								</RadzenCategoryAxis>
+								<RadzenCategoryAxis Padding="10" TickDistance="200" Formatter="@FormatAsTime" />
 
-								@* Y Axis *@
-								<RadzenValueAxis TickDistance="30" Formatter="@FormatAsValue">
+
+								<RadzenValueAxis TickDistance="200" Formatter="@FormatAsValue">
 									<RadzenGridLines Visible="false" />
 								</RadzenValueAxis>
 							</RadzenChart>
+
 						}
 						else
 						{
@@ -179,7 +178,7 @@
 @code {
 	public class ChartItem
 	{
-		public string Category { get; set; } = "";
+		public DateTime? Category { get; set; }
 		public double? Value { get; set; }
 	}
 
@@ -208,6 +207,12 @@
 	private bool isLoading = false;
 	private bool isExport = false;
 	private double exportProgress = 0;
+
+	private List<ButtonExportTable.ExportOption> ExportOptions = new()
+	{
+		new ButtonExportTable.ExportOption { Type = "csv", Text = "Ekspor CSV", LoadingText = "Export Data..." },
+		new ButtonExportTable.ExportOption { Type = "excel", Text = "Ekspor Excel", LoadingText = "Export Data..." },
+	};
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -294,18 +299,24 @@
 					var colDisplay = kvp.Key;
 					string legendText = GetLegendText(colDisplay);
 
-					// Pastikan data diurutkan berdasarkan timestamp
 					ChartData[legendText] = kvp.Value
-						.OrderBy(x => DateTime.TryParse(x.Timestamp, out var dt) ? dt : DateTime.MinValue)
-						.Select(x => new ChartItem
+						.Select(x =>
 						{
-							Category = DateTime.TryParse(x.Timestamp, out var dt)
-								? dt.ToString("dd-MM-yyyy HH:mm")
-								: x.Timestamp,
-							Value = x.Value ?? 0.0
+							DateTime? parsed = null;
+							if (DateTime.TryParse(x.Timestamp, out var dt))
+								parsed = dt;
+
+							return new ChartItem
+							{
+								Category = parsed,
+								Value = x.Value ?? 0.0
+							};
 						})
+						.Where(c => c.Category != null)
+						.OrderBy(c => c.Category)
 						.ToList();
 				}
+
 			}
 		}
 		finally
@@ -482,6 +493,122 @@
 		}
 	}
 
+	private async Task ExportChartData(string type)
+	{
+		if (ChartData == null || ChartData.Count == 0)
+		{
+			NotificationService.Notify(NotificationSeverity.Warning, "Export Gagal", "Tidak ada data chart untuk diekspor.");
+			return;
+		}
+
+		isExport = true;
+		exportProgress = 0;
+		StateHasChanged();
+		await SimulateProgress(0, 20);
+
+		try
+		{
+			var allTimestamps = ChartData.Values
+				.SelectMany(list => list.Select(item => item.Category))
+				.Where(d => d != null)
+				.Distinct()
+				.OrderBy(d => d)
+				.ToList();
+
+			var allTags = ChartData.Keys.ToList();
+
+			if (type.ToLower() == "csv")
+			{
+				var csv = new StringBuilder();
+
+				// Header
+				csv.Append("Timestamp");
+				foreach (var tag in allTags)
+					csv.Append($";{tag}");
+				csv.AppendLine();
+
+				// Data
+				int count = 0;
+				foreach (var ts in allTimestamps)
+				{
+					csv.Append(ts.Value.ToString("dd-MM-yyyy HH.mm.ss"));
+					foreach (var tag in allTags)
+					{
+						var point = ChartData[tag].FirstOrDefault(c => c.Category == ts);
+						csv.Append($";{point?.Value ?? 0}");
+					}
+					csv.AppendLine();
+
+					count++;
+					exportProgress = 20 + Math.Round((count / (double)allTimestamps.Count * 70));
+					StateHasChanged();
+				}
+
+				await SimulateProgress(exportProgress, 95);
+
+				var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+				var fileName = $"ChartData_{DateTime.Now:ddMMyyyyHHmmss}.csv";
+
+				using var stream = new MemoryStream(bytes);
+				using var streamRef = new DotNetStreamReference(stream);
+				await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+			}
+			else if (type.ToLower() == "excel")
+			{
+				using var workbook = new ClosedXML.Excel.XLWorkbook();
+				var worksheet = workbook.Worksheets.Add("ChartData");
+
+				// Header
+				worksheet.Cell(1, 1).Value = "Timestamp";
+				for (int i = 0; i < allTags.Count; i++)
+					worksheet.Cell(1, i + 2).Value = allTags[i];
+
+				// Data
+				int rowIndex = 2;
+				int total = allTimestamps.Count;
+
+				foreach (var ts in allTimestamps)
+				{
+					worksheet.Cell(rowIndex, 1).Value = ts.Value;
+					worksheet.Cell(rowIndex, 1).Style.DateFormat.Format = "dd-MM-yyyy HH.mm.ss";
+
+					for (int i = 0; i < allTags.Count; i++)
+					{
+						var point = ChartData[allTags[i]].FirstOrDefault(c => c.Category == ts);
+						worksheet.Cell(rowIndex, i + 2).Value = point?.Value ?? 0;
+					}
+
+					rowIndex++;
+					exportProgress = 20 + Math.Round(((rowIndex - 1) / (double)total * 70));
+					StateHasChanged();
+				}
+
+				await SimulateProgress(exportProgress, 95);
+
+				using var stream = new MemoryStream();
+				workbook.SaveAs(stream);
+				stream.Position = 0;
+
+				var fileName = $"ChartData_{DateTime.Now:ddMMyyyyHHmmss}.xlsx";
+				using var streamRef = new DotNetStreamReference(stream);
+				await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+			}
+
+			await SimulateProgress(95, 100);
+			NotificationService.Notify(NotificationSeverity.Success, "Export Selesai", $"Data chart berhasil diekspor ke format {type.ToUpper()}!");
+		}
+		catch (Exception ex)
+		{
+			NotificationService.Notify(NotificationSeverity.Error, "Export Gagal", $"Terjadi kesalahan: {ex.Message}");
+		}
+		finally
+		{
+			isExport = false;
+			exportProgress = 0;
+			StateHasChanged();
+		}
+	}
+
 	private async Task SimulateProgress(double from, double to)
 	{
 		for (double i = from; i <= to; i += 5)
@@ -506,45 +633,11 @@
 		return value.ToString() ?? "-";
 	}
 
-	// private string FormatAsTime(object value)
-	// {
-	// 	if (value == null)
-	// 		return "-";
-
-	// 	if (value is DateTime dt)
-	// 		return dt.ToString("dd-MM-yyyy HH:mm");
-
-	// 	if (DateTime.TryParse(value.ToString(), out var parsed))
-	// 		return parsed.ToString("dd-MM-yyyy HH:mm");
-
-	// 	return value.ToString() ?? "-";
-	// }
-
 	private string FormatAsTime(object value)
 	{
-		if (value == null)
-			return "";
-
 		if (value is DateTime dt)
-		{
-			// Hanya tampilkan label setiap 60 menit
-			if (dt.Minute % intervalChartInMinutes == 0)
-			{
-				return dt.ToString("dd-MM-yyyy HH:mm");
-			}
-			return "";
-		}
-
-		if (DateTime.TryParse(value.ToString(), out var parsed))
-		{
-			if (parsed.Minute % intervalChartInMinutes == 0)
-			{
-				return parsed.ToString("dd-MM-yyyy HH:mm");
-			}
-			return "";
-		}
-
-		return value.ToString();
+			return dt.ToString("dd-MM-yyyy HH:mm");
+		return "";
 	}
 
 	private void CalculateInterval()
