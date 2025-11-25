@@ -12,5 +12,8 @@ namespace RealtimeTable.Models
 
         [JsonPropertyName("alias_pendek")]
         public string AliasPendek { get; set; }
+
+        [JsonPropertyName("unit")]
+        public string Unit { get; set; }
     }
 }

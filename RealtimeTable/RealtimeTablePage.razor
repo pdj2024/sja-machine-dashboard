@@ -157,6 +157,7 @@
 												</span>
 											</Template>
 										</RadzenDataGridColumn>
+										<RadzenDataGridColumn TItem="TableRealtime" Property="Unit" Title="Unit" Filterable="true" Width="50px" />
 									</Columns>
 								</RadzenDataGrid>
 							</div>
@@ -192,8 +193,20 @@
 	protected override async Task OnInitializedAsync()
 	{
 		settingData = (await SettingService.GetAll()).FirstOrDefault() ?? new Settings();
-
 		machineTags = await MachineService.Browse();
+
+		var dictUnit = new Dictionary<string, string>();
+
+		foreach (var table in machineTags)
+		{
+			foreach (var col in table.Value)
+			{
+				dictUnit[col.NamaTag] = col.Unit ?? "null";
+			}
+		}
+
+		UnitCache.SetUnits(dictUnit);
+
 		await LoadDataRealtime();
 		base.OnInitialized();
 	}
@@ -280,6 +293,7 @@
 						{
 							Column = key ?? "null",
 							Deskripsi = col.Deskripsi ?? "null",
+							Unit = col.Unit ?? "null",
 							Value = rawValue
 						});
 					}

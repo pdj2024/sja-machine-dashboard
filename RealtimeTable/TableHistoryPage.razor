@@ -70,10 +70,10 @@
 									List Tag yang dipilih
 								</h6>
 
-								@foreach (var tag in SelectedTags.Select(GetColumnDisplayName))
+								@foreach (var tag in SelectedTags)
 								{
 									<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
-										<span class="ms-1">@tag</span>
+										<span class="ms-1">@GetColumnDisplayName(NormalizeTag(tag))</span>
 									</div>
 								}
 							</div>
@@ -100,7 +100,8 @@
 												@foreach (var column in sel.Columns)
 												{
 													<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
-														<span class="ms-1">@column.DisplayName</span>
+														<span class="ms-1">@GetColumnDisplayName(column.DisplayName)</span>
+														@* <span class="ms-1">@column.DisplayName</span> *@
 														@* <span class="text-muted">(@column.Description)</span> *@
 													</div>
 												}
@@ -143,12 +144,9 @@
 								</RadzenDataGridColumn>
 								@foreach (var tag in HistoryData.SelectMany(h => h.Tags.Keys).Distinct())
 								{
-									<RadzenDataGridColumn TItem="TableColumn" Title="@tag">
+									<RadzenDataGridColumn TItem="TableColumn" Title="@GetColumnTitle(tag)">
 										<Template Context="data">
-											@if (data.Tags.TryGetValue(tag, out var value))
-											{
-												@value
-											}
+											@GetColumnTitle(data.Tags[tag])
 										</Template>
 									</RadzenDataGridColumn>
 								}
@@ -190,12 +188,9 @@
 
 										@foreach (var tag in table.Value.SelectMany(h => h.Tags.Keys).Distinct())
 										{
-											<RadzenDataGridColumn TItem="TableColumn" Title="@tag">
+											<RadzenDataGridColumn TItem="TableColumn" Title="@GetColumnTitle(tag)">
 												<Template Context="data">
-													@if (data.Tags.TryGetValue(tag, out var value))
-													{
-														@value
-													}
+													@GetColumnTitle(data.Tags[tag])
 												</Template>
 											</RadzenDataGridColumn>
 										}
@@ -716,9 +711,33 @@
 	}
 
 	// Menampilkan Kolom yang dipilih untuk Mode Filter "Tag"
-	private string GetColumnDisplayName(string fullName)
+	// private string GetColumnDisplayName(string fullName)
+	// {
+	// 	return Tables.SelectMany(t => t.Columns).FirstOrDefault(c => c.FullName == fullName)?.DisplayName ?? fullName;
+	// }
+
+	private string GetColumnTitle(string tag)
 	{
-		return Tables.SelectMany(t => t.Columns).FirstOrDefault(c => c.FullName == fullName)?.DisplayName ?? fullName;
+		var unit = UnitCache.GetUnit(tag);
+		return unit != null ? $"{tag} ({unit})" : tag;
+	}
+
+	private string GetColumnDisplayName(string tag)
+	{
+		var unit = UnitCache.GetUnit(tag);
+
+		if (!string.IsNullOrWhiteSpace(unit) && unit != "null")
+			return $"{tag} ({unit})";
+
+		return tag;
+	}
+
+	private string NormalizeTag(string tag)
+	{
+		if (tag.Contains('.'))
+			return tag.Split('.').Last();
+
+		return tag;
 	}
 
 	// --- Export function ---

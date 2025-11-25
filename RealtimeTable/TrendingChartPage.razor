@@ -69,11 +69,7 @@
 
 								@foreach (var column in SelectedTags.Select(GetColumnDisplayName))
 								{
-									@* <div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
-										<span class="ms-1">@column</span>
-									</div> *@
-
-									var displayName = GetColumnDisplayName(column);
+									var displayName = GetColumnDisplayName(NormalizeTag(column));
 
 									<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
 										<span class="ms-1">@displayName</span>
@@ -104,11 +100,23 @@
 													  Smooth="true">
 										<RadzenMarkers Visible="false" MarkerType="MarkerType.Circle" />
 										<RadzenSeriesDataLabels Visible="false" />
+
+										@* <TooltipTemplate>
+											@{
+												var key = dataset.Key;
+												var tag = NormalizeTag(key);
+												var unit = UnitCache.GetUnit(tag);
+
+												<div style="padding:6px 10px; background:#ffffff; border-radius:6px; border:1px solid #ddd;">
+													<div><b>@key</b></div>
+													<div>Value: @context.Value <strong>@unit</strong></div>
+												</div>
+											}
+										</TooltipTemplate> *@
 									</RadzenLineSeries>
 								}
 
 								<RadzenCategoryAxis Padding="10" TickDistance="200" Formatter="@FormatAsTime" />
-
 
 								<RadzenValueAxis TickDistance="200" Formatter="@FormatAsValue">
 									<RadzenGridLines Visible="false" />
@@ -296,8 +304,13 @@
 
 				foreach (var kvp in result)
 				{
-					var colDisplay = kvp.Key;
-					string legendText = GetLegendText(colDisplay);
+					// var colDisplay = kvp.Key;
+					// string legendText = GetLegendText(colDisplay);
+
+					var tagOnly = kvp.Key;
+					var fullTag = ResolveFullNameFromTag(tagOnly);
+					var legendText = GetLegendTextWithUnit(fullTag);
+
 
 					ChartData[legendText] = kvp.Value
 						.Select(x =>
@@ -316,7 +329,6 @@
 						.OrderBy(c => c.Category)
 						.ToList();
 				}
-
 			}
 		}
 		finally
@@ -324,25 +336,6 @@
 			isUpdateChart = false;
 			StateHasChanged();
 		}
-	}
-
-	private string GetLegendText(string fullName)
-	{
-		if (tablesForUI == null) return fullName;
-
-		foreach (var table in tablesForUI)
-		{
-			var column = table.Columns?.FirstOrDefault(c => c.DisplayName == fullName);
-
-			if (column != null)
-			{
-				return !string.IsNullOrEmpty(column.FullName) ? column.FullName
-						: !string.IsNullOrEmpty(column.AliasPendek) ? column.AliasPendek
-						: !string.IsNullOrEmpty(column.DisplayName) ? column.DisplayName
-						: fullName;
-			}
-		}
-		return fullName;
 	}
 
 	// Filter DateTime
@@ -429,9 +422,74 @@
 	}
 
 	// Menampilkan Kolom yang dipilih untuk Mode Filter "Tag"
-	private string GetColumnDisplayName(string fullName)
+	// private string GetColumnDisplayName(string fullName)
+	// {
+	// 	return Tables.SelectMany(t => t.Columns).FirstOrDefault(c => c.FullName == fullName)?.DisplayName ?? fullName;
+	// }
+
+	private string GetLegendText(string fullName)
 	{
-		return Tables.SelectMany(t => t.Columns).FirstOrDefault(c => c.FullName == fullName)?.DisplayName ?? fullName;
+		if (tablesForUI == null) return fullName;
+
+		foreach (var table in tablesForUI)
+		{
+			var column = table.Columns?.FirstOrDefault(c => c.DisplayName == fullName);
+
+			if (column != null)
+			{
+				return !string.IsNullOrEmpty(column.FullName) ? column.FullName
+						: !string.IsNullOrEmpty(column.AliasPendek) ? column.AliasPendek
+						: !string.IsNullOrEmpty(column.DisplayName) ? column.DisplayName
+						: fullName;
+			}
+		}
+		return fullName;
+	}
+
+	private string GetColumnDisplayName(string tag)
+	{
+		var unit = UnitCache.GetUnit(tag);
+
+		if (!string.IsNullOrWhiteSpace(unit) && unit != "null")
+			return $"{tag} ({unit})";
+
+		return tag;
+	}
+
+	private string NormalizeTag(string tag)
+	{
+		if (tag.Contains('.'))
+			return tag.Split('.').Last();
+
+		return tag;
+	}
+
+	private string GetLegendTextWithUnit(string tag)
+	{
+		var split = tag.Split('.');
+		if (split.Length < 2)
+			return tag;
+
+		var table = split[0];
+		var tagName = split[1];
+		var fullName = $"{table}.{tagName}";
+
+		var unit = UnitCache.GetUnit(fullName);
+		if (!string.IsNullOrWhiteSpace(unit) && unit != "null")
+			return $"{table}.{tagName} ({unit})";
+
+		return $"{table}.{tagName}";
+	}
+
+	private string ResolveFullNameFromTag(string tagOnly)
+	{
+		foreach (var table in tablesForUI)
+		{
+			var col = table.Columns?.FirstOrDefault(c => c.DisplayName == tagOnly);
+			if (col != null)
+				return col.FullName;
+		}
+		return tagOnly;
 	}
 
 	// --- Export function ---
