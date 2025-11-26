@@ -3,6 +3,7 @@
 @inject NotificationService NotificationService
 
 @inject IMachineService MachineService
+@inject IUnitCacheService UnitCache
 
 <RadzenRow>
 	<RadzenColumn SizeMD="12">
@@ -236,6 +237,18 @@
 
 			machineTags = await MachineService.Browse();
 
+			// Set Unit Column
+			var dictUnit = new Dictionary<string, string>();
+			foreach (var table in machineTags)
+			{
+				foreach (var col in table.Value)
+				{
+					string fullKey = $"{table.Key}.{col.NamaTag}";
+					dictUnit[fullKey] = col.Unit ?? "";
+				}
+			}
+			UnitCache.SetUnits(dictUnit);
+
 			// Konversi ke modal baru
 			tablesForUI = machineTags.Select(kvp => new TableModal
 			{
@@ -464,21 +477,33 @@
 		return tag;
 	}
 
-	private string GetLegendTextWithUnit(string tag)
+	// private string GetLegendTextWithUnit(string tag)
+	// {
+	// 	var split = tag.Split('.');
+	// 	if (split.Length < 2)
+	// 		return tag;
+
+	// 	var table = split[0];
+	// 	var tagName = split[1];
+	// 	var fullName = $"{table}.{tagName}";
+
+	// 	var unit = UnitCache.GetUnit(fullName);
+	// 	if (!string.IsNullOrWhiteSpace(unit) && unit != "null")
+	// 		return $"{table}.{tagName} ({unit})";
+
+	// 	return $"{table}.{tagName}";
+	// }
+
+	private string GetLegendTextWithUnit(string fullTag)
 	{
-		var split = tag.Split('.');
-		if (split.Length < 2)
-			return tag;
+		var unit = UnitCache.GetUnit(fullTag);
 
-		var table = split[0];
-		var tagName = split[1];
-		var fullName = $"{table}.{tagName}";
+		if (!string.IsNullOrEmpty(unit))
+		{
+			return $"{fullTag} ({unit})";
+		}
 
-		var unit = UnitCache.GetUnit(fullName);
-		if (!string.IsNullOrWhiteSpace(unit) && unit != "null")
-			return $"{table}.{tagName} ({unit})";
-
-		return $"{table}.{tagName}";
+		return fullTag;
 	}
 
 	private string ResolveFullNameFromTag(string tagOnly)

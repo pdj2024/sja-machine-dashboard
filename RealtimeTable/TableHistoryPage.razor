@@ -3,6 +3,7 @@
 @inject NotificationService NotificationService
 
 @inject IMachineService MachineService
+@inject IUnitCacheService UnitCache
 
 <RadzenRow>
 	<RadzenColumn SizeMD="12">
@@ -73,7 +74,7 @@
 								@foreach (var tag in SelectedTags)
 								{
 									<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
-										<span class="ms-1">@GetColumnDisplayName(NormalizeTag(tag))</span>
+										<span class="ms-1">@GetColumnDisplayName(tag)</span>
 									</div>
 								}
 							</div>
@@ -100,7 +101,7 @@
 												@foreach (var column in sel.Columns)
 												{
 													<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
-														<span class="ms-1">@GetColumnDisplayName(column.DisplayName)</span>
+														<span class="ms-1">@GetColumnDisplayName(column.FullName)</span>
 														@* <span class="ms-1">@column.DisplayName</span> *@
 														@* <span class="text-muted">(@column.Description)</span> *@
 													</div>
@@ -144,9 +145,12 @@
 								</RadzenDataGridColumn>
 								@foreach (var tag in HistoryData.SelectMany(h => h.Tags.Keys).Distinct())
 								{
-									<RadzenDataGridColumn TItem="TableColumn" Title="@GetColumnTitle(tag)">
+									<RadzenDataGridColumn TItem="TableColumn" Title="@GetColumnTitleTags(tag)">
 										<Template Context="data">
-											@GetColumnTitle(data.Tags[tag])
+											@if (data.Tags.TryGetValue(tag, out var val))
+											{
+												@val
+											}
 										</Template>
 									</RadzenDataGridColumn>
 								}
@@ -188,9 +192,12 @@
 
 										@foreach (var tag in table.Value.SelectMany(h => h.Tags.Keys).Distinct())
 										{
-											<RadzenDataGridColumn TItem="TableColumn" Title="@GetColumnTitle(tag)">
+											<RadzenDataGridColumn TItem="TableColumn" Title="@GetColumnTitle(tag, table.Key)">
 												<Template Context="data">
-													@GetColumnTitle(data.Tags[tag])
+													@if (data.Tags.TryGetValue(tag, out var val))
+													{
+														@val
+													}
 												</Template>
 											</RadzenDataGridColumn>
 										}
@@ -309,6 +316,18 @@
 			isLoading = true;
 
 			machineTags = await MachineService.Browse();
+
+			// Set Unit column
+			var dictUnit = new Dictionary<string, string>();
+			foreach (var table in machineTags)
+			{
+				foreach (var col in table.Value)
+				{
+					var fullKey = $"{table.Key}.{col.NamaTag}";
+					dictUnit[fullKey] = col.Unit ?? "";
+				}
+			}
+			UnitCache.SetUnits(dictUnit);
 
 			// Konversi ke modal baru
 			tablesForUI = machineTags.Select(kvp => new TableModal
@@ -716,27 +735,74 @@
 	// 	return Tables.SelectMany(t => t.Columns).FirstOrDefault(c => c.FullName == fullName)?.DisplayName ?? fullName;
 	// }
 
-	private string GetColumnTitle(string tag)
+	private string GetColumnTitle(string tag, string tableName = "")
 	{
-		var unit = UnitCache.GetUnit(tag);
-		return unit != null ? $"{tag} ({unit})" : tag;
+		string unit = "";
+
+		if (!string.IsNullOrEmpty(tableName))
+		{
+			unit = UnitCache.GetUnit($"{tableName}.{tag}");
+		}
+
+		if (string.IsNullOrEmpty(unit))
+		{
+			unit = UnitCache.GetUnit(tag);
+		}
+
+		var shortTagName = NormalizeTag(tag);
+
+		if (!string.IsNullOrEmpty(unit))
+		{
+			return $"{shortTagName} ({unit})";
+		}
+
+		return shortTagName;
+	}
+
+	private string GetColumnTitleTags(string tag, string tableName = "")
+	{
+		string unit = "";
+
+		if (!string.IsNullOrEmpty(tableName))
+		{
+			unit = UnitCache.GetUnit($"{tableName}.{tag}");
+		}
+		if (string.IsNullOrEmpty(unit))
+		{
+			unit = UnitCache.GetUnit(tag);
+		}
+
+		if (string.IsNullOrEmpty(unit))
+		{
+			var matchKey = UnitCache.Units.Keys.FirstOrDefault(k => k.EndsWith($".{tag}", StringComparison.OrdinalIgnoreCase));
+
+			if (matchKey != null)
+			{
+				unit = UnitCache.GetUnit(matchKey);
+			}
+		}
+
+		var shortTagName = NormalizeTag(tag);
+
+		if (!string.IsNullOrWhiteSpace(unit) && unit != "null")
+		{
+			return $"{shortTagName} ({unit})";
+		}
+
+		return shortTagName;
 	}
 
 	private string GetColumnDisplayName(string tag)
 	{
-		var unit = UnitCache.GetUnit(tag);
-
-		if (!string.IsNullOrWhiteSpace(unit) && unit != "null")
-			return $"{tag} ({unit})";
-
-		return tag;
+		return GetColumnTitle(tag);
 	}
 
 	private string NormalizeTag(string tag)
 	{
 		if (tag.Contains('.'))
+		{
 			return tag.Split('.').Last();
-
+		}
 		return tag;
 	}
 
@@ -796,7 +862,10 @@
 
 						worksheet.Cell(1, 1).Value = "Timestamp";
 						for (int i = 0; i < allTags.Count; i++)
-							worksheet.Cell(1, i + 2).Value = allTags[i];
+						{
+							// worksheet.Cell(1, i + 2).Value = allTags[i];
+							worksheet.Cell(1, i + 2).Value = GetColumnTitle(allTags[i], tableName);
+						}
 
 						int rowIndex = 2;
 						int total = tableData.Count;
@@ -851,7 +920,10 @@
 
 						csv.Append("Timestamp");
 						foreach (var tag in allTags)
-							csv.Append($";{tag}");
+						{
+							// csv.Append($";{tag}");
+							csv.Append($";{GetColumnTitle(tag, tableName)}");
+						}
 						csv.AppendLine();
 
 						int count = 0;
@@ -913,7 +985,10 @@
 			var csv = new StringBuilder();
 			csv.Append("Timestamp");
 			foreach (var tag in allTags)
-				csv.Append($";{tag}");
+			{
+				// csv.Append($";{tag}");
+				csv.Append($";{GetColumnTitleTags(tag)}");
+			}
 			csv.AppendLine();
 
 			int count = 0;
@@ -952,7 +1027,10 @@
 
 			worksheet.Cell(1, 1).Value = "Timestamp";
 			for (int i = 0; i < allTags.Count; i++)
-				worksheet.Cell(1, i + 2).Value = allTags[i];
+			{
+				// worksheet.Cell(1, i + 2).Value = allTags[i];
+				worksheet.Cell(1, i + 2).Value = GetColumnTitleTags(allTags[i]);
+			}
 
 			int rowIndex = 2;
 			int total = tableData.Count;
@@ -965,7 +1043,9 @@
 				for (int i = 0; i < allTags.Count; i++)
 				{
 					if (row.Tags.TryGetValue(allTags[i], out var value))
+					{
 						worksheet.Cell(rowIndex, i + 2).Value = value;
+					}
 				}
 
 				rowIndex++;
