@@ -68,13 +68,23 @@
 									List Tag yang dipilih
 								</h6>
 
-								@foreach (var column in SelectedTags.Select(GetColumnDisplayName))
+								@* @foreach (var column in SelectedTags.Select(GetColumnDisplayName))
 								{
 									var displayName = GetColumnDisplayName(NormalizeTag(column));
 
 									<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
 										<span class="ms-1">@displayName</span>
 										<button type="button" class="btn-close ms-2" aria-label="Close" style="font-size: 10px;" @onclick="() => RemoveColumn(column)"></button>
+									</div>
+								} *@
+
+								@foreach (var tag in SelectedTags.ToList())
+								{
+									var displayName = GetColumnDisplayName(tag);
+
+									<div class="d-inline-block me-2 mb-2 px-2 py-1 rounded" style="background:#D9E7FB;">
+										<span class="ms-1">@NormalizeTag(displayName)</span>
+										<button type="button" class="btn-close ms-2" aria-label="Close" style="font-size: 10px;" @onclick="() => RemoveColumn(tag)"></button>
 									</div>
 								}
 							</div>
