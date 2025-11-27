@@ -1,12 +1,17 @@
 @page "/realtime-outer"
+@inject NavigationManager Nav
 @rendermode InteractiveServer
+
 <RadzenStack Style="flex-grow: 1; margin: 0; padding: 1.25rem; width: 100%;">
-
-    <RadzenTabs Orientation="Orientation.Vertical" RenderMode="TabRenderMode.Client" style="height: 100%; padding: 0; margin: 0 ; ">
-        <Tabs >
-            <RealtimePage />
-        </Tabs>
-    </RadzenTabs>
-
+    <RealtimePage SelectedTable="@Table" />
 </RadzenStack>
 
+@code {
+    [SupplyParameterFromQuery(Name = "table")]
+    public string? Table { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        StateHasChanged();
+    }
+}

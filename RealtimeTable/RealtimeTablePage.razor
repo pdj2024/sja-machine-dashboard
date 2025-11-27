@@ -20,7 +20,17 @@
 			<div class="card-header border-bottom pb-0">
 				<div class="d-sm-flex align-items-center">
 					<div>
-						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Realtime OPC Data</h6>
+						@* <h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Realtime OPC Data</h6> *@
+						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">
+							@if (string.IsNullOrEmpty(TargetTable))
+							{
+								<span>Realtime OPC Data</span>
+							}
+							else
+							{
+								<span>Realtime: <span style="color: #1e3a6a;">@TargetTable</span></span>
+							}
+						</h6>
 						<p class="text-sm"></p>
 						@if (_data != null && _data.TryGetValue("timestamp", out var ts) && ts != null)
 						{
@@ -53,70 +63,8 @@
 
 			@* Body Table *@
 			<div class="card-body px-0 py-0">
-				@* Filtering Data *@
-				@* <div class="border-bottom px-3">
-					<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
-						<RadzenFormField AllowFloatingLabel="true" Text="Pilih Tabel">
-							<RadzenDropDown Data="@machineTags.Keys"
-											@bind-Value="selectedTable"
-											Style="width:220px"
-											AllowClear="true"
-											AllowFiltering="true"
-											FilterOperator="StringFilterOperator.StartsWith"
-											Change="@(args => { selectedTag = null; StateHasChanged(); })" />
-						</RadzenFormField>
-
-						@if (!string.IsNullOrWhiteSpace(selectedTable) && machineTags.ContainsKey(selectedTable))
-						{
-							<RadzenFormField AllowFloatingLabel="true" Text="Pilih Tag">
-								<RadzenDropDown Data="@machineTags[selectedTable].Select(c => c.NamaTag)"
-												@bind-Value="selectedTag"
-												Style="width:220px"
-												AllowClear="true"
-												AllowFiltering="true"
-												FilterOperator="StringFilterOperator.StartsWith"
-												Change="@(args => StateHasChanged())" />
-							</RadzenFormField>
-						}
-
-						@if (!string.IsNullOrWhiteSpace(selectedTable))
-						{
-							<RadzenButton Text="Hapus Filter" Icon="close" Click="() => { selectedTable = selectedTag = null; StateHasChanged(); }" class="w-auto" />
-						}
-					</RadzenStack>
-				</div> *@
-
 				<div class="table-responsive p-0">
 					@* Table Realtime *@
-					@* @if (_data != null && machineTags.Any())
-					{
-						<RadzenDataGrid Data="@GetFilteredTableData()"
-										TItem="TableRealtime"
-										AllowSorting="true"
-										AllowVirtualization="true"
-										AllowGrouping="true"
-										AllGroupsExpanded="true"
-										HideGroupedColumn="false"
-										Render="@OnRender"
-										Style="margin-bottom: 5rem; max-height: 500px">
-							<Columns>
-								<RadzenDataGridColumn TItem="TableRealtime" Property="TableName" Title="Tabel" />
-								<RadzenDataGridColumn TItem="TableRealtime" Property="Column" Title="Tag Nama" />
-								<RadzenDataGridColumn TItem="TableRealtime" Property="Deskripsi" Title="Deskripsi" Groupable="false" />
-								<RadzenDataGridColumn TItem="TableRealtime" Title="Nilai" Groupable="false">
-									<Template Context="data">
-										<span class="@valueAnimationClass">@data.Value</span>
-									</Template>
-								</RadzenDataGridColumn>
-							</Columns>
-						</RadzenDataGrid>
-					}
-					else
-					{
-						<p class="text-muted fst-italic ms-3">Menunggu OPC Data...</p>
-					} *@
-
-
 					@if (isLoadingTable)
 					{
 						<p class="text-muted fst-italic ms-3">Memuat metadata...</p>
@@ -127,7 +75,21 @@
 					}
 					else
 					{
-						@foreach (var tableEntry in machineTags.OrderBy(kv => kv.Key))
+						var tablesToDisplay = machineTags.AsEnumerable();
+
+						if (!string.IsNullOrEmpty(TargetTable))
+						{
+							tablesToDisplay = tablesToDisplay.Where(x => x.Key == TargetTable);
+						}
+
+						tablesToDisplay = tablesToDisplay.OrderBy(kv => kv.Key);
+
+						@if (!tablesToDisplay.Any())
+						{
+							<div class="alert alert-info">Tabel "@TargetTable" tidak ditemukan atau belum ada data.</div>
+						}
+
+						@foreach (var tableEntry in tablesToDisplay)
 						{
 							var tableName = tableEntry.Key;
 							var gridData = realtimeDataByTable.TryGetValue(tableName, out var data) ? data : new List<TableRealtime>();
@@ -163,6 +125,43 @@
 								</RadzenDataGrid>
 							</div>
 						}
+
+						@* @foreach (var tableEntry in machineTags.OrderBy(kv => kv.Key))
+						{
+							var tableName = tableEntry.Key;
+							var gridData = realtimeDataByTable.TryGetValue(tableName, out var data) ? data : new List<TableRealtime>();
+
+							<div class="mb-5">
+								<h5 class="ms-2 mt-4 mb-2 fw-bold" style="color: #1e3a6a;">Tabel: @tableName</h5>
+
+								<RadzenDataGrid Data="@gridData"
+												TItem="TableRealtime"
+												ColumnWidth="200px"
+												AllowSorting="true"
+												AllowVirtualization="true"
+												AllowFiltering="true"
+												FilterMode="FilterMode.Simple"
+												LogicalFilterOperator="LogicalFilterOperator.And"
+												FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+												ShowPagingSummary="true"
+												EmptyText="Loading..."
+												Style="margin-bottom: 0rem; max-height: 500px">
+
+									<Columns>
+										<RadzenDataGridColumn TItem="TableRealtime" Property="Column" Title="Tag Nama" Filterable="true" Frozen="true" Width="180px" />
+										<RadzenDataGridColumn TItem="TableRealtime" Property="Deskripsi" Title="Deskripsi" Filterable="true" Width="250px" />
+										<RadzenDataGridColumn TItem="TableRealtime" Property="Value" Title="Nilai" Filterable="false" Width="120px">
+											<Template Context="data">
+												<span class="@valueAnimationClass">
+													@data.Value
+												</span>
+											</Template>
+										</RadzenDataGridColumn>
+										<RadzenDataGridColumn TItem="TableRealtime" Property="Unit" Title="Unit" Filterable="true" Width="50px" />
+									</Columns>
+								</RadzenDataGrid>
+							</div>
+						} *@
 					}
 				</div>
 			</div>
@@ -173,6 +172,9 @@
 
 
 @code {
+	[Parameter]
+	public string? TargetTable { get; set; }
+
 	private Dictionary<string, List<ColumnMachine>> machineTags = new();
 	private Settings settingData = new();
 
@@ -222,7 +224,6 @@
 			string hubUrl = $"{Configuration.GetValue<string>("ApiSettings:BaseUrl")?.TrimEnd('/')}/realtimehub";
 
 			_hubConnection = new HubConnectionBuilder()
-				// .WithUrl(Navigation.ToAbsoluteUri("/realtimehub"))
 				.WithUrl(hubUrl)
 				.WithAutomaticReconnect()
 				.Build();

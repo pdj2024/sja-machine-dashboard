@@ -980,9 +980,22 @@ ul[role=tablist] {
 .rz-panel-menu .rz-navigation-item-wrapper {
     line-height: 0.5rem !important;
 }
+.rz-panel-menu .rz-navigation-menu .rz-navigation-item-wrapper:hover {
+    background-color: var(--rz-panel-menu-item-hover-background-color);
+    color: var(--rz-panel-menu-item-hover-color);
+}
 
 .rz-panel-menu .rz-navigation-item {
     border-block-end: 0px solid black !important;
+}
+
+.rz-panel-menu .rz-navigation-menu .rz-navigation-item-wrapper {
+    background-color: transparent !important;
+    padding-left: 10px;
+}
+.rz-panel-menu .rz-navigation-menu .rz-navigation-item-wrapper:hover {
+    background-color: #AAABAC !important;
+    color: #ffffff !important;
 }
 
 /* Radzen Table */
