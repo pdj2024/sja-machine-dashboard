@@ -135,14 +135,34 @@ border: 0; margin: 0; margin-bottom: 0em !important">
 			return;
 		}
 
+		// if (id == "realtime")
+  //       {
+  //           title = "Realtime Table";
+  //       }
+  //       else if (id.StartsWith("realtime:"))
+  //       {
+  //           var tableName = id.Split(':')[1];
+  //           title = $"Realtime: {tableName}"; 
+  //       }
+
 		if (id == "realtime")
         {
-            title = "Realtime Table";
+            if (TableNames != null)
+            {
+                foreach (var table in TableNames)
+                {
+                    var tabId = $"realtime:{table}";
+                    var tabTitle = $"Realtime: {table}";
+                    
+                    TabService.OpenTab(tabId, tabTitle);
+                }
+            }
+            return;
         }
         else if (id.StartsWith("realtime:"))
         {
             var tableName = id.Split(':')[1];
-            title = $"Realtime: {tableName}"; 
+            title = $"Realtime: {tableName}";
         }
 
 		TabService.OpenTab(id, title);

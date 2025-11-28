@@ -108,7 +108,7 @@
 												FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
 												ShowPagingSummary="true"
 												EmptyText="Loading..."
-												Style="margin-bottom: 0rem; max-height: 500px">
+												Style="margin-bottom: 0rem; max-height: 70vh">
 
 									<Columns>
 										<RadzenDataGridColumn TItem="TableRealtime" Property="Column" Title="Tag Nama" Filterable="true" Frozen="true" Width="180px" />
@@ -252,7 +252,7 @@
 		}
 		catch (Exception ex)
 		{
-			NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
+			// NotificationService.Notify(NotificationSeverity.Error, "Error", $"Terjadi kesalahan: {ex.Message}");
 		}
 		finally
 		{
