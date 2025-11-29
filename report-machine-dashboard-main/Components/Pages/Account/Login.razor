@@ -21,6 +21,7 @@
 				@* <h3 style="@HeaderTextStyle">@pdjService.clientName</h3> *@
 				<div class="typewriter">
 					<h3 style="@HeaderTextStyle" class="typing-text">@pdjService.clientName</h3>
+					<h4 style="@SubHeaderTextStyle" class="typing-text">@pdjService.clientNameSubtitle</h4>
 				</div>
 			</div>
 
@@ -141,7 +142,8 @@
 
 	public string HeaderStyle => "text-align: center; margin-bottom: 20px;";
 
-	public string HeaderTextStyle => "font-size: 24px; color: #333; font-weight: bold; margin-bottom: 1em";
+	public string HeaderTextStyle => "font-size: 24px; color: #333; font-weight: bold; margin-bottom: 5px";
+	public string SubHeaderTextStyle => "font-size: 18px; color: #333; font-weight: normal; margin-bottom: 1em";
 
 	public string FormGroupStyle => "margin-bottom: 20px; width: 100%!important";  // Increased spacing between inputs
 

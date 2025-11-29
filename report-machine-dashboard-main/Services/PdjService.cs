@@ -44,7 +44,8 @@ namespace Services
         // Company Setting 
         public string clientLogo = "images/logo_company_santos_square.png";
         public const string welcomeBackground = "images/lembah_metro.jpg";
-        public string clientName = "Report Machine";
+        public string clientName = "SCALINE";
+        public string clientNameSubtitle = "SCADA Online";
         public string jumlahDecimalQty = "N2";
         public string jumlahDecimalRp = "N2";
         public string jumlahDecimalPersen = "N2";

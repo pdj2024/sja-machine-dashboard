@@ -120,10 +120,18 @@ ul.rz-profile-menu {
     width: 40% !important;
 }
 
+.table-size-custom {
+    max-height: 70vh;
+}
+
 /* Screen xxl */
 @media (max-width: 1536px) {
     .form-size-custom {
         width: 40% !important;
+    }
+
+    .table-size-custom {
+        max-height: 65vh;
     }
 }
 /* Screen xl */
@@ -131,11 +139,19 @@ ul.rz-profile-menu {
     .form-size-custom {
         width: 40% !important;
     }
+
+    .table-size-custom {
+        max-height: 62vh;
+    }
 }
 /* Screen lg */
 @media (max-width: 1024px) {
     .form-size-custom {
         width: 40% !important;
+    }
+
+    .table-size-custom {
+        max-height: 62vh;
     }
 }
 /* Screen md */
@@ -143,11 +159,19 @@ ul.rz-profile-menu {
     .form-size-custom {
         width: 100% !important;
     }
+
+    .table-size-custom {
+        max-height: 60vh;
+    }
 }
 /* Screen sm */
 @media (max-width: 640px) {
     .form-size-custom {
         width: 100% !important;
+    }
+
+    .table-size-custom {
+        max-height: 60vh;
     }
 }
 /* Screen xs */
@@ -155,10 +179,18 @@ ul.rz-profile-menu {
     .form-size-custom {
         width: 100% !important;
     }
+
+    .table-size-custom {
+        max-height: 50vh;
+    }
 }
 /* Screen xxs */
 @media (max-width: 375px) {
     .form-size-custom {
         width: 100% !important;
+    }
+
+    .table-size-custom {
+        max-height: 43vh;
     }
 }
