@@ -56,9 +56,17 @@
 		}
 	</div>
 
-	<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" Class="mt-3">
-		<RadzenButton Text="Update" Click="OnUpdateClick" IsBusy="@isUpdate" ButtonStyle="ButtonStyle.Primary" />
-		<RadzenButton Text="Clear" Click="ClearSelectedTables" ButtonStyle="ButtonStyle.Light" />
+	<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" Gap="0.5rem" Class="mt-3">
+		<div>
+			<span class="fw-semibold" style="font-size: 18px">
+				Total tabel terpilih: <span class="text-primary ms-1">@SelectedTables.Count</span>
+			</span>
+		</div>
+
+		<div>
+			<RadzenButton Text="Update" Click="OnUpdateClick" IsBusy="@isUpdate" ButtonStyle="ButtonStyle.Primary" />
+			<RadzenButton Text="Clear" Click="ClearSelectedTables" ButtonStyle="ButtonStyle.Light" />
+		</div>
 	</RadzenStack>
 </RadzenStack>
 

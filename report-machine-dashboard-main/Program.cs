@@ -79,6 +79,7 @@ builder.Services.AddHttpClient<RealtimeTable.Interfaces.IApiService, RealtimeTab
     //client.BaseAddress = new Uri("https://kopi.padajaya.biz.id/");
     client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"]);
 });
+builder.Services.AddSingleton<RealtimeTable.Interfaces.IUnitCacheService, RealtimeTable.Services.UnitCacheService>();
 builder.Services.AddScoped<RealtimeTable.Interfaces.IMachineService, RealtimeTable.Services.MachineService>();
 builder.Services.AddScoped<RealtimeTable.Interfaces.IUserService, RealtimeTable.Services.UserService>();
 builder.Services.AddScoped<RealtimeTable.Interfaces.ISettingService, RealtimeTable.Services.SettingService>();

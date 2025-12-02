@@ -17,7 +17,7 @@
 				<div class="d-flex flex-wrap align-items-center">
 					<div>
 						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Table User</h6>
-						<p class="text-sm">Menampilkan seluruh data dari setiap tabel yang tersedia dengan lengkap dan terstruktur.</p>
+						<p class="text-sm"></p>
 					</div>
 					<div class="ms-auto d-flex gap-2">
 						@* Refresh Button *@
@@ -34,7 +34,7 @@
 				<div class="border-bottom py-3 px-3">
 					@* Filtering Data *@
 					<RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.End" JustifyContent="JustifyContent.Normal" Gap="5" Style="flex-wrap: wrap !important; margin: 1rem 0rem;">
-						<RadzenFormField AllowFloatingLabel="false" Text="Status">
+						<RadzenFormField AllowFloatingLabel="true" Text="Status">
 							<RadzenDropDown TValue="string"
 											Data="@StatusDropdown"
 											@bind-Value="filterStatus"
@@ -45,7 +45,7 @@
 											FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
 											Change="LoadData" />
 						</RadzenFormField>
-						<RadzenFormField AllowFloatingLabel="false" Text="Role">
+						<RadzenFormField AllowFloatingLabel="true" Text="Role">
 							<RadzenDropDown TValue="string"
 											Data="@RoleDropdown"
 											@bind-Value="filterRole"

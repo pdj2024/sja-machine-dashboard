@@ -21,6 +21,7 @@
 				@* <h3 style="@HeaderTextStyle">@pdjService.clientName</h3> *@
 				<div class="typewriter">
 					<h3 style="@HeaderTextStyle" class="typing-text">@pdjService.clientName</h3>
+					<h4 style="@SubHeaderTextStyle" class="typing-text">@pdjService.clientNameSubtitle</h4>
 				</div>
 			</div>
 
@@ -129,7 +130,7 @@
 	// public string ContainerStyle => "display: flex; justify-content: center; align-items: center; height: 60vh; width: 90%; max-width: 400px; margin: 0 !important; padding: 20px; background-color: #ffffff; border-radius: 10px; box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.3); font-family: Arial, sans-serif;";
 
 	public string ContainerStyle =>
-	"display: flex; justify-content: center; align-items: center; height: 60vh; width: 90%; max-width: 400px; " +
+	"display: flex; justify-content: center; align-items: center; height: auto; width: 90%; max-width: 400px; max-height: fit-content; " +
 	"margin: 0 !important; padding: 30px; " +
 	"background: rgba(255, 255, 255, 0.15); " +
 	"border-radius: 15px; " +
@@ -141,7 +142,8 @@
 
 	public string HeaderStyle => "text-align: center; margin-bottom: 20px;";
 
-	public string HeaderTextStyle => "font-size: 24px; color: #333; font-weight: bold; margin-bottom: 1em";
+	public string HeaderTextStyle => "font-size: 24px; color: #333; font-weight: bold; margin-bottom: 5px";
+	public string SubHeaderTextStyle => "font-size: 18px; color: #333; font-weight: normal; margin-bottom: 1em";
 
 	public string FormGroupStyle => "margin-bottom: 20px; width: 100%!important";  // Increased spacing between inputs
 

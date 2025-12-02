@@ -4,6 +4,8 @@
 @using Services
 @using global::Services
 @inject pdjService pdjService
+@inject RealtimeTable.Interfaces.IMachineService MachineService
+@inject NavigationManager Navigation
 
 
 
@@ -17,11 +19,6 @@
 
 border: 0; margin: 0; margin-bottom: 0em !important">
 
-		@* <RadzenImage Path="@pdjService.clientLogo"
-					 style="width: auto; height: 48px;
-                        border-radius: 10%;" /* Make the image circular * /
-					 AlternateText="Application logo">
-		</RadzenImage> *@
 		<RadzenImage Path="@pdjService.clientLogo"
 					 style="width: auto; height: 86px;
                         border-radius: 10%;" /* Make the image circular * /
@@ -34,122 +31,34 @@ border: 0; margin: 0; margin-bottom: 0em !important">
 					style="color:  #1a1a1a;" />
 	</RadzenStack>
 
+	<RadzenPanelMenu Style="width: 250px;" Click="(item) => OnItemClick(item)">
 
+		<RadzenPanelMenuItem Text="Realtime" Value="@("realtime-parent")" Icon="speed" Expanded="false">
+			<RadzenPanelMenuItem Text="Semua Tabel" Value="@("realtime")" Icon="dashboard" />
 
-    @* <DxMenu Orientation="DevExpress.Blazor.Orientation.Vertical" ItemClick="OnItemClickDev" CssClass="mymenuitem0">
-        <Items>
-            <DxMenuItem Text="Dashboard" Name="dashboard" IconCssClass="group" CssClass="mymenuitem"></DxMenuItem>
-            <DxMenuItem Text="Rekap Data" Name="rekap data" IconCssClass="home" CssClass="mymenuitem" style="border-top: 2px solid rgba(192, 192, 192, 0.25) !important;"></DxMenuItem>
-            <DxMenuItem Text="Pemasok" Name="pemasok" IconCssClass="person" CssClass="mymenuitem" style="border-top: 2px solid  rgba(192, 192, 192, 0.25) !important;"></DxMenuItem>
-            <DxMenuItem Text="Pelanggan" Name="pelanggan" IconCssClass="group" CssClass="mymenuitem"></DxMenuItem>
-            <DxMenuItem Text="Barang" Name="barang" IconCssClass="inventory_2" CssClass="mymenuitem"></DxMenuItem>
-            <DxMenuItem Text="Katalog Lain" Name="kas bank giro" IconCssClass="account_balance_wallet" CssClass="mymenuitem">
-                <Items>
-                    <DxMenuItem Text="Salesman" Name="register order penjualan" IconCssClass="sell" CssClass="mymenuitem"></DxMenuItem>
-                    <DxMenuItem Text="Gudang" Name="register order penjualan" IconCssClass="sell" CssClass="mymenuitem"></DxMenuItem>
-                    <DxMenuItem Text="Pemakai" Name="register order penjualan" IconCssClass="sell" CssClass="mymenuitem"></DxMenuItem>
+			@if (TableNames != null)
+			{
+				foreach (var table in TableNames)
+				{
+					<RadzenPanelMenuItem Text="@table"
+										 Value="@($"realtime:{table}")"
+										 Icon="grid_on"
+										 Style="font-size: 0.9rem;" />
+				}
+			}
+		</RadzenPanelMenuItem>
 
+		<RadzenPanelMenuItem Text="History" Value="@("history")" Icon="history" />
+		<RadzenPanelMenuItem Text="Chart" Value="@("chart")" Icon="show_chart" />
 
-                </Items>
-            </DxMenuItem>
-
-            <DxMenuItem Text="Keuangan" Name="kas bank giro" IconCssClass="account_balance_wallet" style="border-top: 2px solid rgba(192, 192, 192, 0.25) !important;" CssClass="mymenuitem">
-                <Items>
-                    <DxMenuItem Text="Kas Bank & Giro" Name="register order penjualan" IconCssClass="sell" CssClass="mymenuitem"></DxMenuItem>
-
-                    <DxMenuItem Text="Pelunasan Hutang" Name="register order penjualan" IconCssClass="sell" CssClass="mymenuitem"></DxMenuItem>
-                    <DxMenuItem Text="Pelunasan Piutang" Name="register order pembelian" IconCssClass="receipt" CssClass="mymenuitem"></DxMenuItem>
-                </Items>
-            </DxMenuItem>
-            <DxMenuItem Text="Akuntan" Name="akuntan" IconCssClass="account_balance" CssClass="mymenuitem">
-                <Items>
-                    <DxMenuItem Text="Jurnal Memorial" Name="register order penjualan" IconCssClass="sell" CssClass="mymenuitem"></DxMenuItem>
-                    <DxMenuItem Text="Buku Besar" Name="register order penjualan" IconCssClass="sell" CssClass="mymenuitem"></DxMenuItem>
-                    <DxMenuItem Text="Inventaris & Penyusutan" Name="register order pembelian" IconCssClass="receipt" CssClass="mymenuitem"></DxMenuItem>
-                </Items>
-
-            </DxMenuItem>
-
-            <DxMenuItem Text="Laporan" Name=";register pesanan" IconCssClass="account_balance" CssClass="mymenuitem" style="border-top: 2px solid rgba(192, 192, 192, 0.25) !important;">
-                <Items>
-                    <DxMenuItem Text="Pesanan" IconCssClass="account_balance" CssClass="mymenuitem">
-                        <Items>
-                            <!-- Third Level Menu Items -->
-                            <DxMenuItem Text="Order Pembelian & Outstanding" IconCssClass="sell" CssClass="mymenuitem"></DxMenuItem>
-                            <DxMenuItem Text="Order Penjualan & Outstanding" IconCssClass="sell" CssClass="mymenuitem"></DxMenuItem>
-
-                        </Items>
-                    </DxMenuItem>
-
-                    <DxMenuItem Text="Inventori" IconCssClass="account_balance" CssClass="mymenuitem">
-                        <Items>
-                            <!-- Third Level Menu Items -->
-                            <DxMenuItem Text="Persediaan" IconCssClass="star" CssClass="mymenuitem"></DxMenuItem>
-                            <DxMenuItem Text="Register Transaksi" IconCssClass="account_balance" CssClass="mymenuitem">
-                                <Items>
-                                    <!-- Third Level Menu Items -->
-                                    <DxMenuItem Text="Pembelian" IconCssClass="star" CssClass="mymenuitem mymenutitem"></DxMenuItem>
-                                    <DxMenuItem Text="Retur Pembelian" IconCssClass="star" CssClass="mymenuitem mymenutitem"></DxMenuItem>
-                                    <DxMenuItem Text="Penjualan" IconCssClass="star" CssClass="mymenuitem mymenutitem"></DxMenuItem>
-                                    <DxMenuItem Text="Retur Penjualan" IconCssClass="star" CssClass="mymenuitem mymenutitem"></DxMenuItem>
-                                    <DxMenuItem Text="Mutasi" IconCssClass="star" CssClass="mymenuitem mymenutitem"></DxMenuItem>
-                                    <DxMenuItem Text="Penyesuaian" IconCssClass="star" CssClass="mymenuitem mymenutitem"></DxMenuItem>
-                                    <DxMenuItem Text="Opname" IconCssClass="star" CssClass="mymenuitem mymenutitem"></DxMenuItem>
-
-                                </Items>
-                            </DxMenuItem>
-
-                        </Items>
-                    </DxMenuItem>
-                    <DxMenuItem Text="Hutang" IconCssClass="star" CssClass="mymenuitem"></DxMenuItem>
-                    <DxMenuItem Text="Piutang" IconCssClass="star" CssClass="mymenuitem"></DxMenuItem>
-                    <DxMenuItem Text="Kas Bank & Giro" IconCssClass="account_balance" CssClass="mymenuitem">
-                        <Items>
-                            <!-- Third Level Menu Items -->
-                            <DxMenuItem Text="Register Kas Bank Giro" IconCssClass="star" CssClass="mymenuitem"></DxMenuItem>
-                            <DxMenuItem Text="Laporan Giro" IconCssClass="star" CssClass="mymenuitem"></DxMenuItem>
-                            <DxMenuItem Text="Laporan Kas Bank" IconCssClass="star" CssClass="mymenuitem"></DxMenuItem>
-
-                        </Items>
-                    </DxMenuItem>
-                    <DxMenuItem Text="Akuntan" IconCssClass="account_balance" CssClass="mymenuitem">
-                        <Items>
-                            <!-- Third Level Menu Items -->
-                            <DxMenuItem Text="Buku Besar" IconCssClass="star" CssClass="mymenuitem"></DxMenuItem>
-                            <DxMenuItem Text="Jurnal Memorial" IconCssClass="star" CssClass="mymenuitem"></DxMenuItem>
-                            <DxMenuItem Text="Inventaris & Penyusutan" IconCssClass="star" CssClass="mymenuitem"></DxMenuItem>
-                            <DxMenuItem Text="Laba Rugi" IconCssClass="star" CssClass="mymenuitem"></DxMenuItem>
-                            <DxMenuItem Text="Neraca" IconCssClass="star" CssClass="mymenuitem"></DxMenuItem>
-                            <DxMenuItem Text="Arus Kas" IconCssClass="star" CssClass="mymenuitem"></DxMenuItem>
-                            <DxMenuItem Text="Perubahan Ekuitas" IconCssClass="star" CssClass="mymenuitem"></DxMenuItem>
-
-                        </Items>
-                    </DxMenuItem>
-                </Items>
-            </DxMenuItem>
-            <DxMenuItem Text="Database" Name="register order penjualan" IconCssClass="sell" CssClass="mymenuitem" style="border-top: 2px solid rgba(192, 192, 192, 0.25) !important;">
-
-                <Items>
-                    <DxMenuItem Text="Backup Sekarang" IconCssClass="star" CssClass="mymenuitem"></DxMenuItem>
-                </Items>
-            </DxMenuItem>
-            <DxMenuItem Text="Pengaturan" Name="register order penjualan" IconCssClass="sell" CssClass="mymenuitem"></DxMenuItem>
-        </Items>
-    </DxMenu> *@
-
-    <RadzenPanelMenu Style="width: 250px;" Click="(item) => OnItemClick(item)">
-        @* <RadzenPanelMenuItem Text="Dashboard" Value="@("dashboard")" /> *@
-        <RadzenPanelMenuItem Text="Realtime" Value="@("realtime")" />
-        <RadzenPanelMenuItem Text="History" Value="@("history")" />
-        <RadzenPanelMenuItem Text="Chart" Value="@("chart")" />
-        @if (isAdmin)
-        {
-            <RadzenPanelMenuItem Text="User" Value="@("user")" />
-            <RadzenPanelMenuItem Text="Setting" Value="@("setting")" />
-            <RadzenPanelMenuItem Text="Push Data" Value="@("push-data")" />
-        }
+		@if (isAdmin)
+		{
+			<div style="border-bottom: 1px solid rgba(0,0,0,0.1); margin: 8px 12px;"></div>
+			<RadzenPanelMenuItem Text="User" Value="@("user")" Icon="people" />
+			<RadzenPanelMenuItem Text="Setting" Value="@("setting")" Icon="settings" />
+			<RadzenPanelMenuItem Text="Push Data" Value="@("push-data")" Icon="cloud_upload" />
+		}
 	</RadzenPanelMenu>
-
 
 	<br />
 	<br />
@@ -162,83 +71,59 @@ border: 0; margin: 0; margin-bottom: 0em !important">
 
 
 @code {
+	private List<string> TableNames = new();
 
+	// Cek Role Admin
+	[Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; }
+	private bool isAdmin = false;
+	protected override async Task OnInitializedAsync()
+	{
+		var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+		var user = authState.User;
 
-	/*private void OnMenuClick(Radzen.MenuItemEventArgs args)
-    {
-    if (args.Value != null)
-            {
-            var id = args.Value.ToString();
+		if (user.Identity?.IsAuthenticated == true)
+		{
+			isAdmin = user.IsInRole("admin");
+		}
 
-            if (id == "keluar")
-        {
-
-        } else
-        {
-        var title = args.Text;
-
-        // Trigger the service to open the tab
-        TabService.OpenTab(id, title);
-    }
-
-
-    }
-
-    }*/
-
-    // Cek Role Admin
-    [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; }
-    private bool isAdmin = false;
-    protected override async Task OnInitializedAsync()
-    {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        if (user.Identity?.IsAuthenticated == true)
-        {
-            isAdmin = user.IsInRole("admin");
-        }
-    }
+		try
+		{
+			var data = await MachineService.Browse();
+			if (data != null)
+			{
+				TableNames = data.Keys.OrderBy(k => k).ToList();
+			}
+		}
+		catch
+		{
+		}
+	}
 
 	protected override void OnInitialized()
 	{
-		TabService.OnSidebarToggle += StateHasChanged; // Subscribe to updates
+		TabService.OnSidebarToggle += StateHasChanged;
 	}
 
 	public void Dispose()
 	{
-		TabService.OnSidebarToggle -= StateHasChanged; // Unsubscribe to prevent memory leaks
+		TabService.OnSidebarToggle -= StateHasChanged;
 	}
 
-    // DevExpress
-	// void OnItemClickDev(MenuItemClickEventArgs e)
-	// {
-
-	// 	var id = e.ItemInfo.Name;
-	// 	var title = e.ItemInfo.Text;
-
-	// 	if (title != null && id != null)
-	// 	{
-	// 		if (id == "keluar")
-	// 		{
-	// 			return;
-	// 		}
-	// 		if (id.Contains(";"))
-	// 		{
-	// 			return;
-	// 		}
-	// 		TabService.OpenTab(id, title);
-	// 	}
-	// }
-
-    // Radzen
+	// Radzen
 	void OnItemClick(Radzen.MenuItemEventArgs item)
 	{
-        var id = item.Value.ToString();
+		var id = item.Value.ToString();
 		var title = item.Text;
 
 		if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(title))
+		{
 			return;
+		}
+
+		if (id == "realtime-parent")
+        {
+            return;
+        }
 
 		if (id == "keluar")
 		{
@@ -249,6 +134,36 @@ border: 0; margin: 0; margin-bottom: 0em !important">
 		{
 			return;
 		}
+
+		// if (id == "realtime")
+  //       {
+  //           title = "Realtime Table";
+  //       }
+  //       else if (id.StartsWith("realtime:"))
+  //       {
+  //           var tableName = id.Split(':')[1];
+  //           title = $"Realtime: {tableName}"; 
+  //       }
+
+		if (id == "realtime")
+        {
+            if (TableNames != null)
+            {
+                foreach (var table in TableNames)
+                {
+                    var tabId = $"realtime:{table}";
+                    var tabTitle = $"Realtime: {table}";
+                    
+                    TabService.OpenTab(tabId, tabTitle);
+                }
+            }
+            return;
+        }
+        else if (id.StartsWith("realtime:"))
+        {
+            var tableName = id.Split(':')[1];
+            title = $"Realtime: {tableName}";
+        }
 
 		TabService.OpenTab(id, title);
 	}

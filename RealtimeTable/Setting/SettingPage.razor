@@ -17,7 +17,7 @@
 				<div class="d-flex flex-wrap align-items-center">
 					<div>
 						<h6 class="mb-0" style="font-size: 24px; font-weight: 600;">Setting</h6>
-						<p class="text-sm">Sesuaikan sistem sesuai gaya kerja Anda.</p>
+						<p class="text-sm"></p>
 						@{
 							var init = Convert.ToDateTime(settingData.UpdatedAt);
 							var culture = new System.Globalization.CultureInfo("id-ID");
@@ -39,22 +39,22 @@
 			<div class="card-body px-0 py-0">
 				<div class="table-responsive p-0 ms-3">
 					<RadzenTemplateForm TItem="Settings" Data="@settingData" Submit="@HandleValidSubmit" class="my-3 me-3">
-						<RadzenStack class="form-size-custom" Gap="1rem">
+						<RadzenStack class="d-flex justify-content-start form-size-custom" Gap="1rem">
 							<RadzenRow AlignItems="AlignItems.Center">
-								<RadzenColumn Size="12" SizeMD="4">
+								<RadzenColumn Size="12" SizeMD="6">
 									<RadzenLabel Text="Realtime Fetch (detik):" />
 								</RadzenColumn>
-								<RadzenColumn Size="12" SizeMD="8">
+								<RadzenColumn Size="12" SizeMD="6">
 									<RadzenNumeric Min="1" Step="1" ShowUpDown="false" @bind-Value="settingData.RealTimeFreq" Name="RealTimeFreq" Format="N0" Style="width: 100%;" @onfocusin="@(e => SelectAll(e))" />
 									<RadzenNumericRangeValidator Component="RealTimeFreq" Min="1" Text="Realtime Fetch minimal bernilai 1" />
 								</RadzenColumn>
 							</RadzenRow>
 
 							<RadzenRow AlignItems="AlignItems.Center">
-								<RadzenColumn Size="12" SizeMD="4">
-									<RadzenLabel Text="Push Freq.  (detik):" />
+								<RadzenColumn Size="12" SizeMD="6">
+									<RadzenLabel Text="Push Freq. History (detik):" />
 								</RadzenColumn>
-								<RadzenColumn Size="12" SizeMD="8">
+								<RadzenColumn Size="12" SizeMD="6">
 									<RadzenNumeric Min="1" Step="1" ShowUpDown="false" @bind-Value="settingData.PushFreq" Name="PushFreq" Format="N0" Style="width: 100%;" @onfocusin="@(e => SelectAll(e))" />
 									<RadzenNumericRangeValidator Component="PushFreq" Min="1" Text="Push Freq. minimal bernilai 1" />
 								</RadzenColumn>

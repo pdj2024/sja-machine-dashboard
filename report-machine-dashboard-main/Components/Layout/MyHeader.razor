@@ -1,51 +1,138 @@
 ﻿@inject Services.TabService TabService
 @rendermode InteractiveServer
 
+@inject TooltipService tooltipService
+@inject IJSRuntime jsRuntime
+@inject RealtimeTable.Interfaces.IPushDataService PushDataService
+@using System.Timers
+
 <RadzenRow JustifyContent="JustifyContent.Start" AlignItems="AlignItems.Center" Gap="0" Style="height: 100%!important; ">
-    <RadzenColumn Size="5" Style="height: 100%!important; ">
+	<RadzenColumn Size="3" Style="height: 100%!important; ">
+		<Button @onclick="TabService.SidebarToggleClick" style="height: 100%!important; width: auto !important; aspect-ratio: 1 / 1 !important; display: flex; align-items: center; justify-content: center;  border: none; border-right: 1px solid #ebeef2; border-radius: 0; box-shadow: none; background-color: transparent;">
+			<Icon Name="IconName.List" Size="IconSize.x3" />
+		</Button>
+	</RadzenColumn>
 
+	<RadzenColumn Size="9">
+		<RadzenStack AlignItems="AlignItems.Center" Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.End">
+			<div class="d-flex flex-wrap align-items-center gap-1">
+				<div>Push History: </div>
+				@if (pushData.Running)
+				{
+					<RadzenText
+						class="text-success fw-bold cursor-pointer m-0"
+						Text="🟢 Running"
+						MouseEnter="@(args => ShowTooltipWithHtmlStart(args, new TooltipOptions
+						{
+							Style = "background: #ffffff; color: #1e3a6a; border: 1px solid #1e3a6a; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 8px; padding: 8px 12px; max-width: 220px; font-size: 14px;",
+							Position = TooltipPosition.Bottom,
+							Duration = 3000
+						}))"
+					/>
+				}
+				else
+				{
+					<RadzenText
+						class="text-danger fw-bold cursor-pointer m-0"
+						Text="🔴 Stopped"
+						MouseEnter="@(args => ShowTooltipWithHtmlStop(args, new TooltipOptions
+						{
+							Style = "background: #ffffff; color: #1e3a6a; border: 1px solid #1e3a6a; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 8px; padding: 8px 12px; max-width: 220px; font-size: 14px;",
+							Position = TooltipPosition.Bottom,
+							Duration = 3000
+						}))"
+					/>
+				}
+			</div>
+			<RadzenProfileMenu>
+				<Template>
+					<img src="images/default-avatar.jpg" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; margin-right: 5px;" />
 
-        <Button @onclick="TabService.SidebarToggleClick" style="height: 100%!important; width: auto !important; aspect-ratio: 1 / 1 !important; display: flex; align-items: center; justify-content: center;  border: none; border-right: 1px solid #ebeef2; border-radius: 0; box-shadow: none; background-color: transparent;">
-            <Icon Name="IconName.List" Size="IconSize.x3" />
-        </Button>
-    </RadzenColumn>
-    <RadzenColumn Size="7">
-        <RadzenStack AlignItems="AlignItems.Center" Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.End">
-            <RadzenProfileMenu>
-                <Template>
-                    <img src="images/default-avatar.jpg" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; margin-right: 5px;" />
-
-                    @if (!string.IsNullOrEmpty(username))
-                    {
-                        <span style="font-weight: 600; color: #1e3a6a;">@username</span>
-                    }
-                    else
-                    {
-                        <span style="font-weight: 600; color: #1e3a6a;">Username</span>
-                    }
-                </Template>
-                <ChildContent>
-                    <RadzenProfileMenuItem Text="Logout" Path="logout" Icon="logout"></RadzenProfileMenuItem>
-                </ChildContent>
-            </RadzenProfileMenu>
-
-            @* <a href="/logout"><RadzenButton Icon="exit_to_app" Style="background-color: transparent; color: #1e3a6a;   text-align: center !important;" Text="Logout" /></a> *@
-           
-        </RadzenStack>
-    </RadzenColumn>
+					@if (!string.IsNullOrEmpty(username))
+					{
+						<span class="text-wrap fw-bold" style="color: #1e3a6a;">@username</span>
+					}
+					else
+					{
+						<span class="text-wrap fw-bold" style="color: #1e3a6a;">Username</span>
+					}
+				</Template>
+				<ChildContent>
+					<RadzenProfileMenuItem Text="Logout" Path="logout" Icon="logout"></RadzenProfileMenuItem>
+				</ChildContent>
+			</RadzenProfileMenu>
+		</RadzenStack>
+	</RadzenColumn>
 </RadzenRow>
 
 @code {
-    [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; }
-    private string? username;
-    protected override async Task OnInitializedAsync()
-    {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
+	[Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; }
 
-        if (user.Identity?.IsAuthenticated == true)
-        {
-            username = user.Identity?.Name;
-        }
-    }
+	private string? username;
+
+	private RealtimeTable.Models.PushDataModel pushData = new();
+	private Timer? _timer;
+
+	// Timer Auto Fetch
+	private Timer updateTimer;
+	private double updateInterval = 60000; // 60 detik
+
+	protected override async Task OnInitializedAsync()
+	{
+		var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+		var user = authState.User;
+
+		if (user.Identity?.IsAuthenticated == true)
+		{
+			username = user.Identity?.Name;
+		}
+
+		await LoadData();
+		SetupTimer(updateInterval);
+		base.OnInitialized();
+	}
+
+	private async Task LoadData()
+	{
+		pushData = await PushDataService.GetStatus();
+		StateHasChanged();
+	}
+
+	private void SetupTimer(double interval)
+	{
+		updateTimer?.Dispose();
+		updateTimer = new Timer(interval);
+		updateTimer.Elapsed += async (s, e) => await UpdateDataAsync();
+		updateTimer.AutoReset = true;
+		updateTimer.Enabled = true;
+	}
+
+	private async Task UpdateDataAsync()
+	{
+		await InvokeAsync(async () =>
+		{
+			await LoadData();
+			StateHasChanged();
+		});
+	}
+
+	public void Dispose()
+	{
+		updateTimer?.Dispose();
+	}
+
+	private void ShowTooltipWithHtmlStart(ElementReference elementReference, TooltipOptions options = null)
+	{
+		tooltipService.Open(elementReference, ds => @<div>
+			<div style="font-weight: 600; margin-bottom: 3px;">Last Push</div>
+			<div style="color:#1e3a6a;">@(pushData.LastPush?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</div>
+		</div>, options);
+	}
+	
+	private void ShowTooltipWithHtmlStop(ElementReference elementReference, TooltipOptions options = null)
+	{
+		tooltipService.Open(elementReference, ds => @<div>
+			<div style="font-weight: 600; margin-bottom: 3px;">Segera Hubungi Admin!</div>
+		</div>, options);
+	}
 }

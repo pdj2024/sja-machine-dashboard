@@ -1,24 +1,26 @@
 ﻿.value-changed {
-    animation: smooth-blue 1.5s ease-in-out;
+    animation: smooth-blue 1s ease-in-out;
 }
 
 @keyframes smooth-blue {
     0% {
-        background-color: #1e3a6a;
+        /*background-color: #1e3a6a;
         color: #ffffff;
-        border-radius: 3px;
+        border-radius: 3px;*/
+        color: #198754;
     }
 
     40% {
-        background-color: #384a68;
+        /*background-color: #384a68;
         color: #ffffff;
-        border-radius: 3px;
+        border-radius: 3px;*/
+        color: #198754;
     }
 
     100% {
-        background-color: transparent;
+        /*background-color: transparent;
+        border-radius: 3px;*/
         color: inherit;
-        border-radius: 3px;
     }
 }
 
@@ -45,27 +47,27 @@
     z-index: 99999 !important;
 }
 /* SUCCESS */
-.rz-notification-success .rz-notification-item {
-    background-color: #00D390 !important;
-    color: #09090B !important;
+.rz-notification-success .rz-notification-item, .rz-notification-success .rz-notification-item .rz-notification-icon {
+    background-color: #d4edda !important;
+    color: #155724 !important;
 }
 
 /* INFO */
-.rz-notification-info .rz-notification-item {
-    background-color: #00BAFE !important;
-    color: #09090B !important;
+.rz-notification-info .rz-notification-item, .rz-notification-info .rz-notification-item .rz-notification-icon {
+    background-color: #CDE8F6 !important;
+    color: #447EAF !important;
 }
 
 /* WARNING */
-.rz-notification-warn .rz-notification-item {
-    background-color: #FCB700 !important;
-    color: #09090B !important;
+.rz-notification-warn .rz-notification-item, .rz-notification-warn .rz-notification-item .rz-notification-icon {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
 }
 
 /* ERROR */
-.rz-notification-error .rz-notification-item {
-    background-color: #FF627D !important;
-    color: #09090B !important;
+.rz-notification-error .rz-notification-item, .rz-notification-error .rz-notification-item .rz-notification-icon {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
 }
 
 /* Row Table Clicked Radzen */
@@ -79,29 +81,77 @@ ul.rz-profile-menu {
     border-inline-start: 0;
 }
 
+/* Radzen Table Drag Column */
+.rz-column-drag {
+    color: #ffffff;
+}
+
+/* Radzen Grouping Table */
+.rz-group-header-item {
+    border-radius: 21px;
+}
+.rz-group-header-item-title {
+    color: #1e3a6a;
+    margin-inline: 0px 3px;
+    font-size: 15px;
+}
+.rz-dialog-titlebar-icon.rz-dialog-titlebar-close {
+/*    color: #FF627D;*/
+}
+
+/* Radzen Table Search */
+.rz-cell-filter {
+    padding: 0;
+    margin: 0;
+/*    background-color: white;*/
+}
+.rz-grid-table .rz-textbox {
+    height: 35px;
+    border-radius: 2px;
+}
+.rz-cell-filter .rz-cell-filter-label {
+    align-items: end;
+}
+
+
+
+/* Responsive Design */
 .form-size-custom {
-    width: 65% !important;
-    margin: auto;
+    width: 40% !important;
+}
+
+.table-size-custom {
+    max-height: 70vh;
 }
 
 /* Screen xxl */
 @media (max-width: 1536px) {
     .form-size-custom {
-        width: 65% !important;
-        margin: auto;
+        width: 40% !important;
+    }
+
+    .table-size-custom {
+        max-height: 65vh;
     }
 }
 /* Screen xl */
 @media (max-width: 1280px) {
     .form-size-custom {
-        width: 70% !important;
-        margin: auto;
+        width: 40% !important;
+    }
+
+    .table-size-custom {
+        max-height: 62vh;
     }
 }
 /* Screen lg */
 @media (max-width: 1024px) {
     .form-size-custom {
-        width: 100% !important;
+        width: 40% !important;
+    }
+
+    .table-size-custom {
+        max-height: 62vh;
     }
 }
 /* Screen md */
@@ -109,11 +159,19 @@ ul.rz-profile-menu {
     .form-size-custom {
         width: 100% !important;
     }
+
+    .table-size-custom {
+        max-height: 60vh;
+    }
 }
 /* Screen sm */
 @media (max-width: 640px) {
     .form-size-custom {
         width: 100% !important;
+    }
+
+    .table-size-custom {
+        max-height: 60vh;
     }
 }
 /* Screen xs */
@@ -121,10 +179,18 @@ ul.rz-profile-menu {
     .form-size-custom {
         width: 100% !important;
     }
+
+    .table-size-custom {
+        max-height: 50vh;
+    }
 }
 /* Screen xxs */
 @media (max-width: 375px) {
     .form-size-custom {
         width: 100% !important;
+    }
+
+    .table-size-custom {
+        max-height: 43vh;
     }
 }
